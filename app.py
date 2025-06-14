@@ -17,13 +17,39 @@ creds = service_account.Credentials.from_service_account_file(
 service = build('sheets', 'v4', credentials=creds)
 sheet = service.spreadsheets()
 
-# Allowed teams list (strings)
-ALLOWED_TEAMS = [
-    "41", "316", "341", "365", "484", "694", "694B", "1218", "1599", "1599B",
-    "1640", "1908", "1923", "2016", "2377", "2495", "2539", "2539B", "2607",
-    "3136", "4099", "4575", "5113", "5113B", "5338", "5338B", "7414", "7770",
-    "9015", "10584"
-]
+TEAM_NAMES = {
+    "41": "RoboWarriors",
+    "316": "LUNATECS",
+    "341": "Miss Daisy",
+    "365": "Miracle Workerz",
+    "484": "Roboforce",
+    "694": "Stuypulse",
+    "694B": "Stuypulse second robot",
+    "1218": "SCH Robotics",
+    "1599": "CircuiTree",
+    "1599B": "CircuiTree second robot",
+    "1640": "Sab-BOT-age",
+    "1908": "Shorebots",
+    "1923": "The Midknight Inventors",
+    "2016": "The Mighty Monkey Wrenches",
+    "2377": "C-Company",
+    "2495": "Hive Mind",
+    "2539": "Krypton Cougars",
+    "2539B": "Krypton Cougars second robot",
+    "2607": "The Fighting Robovikings",
+    "3136": "O.R.C.A.",
+    "4099": "The Falcons",
+    "4575": "GEMINI",
+    "5113": "Combustible Lemons",
+    "5113B": "Combustible Lemons second robot",
+    "5338": "ACL RoboLoCo",
+    "5338B": "ACL RoboLoCo second robot",
+    "6897": "Astraea Robotics",
+    "7414": "RetroRobotics",
+    "7770": "Infinite Voltage",
+    "9015": "Questionable Engineering",
+    "10584": "Pennridge RoboRams"
+}
 
 @app.route('/', methods=['GET'])
 def form():
@@ -32,117 +58,181 @@ def form():
 @app.route('/submit', methods=['POST'])
 def submit():
     data = request.json
-    name = data.get('name')
-    team = str(data.get('team'))
-    match_number = data.get('match_number')
+
+    # --- Extract base data ---
+    name = data.get('name', '')
+    team = str(data.get('team', ''))
+    match_number = data.get('match_number', '')
     submitted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    if team not in ALLOWED_TEAMS:
-        return jsonify({'status': 'error', 'message': f'Team {team} is excluded or not recognized.'}), 400
-
+    # --- Extract nested info safely ---
     auto = data.get('auto', {})
     teleop = data.get('teleop', {})
     endgame = data.get('endgame', {})
     notes = data.get('notes', '')
 
+    # --- Create summary strings ---
+    auto_summary = (
+        f"L1:{auto.get('l1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
+        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}"
+    )
+    teleop_summary = (
+        f"L1:{teleop.get('l1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
+        f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}"
+    )
+
+    # --- Handle endgame summary robustly ---
+    endgame_action = endgame.get('action', '').strip().lower()
+    if endgame_action == 'climb':
+        climb_depth = endgame.get('climb_depth', '').strip()
+        if climb_depth:
+            endgame_summary = f"Climb({climb_depth})"
+        else:
+            endgame_summary = "Climb"
+    elif endgame_action == 'park':
+        endgame_summary = "Park"
+    else:
+        endgame_summary = "None"
+
+    # --- Compose the data row to insert ---
     data_row = [
         name,
         team,
         match_number,
         submitted_time,
-
-        auto.get('ll1', 0),
-        auto.get('l2', 0),
-        auto.get('l3', 0),
-        auto.get('l4', 0),
-        auto.get('processor', 0),
-        auto.get('barge', 0),
-
-        teleop.get('ll1', 0),
-        teleop.get('l2', 0),
-        teleop.get('l3', 0),
-        teleop.get('l4', 0),
-        teleop.get('processor', 0),
-        teleop.get('barge', 0),
+        auto_summary,
+        teleop_summary,
         teleop.get('offense_rating', 0),
         teleop.get('defense_rating', 0),
-
-        endgame.get('parked', 'No'),
-        endgame.get('climbed', 'No'),
-        endgame.get('climb_type', ''),
-
+        endgame_summary,
         notes
     ]
 
-    empty_row = [''] * 26
-    team_header = [f'Team {team}'] + [''] * 25
-    column_headers = [
-        "Scouter Name", "Team Number", "Match Number", "Submission Time",
-        "Auto L1", "Auto L2", "Auto L3", "Auto L4", "Auto Processor", "Auto Barge",
-        "Teleop L1", "Teleop L2", "Teleop L3", "Teleop L4", "Teleop Processor", "Teleop Barge",
-        "Offense Rating", "Defense Rating",
-        "Endgame Parked", "Endgame Climbed", "Climb Type", "Notes"
-    ]
-    # Pad up to 26
-    column_headers += [''] * (26 - len(column_headers))
-
-
-    # Read the full sheet data with fixed range using Sheet2
+    # --- Clear and rebuild the entire sheet with proper formatting ---
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Sheet2!A1:Z1000').execute()
     all_values = result.get('values', [])
-
-    # Find team header row
-    team_row_index = None
+    
+    # Group all data by team
+    teams_data = {}
     for i, row in enumerate(all_values):
-        if len(row) > 0 and row[0] == f'Team {team}':
-            team_row_index = i
-            break
-
-    if team_row_index is None:
-        # Append new team section at bottom: empty row, team header, column headers, data row
-        append_values = [empty_row, team_header, column_headers, data_row]
-
-        sheet.values().append(
-            spreadsheetId=SPREADSHEET_ID,
-            range='Sheet2!A1:Z1000',  # Append range on Sheet2
-            valueInputOption='RAW',
-            insertDataOption='INSERT_ROWS',
-            body={'values': append_values}
-        ).execute()
-    else:
-        # Insert new data row under existing team section
-        next_team_row_index = None
-        for j in range(team_row_index + 1, len(all_values)):
-            if len(all_values[j]) > 0 and all_values[j][0].startswith('Team '):
-                next_team_row_index = j
-                break
-
-        insert_row_index = next_team_row_index if next_team_row_index is not None else len(all_values)
-
-        # Insert blank row at insert_row_index to make space
-        requests = [
-            {
-                "insertDimension": {
+        if len(row) > 0:
+            if row[0].startswith('Team '):
+                # This is a team header, skip it
+                continue
+            elif row[0] == 'Scouter Name':
+                # This is a column header, skip it
+                continue
+            elif row[0] == '':
+                # Empty row, skip it
+                continue
+            else:
+                # This is data - extract team number from second column
+                if len(row) > 1:
+                    team_num = str(row[1])
+                    if team_num not in teams_data:
+                        teams_data[team_num] = []
+                    teams_data[team_num].append(row)
+    
+    # Add the new data
+    if team not in teams_data:
+        teams_data[team] = []
+    teams_data[team].append(data_row)
+    
+    # Clear the sheet
+    sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range='Sheet2!A1:Z1000').execute()
+    
+    # Rebuild with proper formatting
+    new_values = []
+    format_requests = []
+    current_row = 0
+    
+    for team_num in sorted(teams_data.keys(), key=int):
+        team_name = TEAM_NAMES.get(team_num, "Unknown Team")
+        
+        # Add empty row (except for the first team)
+        if current_row > 0:
+            new_values.append([''] * 10)
+            current_row += 1
+        
+        # Add team header
+        team_header = [f'Team {team_num}: {team_name}'] + [''] * 9
+        new_values.append(team_header)
+        
+        # Format team header as bold
+        format_requests.append({
+            "repeatCell": {
+                "range": {
+                    "sheetId": 0,
+                    "startRowIndex": current_row,
+                    "endRowIndex": current_row + 1
+                },
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+                "fields": "userEnteredFormat.textFormat.bold"
+            }
+        })
+        current_row += 1
+        
+        # Add column headers
+        column_headers = [
+            "Scouter Name", "Team Number", "Match Number", "Submission Time",
+            "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
+            "Endgame Summary", "Notes"
+        ]
+        new_values.append(column_headers)
+        current_row += 1
+        
+        # Sort data by match number and add all data for this team (no spaces between data rows)
+        sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
+        for data_entry in sorted_data:
+            new_values.append(data_entry)
+            # Format data rows as non-bold
+            format_requests.append({
+                "repeatCell": {
                     "range": {
                         "sheetId": 0,
-                        "dimension": "ROWS",
-                        "startIndex": insert_row_index,
-                        "endIndex": insert_row_index + 1
+                        "startRowIndex": current_row,
+                        "endRowIndex": current_row + 1
                     },
-                    "inheritFromBefore": False
+                    "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
+                    "fields": "userEnteredFormat.textFormat.bold"
                 }
-            }
-        ]
-        service.spreadsheets().batchUpdate(spreadsheetId=SPREADSHEET_ID, body={"requests": requests}).execute()
-
-        # Update the inserted row with the data
-        update_range = f'Sheet2!A{insert_row_index + 1}:Z{insert_row_index + 1}'
-
+            })
+            current_row += 1
+    
+    # Write all data at once
+    if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=update_range,
+            range=f'Sheet2!A1:J{len(new_values)}',
             valueInputOption='RAW',
-            body={'values': [data_row]}
+            body={'values': new_values}
+        ).execute()
+    
+    # Add left alignment for Match Number column (column C)
+    if new_values:
+        format_requests.append({
+            "repeatCell": {
+                "range": {
+                    "sheetId": 0,
+                    "startColumnIndex": 2,  # Column C (0-indexed)
+                    "endColumnIndex": 3,
+                    "startRowIndex": 0,
+                    "endRowIndex": len(new_values)
+                },
+                "cell": {
+                    "userEnteredFormat": {
+                        "horizontalAlignment": "LEFT"
+                    }
+                },
+                "fields": "userEnteredFormat.horizontalAlignment"
+            }
+        })
+    
+    # Apply formatting
+    if format_requests:
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID, 
+            body={"requests": format_requests}
         ).execute()
 
     return jsonify({'status': 'success'})

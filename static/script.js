@@ -44,7 +44,7 @@ document.getElementById('scout-form').addEventListener('submit', async (e) => {
     match_number: Number(match),
     notes: notes,
     auto: {
-      ll1: Number(document.getElementById('auto_ll1').value),
+      l1: Number(document.getElementById('auto_ll1').value), // Fixed: changed ll1 to l1
       l2: Number(document.getElementById('auto_l2').value),
       l3: Number(document.getElementById('auto_l3').value),
       l4: Number(document.getElementById('auto_l4').value),
@@ -52,7 +52,7 @@ document.getElementById('scout-form').addEventListener('submit', async (e) => {
       barge: Number(document.getElementById('auto_barge').value),
     },
     teleop: {
-      ll1: Number(document.getElementById('teleop_ll1').value),
+      l1: Number(document.getElementById('teleop_ll1').value), // Fixed: changed ll1 to l1
       l2: Number(document.getElementById('teleop_l2').value),
       l3: Number(document.getElementById('teleop_l3').value),
       l4: Number(document.getElementById('teleop_l4').value),
@@ -62,9 +62,8 @@ document.getElementById('scout-form').addEventListener('submit', async (e) => {
       defense_rating: Number(document.getElementById('defense_rating').value),
     },
     endgame: {
-      parked: endgameVal === 'park' ? 'Yes' : 'No',
-      climbed: endgameVal === 'climb' ? 'Yes' : 'No',
-      climb_type: climbDepthSelect.value,
+      action: endgameVal, // Fixed: send the actual action value
+      climb_depth: endgameVal === 'climb' ? climbDepthSelect.value : '' // Fixed: send climb_depth when climbing
     }
   };
 
