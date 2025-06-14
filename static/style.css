@@ -154,7 +154,6 @@ select:focus {
     to {opacity: 1;}
 }
 
-/* Responsive for mobile */
 @media (max-width: 480px) {
     .form-row {
     flex-direction: column;
