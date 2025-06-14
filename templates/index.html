@@ -4,174 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🚀 FRC Scouting App - Space Theme 🚀</title>
-  <style>
-    /* Space themed blue styling */
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron&display=swap');
-
-    body {
-      margin: 0;
-      font-family: 'Orbitron', monospace, Arial, sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-      color: #c7d2fe;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 40px 20px;
-    }
-
-    .container {
-      background: rgba(10, 25, 50, 0.85);
-      border-radius: 12px;
-      box-shadow: 0 0 20px #3b82f6cc;
-      max-width: 600px;
-      width: 100%;
-      padding: 30px 40px;
-    }
-
-    h1 {
-      text-align: center;
-      color: #60a5fa;
-      margin-bottom: 30px;
-      text-shadow: 0 0 8px #3b82f6;
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #93c5fd;
-    }
-
-    input[type="text"],
-    input[type="number"],
-    select {
-      width: 100%;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1.5px solid #2563eb;
-      background: #1e40af;
-      color: #e0e7ff;
-      font-size: 1rem;
-      transition: border-color 0.3s ease;
-    }
-
-    input[type="text"]:focus,
-    input[type="number"]:focus,
-    select:focus {
-      outline: none;
-      border-color: #60a5fa;
-      box-shadow: 0 0 10px #60a5faaa;
-    }
-
-    .tabs {
-      margin: 25px 0 20px;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-    }
-
-    .tab-btn {
-      background: #1e3a8a;
-      border: none;
-      color: #93c5fd;
-      font-weight: 700;
-      font-size: 1rem;
-      padding: 10px 25px;
-      border-radius: 30px;
-      cursor: pointer;
-      transition: background 0.3s ease, color 0.3s ease;
-      box-shadow: 0 0 8px transparent;
-      user-select: none;
-    }
-
-    .tab-btn:hover {
-      background: #2563eb;
-      color: #e0e7ff;
-      box-shadow: 0 0 15px #60a5faaa;
-    }
-
-    .tab-btn.active {
-      background: #60a5fa;
-      color: #0f172a;
-      box-shadow: 0 0 20px #60a5fa;
-    }
-
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.4s ease forwards;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 15px;
-      flex-wrap: wrap;
-      margin-bottom: 15px;
-    }
-
-    .form-row label {
-      flex: 1 1 120px;
-      font-weight: 500;
-      color: #bfdbfe;
-    }
-
-    .form-row input {
-      width: 100%;
-      padding: 8px 10px;
-      border-radius: 6px;
-      border: 1.2px solid #2563eb;
-      background: #1e40af;
-      color: #e0e7ff;
-    }
-
-    .submit-btn {
-      margin-top: 25px;
-      background: #3b82f6;
-      border: none;
-      padding: 14px 30px;
-      border-radius: 50px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #0f172a;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      display: block;
-      width: 100%;
-      box-shadow: 0 0 12px #3b82f6;
-    }
-
-    .submit-btn:hover {
-      background: #60a5fa;
-      box-shadow: 0 0 20px #60a5fa;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    @keyframes fadeIn {
-      from {opacity: 0;}
-      to {opacity: 1;}
-    }
-
-    /* Responsive for mobile */
-    @media (max-width: 480px) {
-      .form-row {
-        flex-direction: column;
-      }
-      .form-row label {
-        flex: 1 1 100%;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="container">
@@ -191,13 +24,13 @@
         <input type="number" id="match" required />
       </div>
 
-      <div class="tabs" role="tablist" aria-label="Scouting categories">
-        <button type="button" class="tab-btn active" data-tab="auto" role="tab" aria-selected="true" aria-controls="auto" id="tab-auto">AUTO</button>
-        <button type="button" class="tab-btn" data-tab="teleop" role="tab" aria-selected="false" aria-controls="teleop" id="tab-teleop">TELEOP</button>
-        <button type="button" class="tab-btn" data-tab="endgame" role="tab" aria-selected="false" aria-controls="endgame" id="tab-endgame">ENDGAME</button>
+      <div class="tabs">
+        <button type="button" class="tab-btn active" data-tab="auto">AUTO</button>
+        <button type="button" class="tab-btn" data-tab="teleop">TELEOP</button>
+        <button type="button" class="tab-btn" data-tab="endgame">ENDGAME</button>
       </div>
 
-      <div id="auto" class="tab-content active" role="tabpanel" aria-labelledby="tab-auto">
+      <div id="auto" class="tab-content active">
         <h2>Auto</h2>
         <div class="form-row">
           <label>L1 <input type="number" min="0" id="auto_ll1" value="0" /></label>
@@ -211,7 +44,7 @@
         </div>
       </div>
 
-      <div id="teleop" class="tab-content" role="tabpanel" aria-labelledby="tab-teleop">
+      <div id="teleop" class="tab-content">
         <h2>Teleop</h2>
         <div class="form-row">
           <label>L1 <input type="number" min="0" id="teleop_ll1" value="0" /></label>
@@ -229,7 +62,7 @@
         </div>
       </div>
 
-      <div id="endgame" class="tab-content" role="tabpanel" aria-labelledby="tab-endgame">
+      <div id="endgame" class="tab-content">
         <h2>Endgame</h2>
         <label for="endgame_action">Endgame Action</label>
         <select id="endgame_action" required>
@@ -247,107 +80,15 @@
         </select>
       </div>
 
+      <div class="form-group">
+        <label for="notes">Extra Notes</label>
+        <textarea id="notes" rows="3" placeholder="Any additional notes here..."></textarea>
+      </div>
+
       <button type="submit" class="submit-btn">Submit</button>
     </form>
   </div>
 
-  <script>
-    // Tabs switching
-    const tabs = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabs.forEach(btn => {
-      btn.addEventListener('click', () => {
-        tabs.forEach(b => {
-          b.classList.remove('active');
-          b.setAttribute('aria-selected', 'false');
-        });
-        btn.classList.add('active');
-        btn.setAttribute('aria-selected', 'true');
-
-        tabContents.forEach(c => {
-          c.classList.toggle('active', c.id === btn.dataset.tab);
-        });
-      });
-    });
-
-    // Show/hide climb depth selector based on endgame action
-    const endgameAction = document.getElementById('endgame_action');
-    const climbDepthLabel = document.getElementById('climb_depth_label');
-    const climbDepthSelect = document.getElementById('climb_depth');
-
-    endgameAction.addEventListener('change', () => {
-      const isClimb = endgameAction.value === 'climb';
-      climbDepthLabel.classList.toggle('hidden', !isClimb);
-      climbDepthSelect.classList.toggle('hidden', !isClimb);
-      if (!isClimb) climbDepthSelect.value = '';
-    });
-
-    // Form submit
-    document.getElementById('scout-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      // Basic validation
-      const name = document.getElementById('name').value.trim();
-      const team = document.getElementById('team').value.trim();
-      const match = document.getElementById('match').value.trim();
-
-      if (!name || !team || !match) {
-        alert('Please fill out all required fields!');
-        return;
-      }
-
-      const endgameVal = endgameAction.value;
-
-      const data = {
-        name: name,
-        team: Number(team),
-        match_number: Number(match),
-        auto: {
-          ll1: Number(document.getElementById('auto_ll1').value),
-          l2: Number(document.getElementById('auto_l2').value),
-          l3: Number(document.getElementById('auto_l3').value),
-          l4: Number(document.getElementById('auto_l4').value),
-          processor: Number(document.getElementById('auto_processor').value),
-          barge: Number(document.getElementById('auto_barge').value),
-        },
-        teleop: {
-          ll1: Number(document.getElementById('teleop_ll1').value),
-          l2: Number(document.getElementById('teleop_l2').value),
-          l3: Number(document.getElementById('teleop_l3').value),
-          l4: Number(document.getElementById('teleop_l4').value),
-          processor: Number(document.getElementById('teleop_processor').value),
-          barge: Number(document.getElementById('teleop_barge').value),
-          offense_rating: Number(document.getElementById('offense_rating').value),
-          defense_rating: Number(document.getElementById('defense_rating').value),
-        },
-        endgame: {
-          parked: endgameVal === 'park' ? 'Yes' : 'No',
-          climbed: endgameVal === 'climb' ? 'Yes' : 'No',
-          climb_type: climbDepthSelect.value,
-        }
-      };
-
-      try {
-        const res = await fetch('http://localhost:5000/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-
-        if (res.ok) {
-          alert('Data submitted successfully!');
-          e.target.reset();
-          climbDepthLabel.classList.add('hidden');
-          climbDepthSelect.classList.add('hidden');
-          tabs[0].click();  // Switch back to Auto tab
-        } else {
-          alert('Submission failed. Try again.');
-        }
-      } catch (error) {
-        alert('Error submitting data: ' + error.message);
-      }
-    });
-  </script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
