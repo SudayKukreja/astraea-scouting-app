@@ -9,7 +9,7 @@ CORS(app)
 
 SERVICE_ACCOUNT_FILE = 'credentials.json'
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-SPREADSHEET_ID = '1FN0yuBTIiUTbzGpVxh0UG_l6YYhtbHlxfNxuNgUkE10'
+SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
 
 creds = service_account.Credentials.from_service_account_file(
     SERVICE_ACCOUNT_FILE, scopes=SCOPES
@@ -83,7 +83,9 @@ def submit():
         "Offense Rating", "Defense Rating",
         "Endgame Parked", "Endgame Climbed", "Climb Type", "Notes"
     ]
+    # Pad up to 26
     column_headers += [''] * (26 - len(column_headers))
+
 
     # Read the full sheet data with fixed range using Sheet2
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Sheet2!A1:Z1000').execute()
@@ -122,7 +124,7 @@ def submit():
             {
                 "insertDimension": {
                     "range": {
-                        "sheetId": 911578026,
+                        "sheetId": 0,
                         "dimension": "ROWS",
                         "startIndex": insert_row_index,
                         "endIndex": insert_row_index + 1
