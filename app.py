@@ -49,7 +49,8 @@ TEAM_NAMES = {
     "7414": "RetroRobotics",
     "7770": "Infinite Voltage",
     "9015": "Questionable Engineering",
-    "10584": "Pennridge RoboRams"
+    "10584": "Pennridge RoboRams",
+    "69": "this is a funny easter egg"
 }
 
 @app.route('/', methods=['GET'])
