@@ -44,15 +44,16 @@ document.getElementById('scout-form').addEventListener('submit', async (e) => {
     match_number: Number(match),
     notes: notes,
     auto: {
-      l1: Number(document.getElementById('auto_ll1').value), // Fixed: changed ll1 to l1
+      l1: Number(document.getElementById('auto_ll1').value),
       l2: Number(document.getElementById('auto_l2').value),
       l3: Number(document.getElementById('auto_l3').value),
       l4: Number(document.getElementById('auto_l4').value),
       processor: Number(document.getElementById('auto_processor').value),
       barge: Number(document.getElementById('auto_barge').value),
+      no_move: document.getElementById('auto_no_move').checked  // NEW: checkbox for auto no move
     },
     teleop: {
-      l1: Number(document.getElementById('teleop_ll1').value), // Fixed: changed ll1 to l1
+      l1: Number(document.getElementById('teleop_ll1').value),
       l2: Number(document.getElementById('teleop_l2').value),
       l3: Number(document.getElementById('teleop_l3').value),
       l4: Number(document.getElementById('teleop_l4').value),
@@ -60,10 +61,11 @@ document.getElementById('scout-form').addEventListener('submit', async (e) => {
       barge: Number(document.getElementById('teleop_barge').value),
       offense_rating: Number(document.getElementById('offense_rating').value),
       defense_rating: Number(document.getElementById('defense_rating').value),
+      no_move: document.getElementById('teleop_no_move').checked  // NEW: checkbox for teleop no move
     },
     endgame: {
-      action: endgameVal, // Fixed: send the actual action value
-      climb_depth: endgameVal === 'climb' ? climbDepthSelect.value : '' // Fixed: send climb_depth when climbing
+      action: endgameVal,
+      climb_depth: endgameVal === 'climb' ? climbDepthSelect.value : ''
     }
   };
 

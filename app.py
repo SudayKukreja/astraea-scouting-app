@@ -61,29 +61,32 @@ def form():
 def submit():
     data = request.json
 
-    # --- Extract base data ---
     name = data.get('name', '')
     team = str(data.get('team', ''))
     match_number = data.get('match_number', '')
     submitted_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # --- Extract nested info safely ---
     auto = data.get('auto', {})
     teleop = data.get('teleop', {})
     endgame = data.get('endgame', {})
     notes = data.get('notes', '')
 
-    # --- Create summary strings ---
+    # New: get no_move flags, default False
+    auto_no_move = auto.get('no_move', False)
+    teleop_no_move = teleop.get('no_move', False)
+
+    # Append no_move info to summaries for clarity
     auto_summary = (
         f"L1:{auto.get('l1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
-        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}"
+        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}, "
+        f"No Move:{'Yes' if auto_no_move else 'No'}"
     )
     teleop_summary = (
         f"L1:{teleop.get('l1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
-        f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}"
+        f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
+        f"No Move:{'Yes' if teleop_no_move else 'No'}"
     )
 
-    # --- Handle endgame summary robustly ---
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':
         climb_depth = endgame.get('climb_depth', '').strip()
@@ -93,10 +96,11 @@ def submit():
             endgame_summary = "Climb"
     elif endgame_action == 'park':
         endgame_summary = "Park"
+    elif endgame_action == 'did not park/climb':
+        endgame_summary = "Did Not Park/Climb"
     else:
         endgame_summary = "None"
 
-    # --- Compose the data row to insert ---
     data_row = [
         name,
         team,
@@ -110,40 +114,31 @@ def submit():
         notes
     ]
 
-    # --- Clear and rebuild the entire sheet with proper formatting ---
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Sheet2!A1:Z1000').execute()
     all_values = result.get('values', [])
     
-    # Group all data by team
     teams_data = {}
     for i, row in enumerate(all_values):
         if len(row) > 0:
             if row[0].startswith('Team '):
-                # This is a team header, skip it
                 continue
             elif row[0] == 'Scouter Name':
-                # This is a column header, skip it
                 continue
             elif row[0] == '':
-                # Empty row, skip it
                 continue
             else:
-                # This is data - extract team number from second column
                 if len(row) > 1:
                     team_num = str(row[1])
                     if team_num not in teams_data:
                         teams_data[team_num] = []
                     teams_data[team_num].append(row)
     
-    # Add the new data
     if team not in teams_data:
         teams_data[team] = []
     teams_data[team].append(data_row)
     
-    # Clear the sheet
     sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range='Sheet2!A1:Z1000').execute()
     
-    # Rebuild with proper formatting
     new_values = []
     format_requests = []
     current_row = 0
@@ -151,16 +146,13 @@ def submit():
     for team_num in sorted(teams_data.keys(), key=int):
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
         
-        # Add empty row (except for the first team)
         if current_row > 0:
             new_values.append([''] * 10)
             current_row += 1
         
-        # Add team header
         team_header = [f'Team {team_num}: {team_name}'] + [''] * 9
         new_values.append(team_header)
         
-        # Format team header as bold
         format_requests.append({
             "repeatCell": {
                 "range": {
@@ -174,7 +166,6 @@ def submit():
         })
         current_row += 1
         
-        # Add column headers
         column_headers = [
             "Scouter Name", "Team Number", "Match Number", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
@@ -183,11 +174,9 @@ def submit():
         new_values.append(column_headers)
         current_row += 1
         
-        # Sort data by match number and add all data for this team (no spaces between data rows)
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for data_entry in sorted_data:
             new_values.append(data_entry)
-            # Format data rows as non-bold
             format_requests.append({
                 "repeatCell": {
                     "range": {
@@ -201,7 +190,6 @@ def submit():
             })
             current_row += 1
     
-    # Write all data at once
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
@@ -210,13 +198,12 @@ def submit():
             body={'values': new_values}
         ).execute()
     
-    # Add left alignment for Match Number column (column C)
     if new_values:
         format_requests.append({
             "repeatCell": {
                 "range": {
                     "sheetId": 0,
-                    "startColumnIndex": 2,  # Column C (0-indexed)
+                    "startColumnIndex": 2,
                     "endColumnIndex": 3,
                     "startRowIndex": 0,
                     "endRowIndex": len(new_values)
@@ -230,7 +217,6 @@ def submit():
             }
         })
     
-    # Apply formatting
     if format_requests:
         service.spreadsheets().batchUpdate(
             spreadsheetId=SPREADSHEET_ID, 

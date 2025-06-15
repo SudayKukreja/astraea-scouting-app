@@ -43,6 +43,9 @@
           <label>Processor <input type="number" min="0" id="auto_processor" value="0" /></label>
           <label>Barge <input type="number" min="0" id="auto_barge" value="0" /></label>
         </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="auto_no_move"> Did not move in Auto</label>
+        </div>
       </div>
 
       <div id="teleop" class="tab-content">
@@ -61,6 +64,9 @@
           <label>Offense Rating <input type="number" min="1" max="5" id="offense_rating" value="1" /></label>
           <label>Defense Rating <input type="number" min="1" max="5" id="defense_rating" value="1" /></label>
         </div>
+        <div class="form-group">
+          <label><input type="checkbox" id="teleop_no_move"> Stopped moving in Teleop</label>
+        </div>
       </div>
 
       <div id="endgame" class="tab-content">
@@ -70,7 +76,7 @@
           <option value="">Select</option>
           <option value="park">Park</option>
           <option value="climb">Climb</option>
-          <option value="none">None</option>
+          <option value="no_action">Did not Park/Climb</option>
         </select>
 
         <label id="climb_depth_label" class="hidden" for="climb_depth">Climb Depth</label>
