@@ -1,182 +1,91 @@
-// Wait for the DOM to be ready
-document.addEventListener('DOMContentLoaded', () => {
-  const tabs = document.querySelectorAll('.tab-btn');
-  const tabContents = document.querySelectorAll('.tab-content');
-  const form = document.getElementById('scout-form');
+const tabs = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
 
-  // Tab switching
-  tabs.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabs.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+tabs.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tabs.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
 
-      const target = btn.getAttribute('data-tab');
-      tabContents.forEach(tab => {
-        tab.classList.remove('active');
-      });
-      document.getElementById(target).classList.add('active');
+    tabContents.forEach(c => {
+      c.classList.toggle('active', c.id === btn.dataset.tab);
     });
   });
+});
 
-  // Restore draft from localStorage
-  const savedDraft = localStorage.getItem('scoutDraft');
-  if (savedDraft) {
-    const draftObj = JSON.parse(savedDraft);
-    for (const [key, value] of Object.entries(draftObj)) {
-      const el = document.getElementsByName(key)[0];
-      if (el) {
-        if (el.type === 'checkbox') {
-          el.checked = value === 'on' || value === true;
-        } else {
-          el.value = value;
-        }
-      }
-    }
+const endgameAction = document.getElementById('endgame_action');
+const climbDepthLabel = document.getElementById('climb_depth_label');
+const climbDepthSelect = document.getElementById('climb_depth');
+
+endgameAction.addEventListener('change', () => {
+  const isClimb = endgameAction.value === 'climb';
+  climbDepthLabel.classList.toggle('hidden', !isClimb);
+  climbDepthSelect.classList.toggle('hidden', !isClimb);
+  if (!isClimb) climbDepthSelect.value = '';
+});
+
+document.getElementById('scout-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const name = document.getElementById('name').value.trim();
+  const team = document.getElementById('team').value.trim();
+  const match = document.getElementById('match').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+
+  if (!name || !team || !match) {
+    alert('Please fill out all required fields!');
+    return;
   }
 
-  // Autosave draft to localStorage
-  form.addEventListener('input', () => {
-    const draft = new FormData(form);
-    const draftObj = {};
-    draft.forEach((value, key) => {
-      draftObj[key] = value;
-    });
-    localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
-  });
+  const endgameVal = endgameAction.value;
 
-  // Form submission
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    // Clear existing error messages (optional, implement if you have error spans)
-    document.querySelectorAll('.error-msg').forEach(el => el.textContent = '');
-
-    // Grab all form values
-    const getValue = id => document.getElementById(id)?.value.trim();
-    const getCheckbox = id => document.getElementById(id)?.checked;
-    
-
-    const requiredFields = ['name', 'team', 'match', 'play_style'];
-    let formValid = true;
-
-    // Validate required fields and show error (if you want, add error UI)
-    requiredFields.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        formValid = false;
-        // Optionally: el.nextElementSibling.textContent = 'Required'; or alert
-      }
-    });
-
-    if (!formValid) {
-      alert('Please fill out all required fields: Name, Team, Match, and Play Style.');
-      return;
+  const data = {
+    name: name,
+    team: Number(team),
+    match_number: Number(match),
+    notes: notes,
+    auto: {
+      l1: Number(document.getElementById('auto_ll1').value),
+      l2: Number(document.getElementById('auto_l2').value),
+      l3: Number(document.getElementById('auto_l3').value),
+      l4: Number(document.getElementById('auto_l4').value),
+      processor: Number(document.getElementById('auto_processor').value),
+      barge: Number(document.getElementById('auto_barge').value),
+      no_move: document.getElementById('auto_no_move').checked  // NEW: checkbox for auto no move
+    },
+    teleop: {
+      l1: Number(document.getElementById('teleop_ll1').value),
+      l2: Number(document.getElementById('teleop_l2').value),
+      l3: Number(document.getElementById('teleop_l3').value),
+      l4: Number(document.getElementById('teleop_l4').value),
+      processor: Number(document.getElementById('teleop_processor').value),
+      barge: Number(document.getElementById('teleop_barge').value),
+      offense_rating: Number(document.getElementById('offense_rating').value),
+      defense_rating: Number(document.getElementById('defense_rating').value),
+      no_move: document.getElementById('teleop_no_move').checked  // NEW: checkbox for teleop no move
+    },
+    endgame: {
+      action: endgameVal,
+      climb_depth: endgameVal === 'climb' ? climbDepthSelect.value : ''
     }
+  };
 
-    // Build data object
-    const data = {
-      name: getValue('name'),
-      team: getValue('team'),
-      match: getValue('match'),
-      auto: {
-        ll1: getValue('auto_ll1') || 0,
-        l2: getValue('auto_l2') || 0,
-        l3: getValue('auto_l3') || 0,
-        l4: getValue('auto_l4') || 0,
-        processor: getValue('auto_processor') || 0,
-        barge: getValue('auto_barge') || 0,
-        no_move: getCheckbox('auto_no_move')
-      },
-      teleop: {
-        ll1: getValue('teleop_ll1') || 0,
-        l2: getValue('teleop_l2') || 0,
-        l3: getValue('teleop_l3') || 0,
-        l4: getValue('teleop_l4') || 0,
-        processor: getValue('teleop_processor') || 0,
-        barge: getValue('teleop_barge') || 0,
-        offense_rating: getValue('offense_rating') || '-',
-        defense_rating: getValue('defense_rating') || '-',
-        no_move: getCheckbox('teleop_no_move')  // <---- This should be here
-      },
-      endgame: {
-        action: getValue('endgame_action') || '',
-        climb_depth: getValue('climb_depth') || ''
-      },
-      notes: getValue('notes') || '',
-      timestamp: new Date().toLocaleString(),
-
-      // Important: send play_style as 'mainly_play_style' for backend to read
-      mainly_play_style: getValue('play_style')
-    };
-
-    try {
-      const res = await fetch('/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      if (res.ok) {
-        alert('Scout report submitted successfully!');
-        form.reset();
-        localStorage.removeItem('scoutDraft');
-        // Return to first tab
-        tabs.forEach(b => b.classList.remove('active'));
-        tabs[0].classList.add('active');
-        tabContents.forEach(t => t.classList.remove('active'));
-        tabContents[0].classList.add('active');
-
-        // Hide all rating groups
-        offenseRatingGroup.style.display = 'none';
-        defenseRatingGroup.style.display = 'none';
-      } else {
-        alert('Error submitting report. Try again.');
-      }
-    } catch (err) {
-      console.error('Submission error:', err);
-      alert('Submission failed. Check your connection.');
-    }
-  });
-
-  // Show climb depth only when climb is selected
-  const endgameAction = document.getElementById('endgame_action');
-  const climbDepthLabel = document.getElementById('climb_depth_label');
-
-  if (endgameAction) {
-    endgameAction.addEventListener('change', () => {
-      if (endgameAction.value === 'climb') {
-        climbDepthLabel.classList.remove('hidden');
-      } else {
-        climbDepthLabel.classList.add('hidden');
-        document.getElementById('climb_depth').value = '';
-      }
+  try {
+    const res = await fetch('/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     });
-  }
 
-  // Handle Play Style dynamic rating visibility
-  const playStyleSelect = document.getElementById('play_style');
-  const offenseRatingGroup = document.getElementById('offense_rating_group');
-  const defenseRatingGroup = document.getElementById('defense_rating_group');
-
-  if (playStyleSelect) {
-    const updateRatingVisibility = () => {
-      const style = playStyleSelect.value;
-      offenseRatingGroup.style.display = 'none';
-      defenseRatingGroup.style.display = 'none';
-
-      if (style === 'offense') {
-        offenseRatingGroup.style.display = 'block';
-      } else if (style === 'defense') {
-        defenseRatingGroup.style.display = 'block';
-      } else if (style === 'both') {
-        offenseRatingGroup.style.display = 'block';
-        defenseRatingGroup.style.display = 'block';
-      }
-    };
-
-    // Trigger once on load (e.g., for localStorage restore)
-    updateRatingVisibility();
-
-    playStyleSelect.addEventListener('change', updateRatingVisibility);
+    if (res.ok) {
+      alert('Data submitted successfully!');
+      e.target.reset();
+      climbDepthLabel.classList.add('hidden');
+      climbDepthSelect.classList.add('hidden');
+      tabs[0].click();
+    } else {
+      alert('Submission failed. Try again.');
+    }
+  } catch (error) {
+    alert('Error submitting data: ' + error.message);
   }
 });
