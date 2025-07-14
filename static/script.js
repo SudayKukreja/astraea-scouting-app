@@ -5,8 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = form.querySelector('button[type="submit"]');
   const formWarning = document.getElementById('form-warning');
   const spinner = document.getElementById('submit-spinner');
+  const endgameAction = document.getElementById('endgame_action');
+  const climbDepthLabel = document.getElementById('climb_depth_label');
+  const playStyleSelect = document.getElementById('play_style');
+  const offenseRatingGroup = document.getElementById('offense_rating_group');
+  const defenseRatingGroup = document.getElementById('defense_rating_group');
 
-  // Clear all error messages helper
   function clearErrors() {
     formWarning.style.display = 'none';
     formWarning.textContent = '';
@@ -14,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelectorAll('.error-input').forEach(el => el.classList.remove('error-input'));
   }
 
-  // Show error message next to an element
   function showError(el, msg) {
     el.classList.add('error-input');
     const errorSpan = document.createElement('span');
@@ -74,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const requiredFields = ['name', 'team', 'match', 'play_style'];
     let formValid = true;
 
-    // Validate required fields with inline warnings
     requiredFields.forEach(id => {
       const el = document.getElementById(id);
       if (!el || !el.value.trim()) {
@@ -89,12 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Show spinner and disable submit button
+    // Show spinner and disable button
     spinner.style.display = 'block';
     formWarning.style.display = 'block';
     formWarning.style.color = '#2563eb';
     formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
     submitBtn.disabled = true;
+
+    // Let the browser repaint before continuing
+    await new Promise(requestAnimationFrame);
 
     const data = {
       name: getValue('name'),
@@ -141,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
         form.reset();
         localStorage.removeItem('scoutDraft');
 
-        // Reset UI
         tabs.forEach(b => b.classList.remove('active'));
         tabs[0].classList.add('active');
         tabContents.forEach(t => t.classList.remove('active'));
@@ -149,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         offenseRatingGroup.style.display = 'none';
         defenseRatingGroup.style.display = 'none';
-
         formWarning.style.display = 'none';
       } else {
         formWarning.style.display = 'block';
@@ -167,10 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Show climb depth only when climb is selected
-  const endgameAction = document.getElementById('endgame_action');
-  const climbDepthLabel = document.getElementById('climb_depth_label');
-
+  // Handle climb depth visibility
   if (endgameAction) {
     endgameAction.addEventListener('change', () => {
       if (endgameAction.value === 'climb') {
@@ -182,11 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Handle Play Style dynamic rating visibility
-  const playStyleSelect = document.getElementById('play_style');
-  const offenseRatingGroup = document.getElementById('offense_rating_group');
-  const defenseRatingGroup = document.getElementById('defense_rating_group');
-
+  // Handle Play Style dynamic visibility
   if (playStyleSelect) {
     const updateRatingVisibility = () => {
       const style = playStyleSelect.value;
@@ -204,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     updateRatingVisibility();
-
     playStyleSelect.addEventListener('change', updateRatingVisibility);
   }
 });
