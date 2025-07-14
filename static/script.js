@@ -4,6 +4,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabContents = document.querySelectorAll('.tab-content');
   const form = document.getElementById('scout-form');
 
+  // Create spinner and status message elements and add next to submit button
+  const submitBtn = form.querySelector('.submit-btn');
+  const spinner = document.createElement('span');
+  spinner.classList.add('spinner');
+  spinner.style.display = 'none';
+
+  const statusMsg = document.createElement('span');
+  statusMsg.classList.add('submit-status');
+  statusMsg.style.display = 'none';
+  statusMsg.textContent = 'Submitting... Please wait';
+
+  submitBtn.insertAdjacentElement('afterend', spinner);
+  submitBtn.insertAdjacentElement('afterend', statusMsg);
+
   // Tab switching
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -54,7 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Grab all form values
     const getValue = id => document.getElementById(id)?.value.trim();
     const getCheckbox = id => document.getElementById(id)?.checked;
-    
 
     const requiredFields = ['name', 'team', 'match', 'play_style'];
     let formValid = true;
@@ -64,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const el = document.getElementById(id);
       if (!el || !el.value.trim()) {
         formValid = false;
-        // Optionally: el.nextElementSibling.textContent = 'Required'; or alert
       }
     });
 
@@ -72,6 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Please fill out all required fields: Name, Team, Match, and Play Style.');
       return;
     }
+
+    // Show spinner and status message
+    spinner.style.display = 'inline-block';
+    statusMsg.style.display = 'inline-block';
+    submitBtn.disabled = true;
 
     // Build data object
     const data = {
@@ -96,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
         barge: getValue('teleop_barge') || 0,
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
-        no_move: getCheckbox('teleop_no_move')  // <---- This should be here
+        no_move: getCheckbox('teleop_no_move')
       },
       endgame: {
         action: getValue('endgame_action') || '',
@@ -105,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
       notes: getValue('notes') || '',
       timestamp: new Date().toLocaleString(),
 
-      // Important: send play_style as 'mainly_play_style' for backend to read
       mainly_play_style: getValue('play_style')
     };
 
@@ -115,6 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
+
+      spinner.style.display = 'none';
+      statusMsg.style.display = 'none';
+      submitBtn.disabled = false;
 
       if (res.ok) {
         alert('Scout report submitted successfully!');
@@ -133,6 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Error submitting report. Try again.');
       }
     } catch (err) {
+      spinner.style.display = 'none';
+      statusMsg.style.display = 'none';
+      submitBtn.disabled = false;
+
       console.error('Submission error:', err);
       alert('Submission failed. Check your connection.');
     }
