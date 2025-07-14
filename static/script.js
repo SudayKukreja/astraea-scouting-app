@@ -1,8 +1,29 @@
-// Wait for the DOM to be ready
 document.addEventListener('DOMContentLoaded', () => {
   const tabs = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
   const form = document.getElementById('scout-form');
+  const submitBtn = form.querySelector('button[type="submit"]');
+  const formWarning = document.getElementById('form-warning');
+  const spinner = document.getElementById('submit-spinner');
+
+  // Clear all error messages helper
+  function clearErrors() {
+    formWarning.style.display = 'none';
+    formWarning.textContent = '';
+    form.querySelectorAll('.error-msg').forEach(el => el.remove());
+    form.querySelectorAll('.error-input').forEach(el => el.classList.remove('error-input'));
+  }
+
+  // Show error message next to an element
+  function showError(el, msg) {
+    el.classList.add('error-input');
+    const errorSpan = document.createElement('span');
+    errorSpan.className = 'error-msg';
+    errorSpan.style.color = '#b33';
+    errorSpan.style.fontSize = '0.9rem';
+    errorSpan.textContent = msg;
+    el.parentNode.appendChild(errorSpan);
+  }
 
   // Tab switching
   tabs.forEach(btn => {
@@ -11,9 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
 
       const target = btn.getAttribute('data-tab');
-      tabContents.forEach(tab => {
-        tab.classList.remove('active');
-      });
+      tabContents.forEach(tab => tab.classList.remove('active'));
       document.getElementById(target).classList.add('active');
     });
   });
@@ -47,33 +66,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Form submission
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    clearErrors();
 
-    // Clear existing error messages (optional, implement if you have error spans)
-    document.querySelectorAll('.error-msg').forEach(el => el.textContent = '');
-
-    // Grab all form values
     const getValue = id => document.getElementById(id)?.value.trim();
     const getCheckbox = id => document.getElementById(id)?.checked;
-    
 
     const requiredFields = ['name', 'team', 'match', 'play_style'];
     let formValid = true;
 
-    // Validate required fields and show error (if you want, add error UI)
+    // Validate required fields with inline warnings
     requiredFields.forEach(id => {
       const el = document.getElementById(id);
       if (!el || !el.value.trim()) {
         formValid = false;
-        // Optionally: el.nextElementSibling.textContent = 'Required'; or alert
+        showError(el, 'Required field');
       }
     });
 
     if (!formValid) {
-      alert('Please fill out all required fields: Name, Team, Match, and Play Style.');
+      formWarning.style.display = 'block';
+      formWarning.textContent = 'Please fill out all required fields (highlighted).';
       return;
     }
 
-    // Build data object
+    // Show spinner and disable submit button
+    spinner.style.display = 'block';
+    formWarning.style.display = 'block';
+    formWarning.style.color = '#2563eb';
+    formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
+    submitBtn.disabled = true;
+
     const data = {
       name: getValue('name'),
       team: getValue('team'),
@@ -96,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         barge: getValue('teleop_barge') || 0,
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
-        no_move: getCheckbox('teleop_no_move')  // <---- This should be here
+        no_move: getCheckbox('teleop_no_move')
       },
       endgame: {
         action: getValue('endgame_action') || '',
@@ -104,8 +126,6 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       notes: getValue('notes') || '',
       timestamp: new Date().toLocaleString(),
-
-      // Important: send play_style as 'mainly_play_style' for backend to read
       mainly_play_style: getValue('play_style')
     };
 
@@ -120,21 +140,30 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Scout report submitted successfully!');
         form.reset();
         localStorage.removeItem('scoutDraft');
-        // Return to first tab
+
+        // Reset UI
         tabs.forEach(b => b.classList.remove('active'));
         tabs[0].classList.add('active');
         tabContents.forEach(t => t.classList.remove('active'));
         tabContents[0].classList.add('active');
 
-        // Hide all rating groups
         offenseRatingGroup.style.display = 'none';
         defenseRatingGroup.style.display = 'none';
+
+        formWarning.style.display = 'none';
       } else {
-        alert('Error submitting report. Try again.');
+        formWarning.style.display = 'block';
+        formWarning.style.color = '#b33';
+        formWarning.textContent = 'Error submitting report. Please try again.';
       }
     } catch (err) {
       console.error('Submission error:', err);
-      alert('Submission failed. Check your connection.');
+      formWarning.style.display = 'block';
+      formWarning.style.color = '#b33';
+      formWarning.textContent = 'Submission failed. Check your connection.';
+    } finally {
+      spinner.style.display = 'none';
+      submitBtn.disabled = false;
     }
   });
 

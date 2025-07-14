@@ -560,4 +560,11 @@ textarea {
     font-size: 1rem;
     padding: 1rem 1.5rem;
     }
+
+    .spinner {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--primary-blue-dark);
+    }   
+
 }

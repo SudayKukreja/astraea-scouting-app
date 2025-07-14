@@ -80,65 +80,61 @@
             </div>
           </div>
 
-        <!-- Teleop Tab -->
-            <div id="teleop" class="tab-content">
+          <!-- Teleop Tab -->
+          <div id="teleop" class="tab-content">
             <h2 class="section-title">Teleoperated Period</h2>
             <div class="form-row quarters">
-                <div class="form-group">
+              <div class="form-group">
                 <label for="teleop_ll1">L1</label>
                 <input type="number" id="teleop_ll1" name="teleop_ll1" value="0" min="0">
-                </div>
-                <div class="form-group">
+              </div>
+              <div class="form-group">
                 <label for="teleop_l2">L2</label>
                 <input type="number" id="teleop_l2" name="teleop_l2" value="0" min="0">
-                </div>
-                <div class="form-group">
+              </div>
+              <div class="form-group">
                 <label for="teleop_l3">L3</label>
                 <input type="number" id="teleop_l3" name="teleop_l3" value="0" min="0">
-                </div>
-                <div class="form-group">
+              </div>
+              <div class="form-group">
                 <label for="teleop_l4">L4</label>
                 <input type="number" id="teleop_l4" name="teleop_l4" value="0" min="0">
-                </div>
+              </div>
             </div>
             <div class="form-row">
-                <div class="form-group">
+              <div class="form-group">
                 <label for="teleop_processor">Processor</label>
                 <input type="number" id="teleop_processor" name="teleop_processor" value="0" min="0">
-                </div>
-                <div class="form-group">
+              </div>
+              <div class="form-group">
                 <label for="teleop_barge">Barge</label>
                 <input type="number" id="teleop_barge" name="teleop_barge" value="0" min="0">
-                </div>
+              </div>
             </div>
-            <!-- Did not move checkbox -->
             <div class="checkbox-group">
-                <input type="checkbox" id="teleop_no_move" name="teleop_no_move">
-                <label for="teleop_no_move">Did not move in Teleop</label>
+              <input type="checkbox" id="teleop_no_move" name="teleop_no_move">
+              <label for="teleop_no_move">Did not move in Teleop</label>
             </div>
-            <!-- Play Style Dropdown -->
             <div class="form-group">
-                <label for="play_style">Play Style</label>
-                <select id="play_style" name="play_style" required>
+              <label for="play_style">Play Style</label>
+              <select id="play_style" name="play_style" required>
                 <option value="">Select Play Style</option>
                 <option value="offense">Mainly Offense</option>
                 <option value="defense">Mainly Defense</option>
                 <option value="both">Mix of Both</option>
-                </select>
+              </select>
             </div>
-            <!-- Rating Group: initially hidden, shown by JS -->
             <div class="rating-group">
-                <div class="rating-item" id="offense_rating_group" style="display: none;">
+              <div class="rating-item" id="offense_rating_group" style="display: none;">
                 <label for="offense_rating">Offense Rating (0-5)</label>
                 <input type="number" id="offense_rating" name="offense_rating" value="0" min="0" max="5">
-                </div>
-                <div class="rating-item" id="defense_rating_group" style="display: none;">
+              </div>
+              <div class="rating-item" id="defense_rating_group" style="display: none;">
                 <label for="defense_rating">Defense Rating (0-5)</label>
                 <input type="number" id="defense_rating" name="defense_rating" value="0" min="0" max="5">
-                </div>
+              </div>
             </div>
-            </div>
-
+          </div>
 
           <!-- Endgame Tab -->
           <div id="endgame" class="tab-content">
@@ -171,6 +167,14 @@
               <label for="notes">Extra Notes</label>
               <textarea id="notes" name="notes" placeholder="Any additional observations about the robot's performance..."></textarea>
             </div>
+          </div>
+
+          <!-- Warning message area -->
+          <div id="form-warning" class="form-warning" style="display:none; color: #b33; margin-bottom: 10px;"></div>
+
+          <!-- Spinner (hidden by default) -->
+          <div id="submit-spinner" class="spinner" style="display:none; margin-bottom: 10px;">
+            Submitting... ⏳
           </div>
 
           <!-- Submit Button -->
