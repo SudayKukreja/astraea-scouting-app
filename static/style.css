@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-
 :root {
     --primary-blue: #2563eb;
     --primary-blue-dark: #1d4ed8;
@@ -38,7 +37,6 @@
     box-sizing: border-box;
 }
 
-
 body {
     margin: 0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -50,7 +48,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-
 .app-container {
     min-height: 100vh;
     display: flex;
@@ -59,7 +56,6 @@ body {
     padding: 1rem;
     position: relative;
 }
-
 
 .app-container::before {
     content: '';
@@ -71,7 +67,6 @@ body {
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
     pointer-events: none;
 }
-
 
 .container {
     background: rgba(255, 255, 255, 0.95);
@@ -85,7 +80,6 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-
 .app-header {
     text-align: center;
     padding: 2.5rem 3rem 2rem;
@@ -93,7 +87,6 @@ body {
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     border-bottom: 1px solid var(--border-color);
 }
-
 
 .logo {
     width: 80px;
@@ -109,12 +102,10 @@ body {
     animation: logoFloat 3s ease-in-out infinite;
 }
 
-
 @keyframes logoFloat {
     0%, 100% { transform: translateY(0px); }
     50% { transform: translateY(-5px); }
 }
-
 
 .app-title {
     font-size: 2rem;
@@ -127,7 +118,6 @@ body {
     background-clip: text;
 }
 
-
 .app-subtitle {
     font-size: 0.9rem;
     color: var(--text-muted);
@@ -135,21 +125,17 @@ body {
     font-weight: 500;
 }
 
-
 .app-content {
     padding: 2rem 3rem 3rem;
 }
-
 
 .form-section {
     margin-bottom: 2rem;
 }
 
-
 .form-section:last-child {
     margin-bottom: 0;
 }
-
 
 .section-title {
     font-size: 1.1rem;
@@ -161,7 +147,6 @@ body {
     gap: 0.5rem;
 }
 
-
 .section-title::before {
     content: '';
     width: 4px;
@@ -170,11 +155,9 @@ body {
     border-radius: 2px;
 }
 
-
 .form-group {
     margin-bottom: 1.5rem;
 }
-
 
 .form-row {
     display: grid;
@@ -183,11 +166,9 @@ body {
     margin-bottom: 1.5rem;
 }
 
-
 .form-row.quarters {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
-
 
 label {
     display: block;
@@ -199,12 +180,12 @@ label {
     letter-spacing: 0.025em;
 }
 
-
 input[type="text"],
 input[type="number"],
 select,
 textarea {
     width: 100%;
+    max-width: 100%;
     padding: 0.875rem 1rem;
     border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -214,8 +195,8 @@ textarea {
     font-weight: 500;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     appearance: none;
+    box-sizing: border-box;
 }
-
 
 input[type="text"]:focus,
 input[type="number"]:focus,
@@ -227,7 +208,6 @@ textarea:focus {
     transform: translateY(-1px);
 }
 
-
 input[type="text"]:hover,
 input[type="number"]:hover,
 select:hover,
@@ -235,12 +215,10 @@ textarea:hover {
     border-color: var(--accent-blue);
 }
 
-
 textarea {
     resize: vertical;
     min-height: 100px;
 }
-
 
 .checkbox-group {
     position: relative;
@@ -335,7 +313,6 @@ textarea {
     outline-offset: 2px;
 }
 
-
 .tabs {
     display: flex;
     gap: 0.5rem;
@@ -345,7 +322,6 @@ textarea {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
 }
-
 
 .tab-btn {
     flex: 1;
@@ -363,12 +339,10 @@ textarea {
     position: relative;
 }
 
-
 .tab-btn:hover {
     background: rgba(59, 130, 246, 0.1);
     color: var(--primary-blue);
 }
-
 
 .tab-btn.active {
     background: white;
@@ -376,7 +350,6 @@ textarea {
     box-shadow: var(--shadow-sm);
     transform: translateY(-1px);
 }
-
 
 .tab-btn.active::after {
     content: '';
@@ -391,17 +364,14 @@ textarea {
     border-top: 6px solid white;
 }
 
-
 .tab-content {
     display: none;
     animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-
 .tab-content.active {
     display: block;
 }
-
 
 @keyframes fadeInUp {
     from {
@@ -414,11 +384,9 @@ textarea {
     }
 }
 
-
 .endgame-options {
     margin-top: 1rem;
 }
-
 
 .submit-btn {
     width: 100%;
@@ -438,7 +406,6 @@ textarea {
     overflow: hidden;
 }
 
-
 .submit-btn::before {
     content: '';
     position: absolute;
@@ -450,131 +417,159 @@ textarea {
     transition: left 0.5s;
 }
 
-
 .submit-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-xl);
     background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
 }
 
-
 .submit-btn:hover::before {
     left: 100%;
 }
-
 
 .submit-btn:active {
     transform: translateY(0);
 }
 
-
 .hidden {
     display: none !important;
 }
-
 
 .rating-group {
     display: flex;
     gap: 1rem;
 }
 
-
 .rating-item {
     flex: 1;
 }
-
 
 .rating-item label {
     font-size: 0.75rem;
     margin-bottom: 0.25rem;
 }
 
-
 /* Responsive Design */
 @media (max-width: 768px) {
     .app-container {
-    padding: 0.5rem;
+        padding: 0.5rem;
     }
     
     .app-header {
-    padding: 2rem 2rem 1.5rem;
+        padding: 2rem 2rem 1.5rem;
     }
     
     .app-content {
-    padding: 1.5rem 2rem 2.5rem;
+        padding: 1.5rem 2rem 2.5rem;
     }
     
     .app-title {
-    font-size: 1.75rem;
+        font-size: 1.75rem;
     }
     
     .form-row {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+        grid-template-columns: 1fr;
+        gap: 1rem;
     }
     
     .form-row.quarters {
-    grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
     
     .tabs {
-    flex-direction: column;
-    gap: 0.25rem;
+        flex-direction: column;
+        gap: 0.25rem;
     }
     
     .tab-btn {
-    text-align: left;
-    justify-content: flex-start;
+        text-align: left;
+        justify-content: flex-start;
     }
     
     .tab-btn.active::after {
-    display: none;
+        display: none;
     }
 }
 
-
 @media (max-width: 480px) {
     .app-header {
-    padding: 1.5rem 1.5rem 1rem;
+        padding: 1.5rem 1.5rem 1rem;
     }
     
     .app-content {
-    padding: 1rem 1.5rem 2rem;
+        padding: 1rem 1.5rem 2rem;
     }
     
     .app-title {
-    font-size: 1.5rem;
+        font-size: 1.5rem;
     }
     
     .logo {
-    width: 60px;
-    height: 60px;
-    font-size: 2rem;
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
     }
     
     .form-row.quarters {
-    grid-template-columns: 1fr;
+        grid-template-columns: 1fr;
     }
     
     .submit-btn {
-    font-size: 1rem;
-    padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+        padding: 1.5rem 2rem;
+    }
+
+    .checkbox-group {
+        gap: 1rem;
+        padding: 1.25rem;
     }
 
     .spinner {
-    width: 24px;
-    height: 24px;
-    border: 4px solid rgba(37, 99, 235, 0.3); /* light blue, transparent */
-    border-top-color: #2563eb; /* primary blue */
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-left: 8px;
-    display: inline-block;
-    vertical-align: middle;
+        width: 24px;
+        height: 24px;
+        border: 4px solid rgba(37, 99, 235, 0.3); /* light blue, transparent */
+        border-top-color: #2563eb; /* primary blue */
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-left: 8px;
+        display: inline-block;
+        vertical-align: middle;
     }
 
     @keyframes spin {
-    to { transform: rotate(360deg); }
+        to { transform: rotate(360deg); }
     }
 
+    /* Mobile: Make tabs horizontally scrollable */
+    .tabs {
+        flex-direction: row;      /* horizontal */
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+        gap: 0.5rem;
+    }
+
+    .tab-btn {
+        flex: 0 0 auto;          /* no shrinking */
+        min-width: 100px;
+        white-space: nowrap;     /* no wrap */
+        text-align: center;
+    }
+
+    .tab-btn.active::after {
+        display: block;          /* show arrow */
+    }
+
+    /* Optional: Sticky submit button on very small screens */
+    .submit-btn {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        z-index: 999;
+        border-radius: var(--radius-md);
+    }
+
+    .app-content {
+        padding-bottom: 80px; /* prevent content hidden behind fixed button */
+    }
 }
