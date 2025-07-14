@@ -66,6 +66,47 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
   });
 
+  // Queue for offline submissions
+  function saveOffline(data) {
+    let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+    queue.push(data);
+    localStorage.setItem('offlineQueue', JSON.stringify(queue));
+  }
+
+  // Attempt to send all offline queued submissions
+  async function sendQueuedSubmissions() {
+    let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+    if (!queue.length) return;
+
+    for (let i = 0; i < queue.length; i++) {
+      try {
+        const res = await fetch('/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(queue[i])
+        });
+        if (res.ok) {
+          queue.splice(i, 1);
+          i--;
+        } else {
+          // Server error; keep the item for retry
+          break;
+        }
+      } catch {
+        // Still offline or network error, stop trying
+        break;
+      }
+    }
+    localStorage.setItem('offlineQueue', JSON.stringify(queue));
+  }
+
+  // Try sending queued submissions on load and when back online
+  window.addEventListener('load', sendQueuedSubmissions);
+  window.addEventListener('online', () => {
+    alert('You are back online! Trying to submit any saved reports now.');
+    sendQueuedSubmissions();
+  });
+
   // Form submission
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -98,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
     formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
     submitBtn.disabled = true;
 
-    // Let the browser repaint before continuing
     await new Promise(requestAnimationFrame);
 
     const data = {
@@ -160,10 +200,20 @@ document.addEventListener('DOMContentLoaded', () => {
         formWarning.textContent = 'Error submitting report. Please try again.';
       }
     } catch (err) {
-      console.error('Submission error:', err);
-      formWarning.style.display = 'block';
-      formWarning.style.color = '#b33';
-      formWarning.textContent = 'Submission failed. Check your connection.';
+      // Offline or network error - save locally & notify user
+      saveOffline(data);
+      alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online. Please reconnect to WiFi to ensure your report is submitted.');
+      form.reset();
+      localStorage.removeItem('scoutDraft');
+
+      tabs.forEach(b => b.classList.remove('active'));
+      tabs[0].classList.add('active');
+      tabContents.forEach(t => t.classList.remove('active'));
+      tabContents[0].classList.add('active');
+
+      offenseRatingGroup.style.display = 'none';
+      defenseRatingGroup.style.display = 'none';
+      formWarning.style.display = 'none';
     } finally {
       spinner.style.display = 'none';
       submitBtn.disabled = false;
