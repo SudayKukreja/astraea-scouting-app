@@ -174,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     };
 
-    // Trigger once on load (e.g., for localStorage restore)
     updateRatingVisibility();
 
     playStyleSelect.addEventListener('change', updateRatingVisibility);
