@@ -63,6 +63,19 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
   });
 
+  let firstInputTime = null;
+
+  function recordFirstInputTime() {
+    if (!firstInputTime) {
+      firstInputTime = Date.now();
+    }
+  }
+
+  // Attach once to all relevant fields
+  form.querySelectorAll('input, select, textarea').forEach(el => {
+    el.addEventListener('input', recordFirstInputTime, { once: true });
+  });
+
   // Queue for offline submissions
   function saveOffline(data) {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
@@ -101,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendQueuedSubmissions();
   });
 
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async (e) => {  
     e.preventDefault();
     clearErrors();
 
@@ -132,6 +145,15 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
 
     await new Promise(requestAnimationFrame);
+
+    const responseTimeField = document.getElementById('response_time');
+    if (firstInputTime) {
+      const responseTimeSec = ((Date.now() - firstInputTime) / 1000).toFixed(2);
+      responseTimeField.value = responseTimeSec;
+    } else {
+      responseTimeField.value = '-1'; // fallback in case they somehow submit instantly
+    }
+
 
     const data = {
       name: getValue('name'),
