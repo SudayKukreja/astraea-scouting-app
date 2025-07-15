@@ -115,23 +115,18 @@
               <input type="checkbox" id="teleop_no_move" name="teleop_no_move">
               <label for="teleop_no_move">Did not move in Teleop</label>
             </div>
-            <div class="form-group">
-              <label for="play_style">Play Style</label>
-              <select id="play_style" name="play_style" required>
-                <option value="">Select Play Style</option>
-                <option value="offense">Mainly Offense</option>
-                <option value="defense">Mainly Defense</option>
-                <option value="both">Mix of Both</option>
-              </select>
-            </div>
-            <div class="rating-group">
-              <div class="rating-item" id="offense_rating_group" style="display: none;">
-                <label for="offense_rating">Offense Rating (0-5)</label>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="offense_rating">Offense Rating (0–5)</label>
                 <input type="number" id="offense_rating" name="offense_rating" value="0" min="0" max="5">
               </div>
-              <div class="rating-item" id="defense_rating_group" style="display: none;">
-                <label for="defense_rating">Defense Rating (0-5)</label>
+              <div class="form-group">
+                <label for="defense_rating">Defense Rating (0–5)</label>
                 <input type="number" id="defense_rating" name="defense_rating" value="0" min="0" max="5">
+              </div>
+              <div class="form-group">
+                <label for="dropped_pieces">Game Pieces Dropped</label>
+                <input type="number" id="dropped_pieces" name="dropped_pieces" value="0" min="0">
               </div>
             </div>
           </div>
@@ -192,6 +187,6 @@
         });
       });
     }
-</script>
+  </script>
 </body>
 </html>

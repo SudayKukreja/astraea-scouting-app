@@ -179,7 +179,6 @@ def submit():
     teleop = data.get('teleop', {})
     endgame = data.get('endgame', {})
     notes = data.get('notes', '').strip()
-    focus = data.get('mainly_play_style', '').strip().lower()
 
     auto_no_move = auto.get('no_move', False)
     teleop_no_move = teleop.get('no_move', False)
@@ -190,10 +189,11 @@ def submit():
         f"No Move:{'Yes' if auto_no_move else 'No'}"
     )
 
+    dropped_pieces = teleop.get('dropped_pieces', 0)
     teleop_counts = (
         f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
         f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
-        f"No Move:{'Yes' if teleop_no_move else 'No'}"
+        f"No Move:{'Yes' if teleop_no_move else 'No'}, Dropped:{dropped_pieces}"
     )
 
     def clean_rating(val):
@@ -203,18 +203,10 @@ def submit():
         except:
             return '-' if val is None or val == '' else str(val)
 
-    if focus == 'defense':
-        teleop_summary = f"{teleop_counts}, Playstyle: Defense"
-        offense_rating = '-'
-        defense_rating = clean_rating(teleop.get('defense_rating', '-'))
-    elif focus == 'offense':
-        teleop_summary = f"{teleop_counts}, Playstyle: Offense"
-        offense_rating = clean_rating(teleop.get('offense_rating', '-'))
-        defense_rating = '-'
-    else:
-        teleop_summary = f"{teleop_counts}, Playstyle: Both"
-        offense_rating = clean_rating(teleop.get('offense_rating', '-'))
-        defense_rating = clean_rating(teleop.get('defense_rating', '-'))
+    offense_rating = clean_rating(teleop.get('offense_rating', '-'))
+    defense_rating = clean_rating(teleop.get('defense_rating', '-'))
+
+    teleop_summary = teleop_counts
 
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':

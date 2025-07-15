@@ -7,9 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const spinner = document.getElementById('submit-spinner');
   const endgameAction = document.getElementById('endgame_action');
   const climbDepthLabel = document.getElementById('climb_depth_label');
-  const playStyleSelect = document.getElementById('play_style');
-  const offenseRatingGroup = document.getElementById('offense_rating_group');
-  const defenseRatingGroup = document.getElementById('defense_rating_group');
 
   function clearErrors() {
     formWarning.style.display = 'none';
@@ -89,25 +86,21 @@ document.addEventListener('DOMContentLoaded', () => {
           queue.splice(i, 1);
           i--;
         } else {
-          // Server error; keep the item for retry
-          break;
+          break; // Server error
         }
       } catch {
-        // Still offline or network error, stop trying
-        break;
+        break; // Still offline
       }
     }
     localStorage.setItem('offlineQueue', JSON.stringify(queue));
   }
 
-  // Try sending queued submissions on load and when back online
   window.addEventListener('load', sendQueuedSubmissions);
   window.addEventListener('online', () => {
     alert('You are back online! Trying to submit any saved reports now.');
     sendQueuedSubmissions();
   });
 
-  // Form submission
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
@@ -115,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const getValue = id => document.getElementById(id)?.value.trim();
     const getCheckbox = id => document.getElementById(id)?.checked;
 
-    const requiredFields = ['name', 'team', 'match', 'play_style'];
+    const requiredFields = ['name', 'team', 'match'];
     let formValid = true;
 
     requiredFields.forEach(id => {
@@ -132,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Show spinner and disable button
     spinner.style.display = 'block';
     formWarning.style.display = 'block';
     formWarning.style.color = '#2563eb';
@@ -170,8 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         climb_depth: getValue('climb_depth') || ''
       },
       notes: getValue('notes') || '',
-      timestamp: new Date().toLocaleString(),
-      mainly_play_style: getValue('play_style')
+      timestamp: new Date().toLocaleString()
     };
 
     try {
@@ -191,8 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabContents.forEach(t => t.classList.remove('active'));
         tabContents[0].classList.add('active');
 
-        offenseRatingGroup.style.display = 'none';
-        defenseRatingGroup.style.display = 'none';
         formWarning.style.display = 'none';
       } else {
         formWarning.style.display = 'block';
@@ -200,9 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formWarning.textContent = 'Error submitting report. Please try again.';
       }
     } catch (err) {
-      // Offline or network error - save locally & notify user
       saveOffline(data);
-      alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online. Please reconnect to WiFi to ensure your report is submitted.');
+      alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online.');
       form.reset();
       localStorage.removeItem('scoutDraft');
 
@@ -211,8 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContents.forEach(t => t.classList.remove('active'));
       tabContents[0].classList.add('active');
 
-      offenseRatingGroup.style.display = 'none';
-      defenseRatingGroup.style.display = 'none';
       formWarning.style.display = 'none';
     } finally {
       spinner.style.display = 'none';
@@ -220,7 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Handle climb depth visibility
   if (endgameAction) {
     endgameAction.addEventListener('change', () => {
       if (endgameAction.value === 'climb') {
@@ -230,26 +215,5 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('climb_depth').value = '';
       }
     });
-  }
-
-  // Handle Play Style dynamic visibility
-  if (playStyleSelect) {
-    const updateRatingVisibility = () => {
-      const style = playStyleSelect.value;
-      offenseRatingGroup.style.display = 'none';
-      defenseRatingGroup.style.display = 'none';
-
-      if (style === 'offense') {
-        offenseRatingGroup.style.display = 'block';
-      } else if (style === 'defense') {
-        defenseRatingGroup.style.display = 'block';
-      } else if (style === 'both') {
-        offenseRatingGroup.style.display = 'block';
-        defenseRatingGroup.style.display = 'block';
-      }
-    };
-
-    updateRatingVisibility();
-    playStyleSelect.addEventListener('change', updateRatingVisibility);
   }
 });
