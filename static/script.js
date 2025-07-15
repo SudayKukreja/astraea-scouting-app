@@ -155,7 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         barge: getValue('teleop_barge') || 0,
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
-        no_move: getCheckbox('teleop_no_move')
+        no_move: getCheckbox('teleop_no_move'),
+        dropped_pieces: parseInt(getValue('dropped_pieces')) || 0
       },
       endgame: {
         action: getValue('endgame_action') || '',
