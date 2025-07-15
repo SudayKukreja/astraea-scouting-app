@@ -213,7 +213,18 @@ document.addEventListener('DOMContentLoaded', () => {
         climbDepthLabel.classList.remove('hidden');
       } else {
         climbDepthLabel.classList.add('hidden');
-        document.getElementById('climb_depth').value = '';
+        const climbDepthInput = document.getElementById('climb_depth');
+        climbDepthInput.value = '';
+
+        // Clear climb_depth from saved draft in localStorage
+        const savedDraft = localStorage.getItem('scoutDraft');
+        if (savedDraft) {
+          const draftObj = JSON.parse(savedDraft);
+          if ('climb_depth' in draftObj) {
+            delete draftObj.climb_depth;
+            localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
+          }
+        }
       }
     });
   }
