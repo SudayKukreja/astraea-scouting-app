@@ -185,6 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
         climb_depth: getValue('climb_depth') || ''
       },
       notes: getValue('notes') || '',
+      response_time: responseTimeField.value,
       timestamp: new Date().toLocaleString()
     };
 
