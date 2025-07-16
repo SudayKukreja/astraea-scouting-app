@@ -1,11 +1,10 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
-from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)
@@ -183,6 +182,7 @@ def submit():
 
     auto_no_move = auto.get('no_move', False)
     teleop_no_move = teleop.get('no_move', False)
+    partial_match = endgame.get('partial_match', False)
 
     auto_summary = (
         f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
@@ -191,7 +191,7 @@ def submit():
     )
 
     dropped_pieces = teleop.get('dropped_pieces', 0)
-    teleop_counts = (
+    teleop_summary = (
         f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
         f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
         f"No Move:{'Yes' if teleop_no_move else 'No'}, Dropped:{dropped_pieces}"
@@ -207,8 +207,6 @@ def submit():
     offense_rating = clean_rating(teleop.get('offense_rating', '-'))
     defense_rating = clean_rating(teleop.get('defense_rating', '-'))
 
-    teleop_summary = teleop_counts
-
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':
         climb_depth = endgame.get('climb_depth', '').strip()
@@ -220,17 +218,25 @@ def submit():
     else:
         endgame_summary = "None"
 
-    mobility_summary = []
-    if auto_no_move:
-        mobility_summary.append("No Auto Move")
-    if teleop_no_move:
-        mobility_summary.append("No Teleop Move")
-    mobility_summary = ", ".join(mobility_summary) if mobility_summary else "Moved"
+    # Append Partial Match text to endgame summary if checked
+    if partial_match:
+        endgame_summary += " (Partial Match Shutdown)"
 
+    # Mobility summary includes no move flags and partial match
+    mobility_parts = []
+    if auto_no_move:
+        mobility_parts.append("No Auto Move")
+    if teleop_no_move:
+        mobility_parts.append("No Teleop Move")
+    if partial_match:
+        mobility_parts.append("Partial Match Shutdown")
+
+    mobility_summary = ", ".join(mobility_parts) if mobility_parts else "Moved"
 
     data_row = [
-    name, team, match_number, submitted_time, auto_summary,
-    teleop_summary, offense_rating, defense_rating, endgame_summary, mobility_summary, notes
+        name, team, match_number, submitted_time, auto_summary,
+        teleop_summary, offense_rating, defense_rating,
+        endgame_summary, mobility_summary, notes
     ]
 
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Testing!A1:Z1000').execute()
@@ -258,34 +264,46 @@ def submit():
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
 
         if current_row > 0:
-            new_values.append([''] * 10)
+            new_values.append([''] * 11)  # 11 columns total now
             current_row += 1
 
-        new_values.append([f'Team {team_num}: {team_name}'] + [''] * 9)
+        # Team header row (bold + bigger font size)
+        new_values.append([f'Team {team_num}: {team_name}'] + [''] * 10)
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
-                "fields": "userEnteredFormat.textFormat.bold"
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 18}}},
+                "fields": "userEnteredFormat.textFormat"
             }
         })
         current_row += 1
 
+        # Column headers row
         new_values.append([
-        "Scouter Name", "Team Number", "Match Number", "Submission Time",
-        "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
-        "Endgame Summary", "Mobility", "Notes"
+            "Scouter Name", "Team Number", "Match Number", "Submission Time",
+            "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
+            "Endgame Summary", "Mobility", "Notes"
         ])
+        # Make headers bold, normal font size
+        format_requests.append({
+            "repeatCell": {
+                "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+                "fields": "userEnteredFormat.textFormat"
+            }
+        })
         current_row += 1
 
+        # Add sorted data rows
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
             new_values.append(entry)
+            # Make data rows normal font, no bold
             format_requests.append({
                 "repeatCell": {
                     "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                     "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
-                    "fields": "userEnteredFormat.textFormat.bold"
+                    "fields": "userEnteredFormat.textFormat"
                 }
             })
             current_row += 1
@@ -298,17 +316,6 @@ def submit():
             body={'values': new_values}
         ).execute()
 
-        format_requests.append({
-            "repeatCell": {
-                "range": {
-                    "sheetId": 305140406, "startColumnIndex": 2, "endColumnIndex": 3,
-                    "startRowIndex": 0, "endRowIndex": len(new_values)
-                },
-                "cell": {"userEnteredFormat": {"horizontalAlignment": "LEFT"}},
-                "fields": "userEnteredFormat.horizontalAlignment"
-            }
-        })
-
     if format_requests:
         service.spreadsheets().batchUpdate(
             spreadsheetId=SPREADSHEET_ID,
@@ -316,6 +323,7 @@ def submit():
         ).execute()
 
     return jsonify({'status': 'success'})
+
 
 @app.route('/sw.js')
 def serve_sw():
