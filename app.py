@@ -216,7 +216,7 @@ def submit():
     elif endgame_action == 'did not park/climb':
         endgame_summary = "Did Not Park/Climb"
     else:
-        endgame_summary = "None".\deploy.ps1
+        endgame_summary = "None"
 
     # Mobility summary includes no move flags and partial match
     mobility_parts = []
