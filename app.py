@@ -5,6 +5,7 @@ from googleapiclient.discovery import build
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
+from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)
@@ -219,12 +220,20 @@ def submit():
     else:
         endgame_summary = "None"
 
+    mobility_summary = []
+    if auto_no_move:
+        mobility_summary.append("No Auto Move")
+    if teleop_no_move:
+        mobility_summary.append("No Teleop Move")
+    mobility_summary = ", ".join(mobility_summary) if mobility_summary else "Moved"
+
+
     data_row = [
-        name, team, match_number, submitted_time, auto_summary,
-        teleop_summary, offense_rating, defense_rating, endgame_summary, notes
+    name, team, match_number, submitted_time, auto_summary,
+    teleop_summary, offense_rating, defense_rating, endgame_summary, mobility_summary, notes
     ]
 
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Scouting!A1:Z1000').execute()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Testing!A1:Z1000').execute()
     all_values = result.get('values', [])
 
     teams_data = {}
@@ -239,7 +248,7 @@ def submit():
         teams_data[team] = []
     teams_data[team].append(data_row)
 
-    sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range='Scouting!A1:Z1000').execute()
+    sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range='Testing!A1:Z1000').execute()
 
     new_values = []
     format_requests = []
@@ -255,7 +264,7 @@ def submit():
         new_values.append([f'Team {team_num}: {team_name}'] + [''] * 9)
         format_requests.append({
             "repeatCell": {
-                "range": {"sheetId": 0, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                 "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
                 "fields": "userEnteredFormat.textFormat.bold"
             }
@@ -263,18 +272,18 @@ def submit():
         current_row += 1
 
         new_values.append([
-            "Scouter Name", "Team Number", "Match Number", "Submission Time",
-            "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
-            "Endgame Summary", "Notes"
+        "Scouter Name", "Team Number", "Match Number", "Submission Time",
+        "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
+        "Endgame Summary", "Mobility", "Notes"
         ])
         current_row += 1
 
-        sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if str(x[2]).isdigit() else 0)
+        sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
             new_values.append(entry)
             format_requests.append({
                 "repeatCell": {
-                    "range": {"sheetId": 0, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                    "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                     "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
                     "fields": "userEnteredFormat.textFormat.bold"
                 }
@@ -284,7 +293,7 @@ def submit():
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=f'Scouting!A1:J{len(new_values)}',
+            range=f'Testing!A1:K{len(new_values)}',
             valueInputOption='RAW',
             body={'values': new_values}
         ).execute()
@@ -292,7 +301,7 @@ def submit():
         format_requests.append({
             "repeatCell": {
                 "range": {
-                    "sheetId": 0, "startColumnIndex": 2, "endColumnIndex": 3,
+                    "sheetId": 305140406, "startColumnIndex": 2, "endColumnIndex": 3,
                     "startRowIndex": 0, "endRowIndex": len(new_values)
                 },
                 "cell": {"userEnteredFormat": {"horizontalAlignment": "LEFT"}},
@@ -307,6 +316,10 @@ def submit():
         ).execute()
 
     return jsonify({'status': 'success'})
+
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory('.', 'sw.js', mimetype='application/javascript')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

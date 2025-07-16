@@ -186,7 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       notes: getValue('notes') || '',
       response_time: responseTimeField.value,
-      timestamp: new Date().toLocaleString()
+      timestamp: new Date().toLocaleString(),
+      partial_match: getCheckbox('partial_match')
     };
 
     try {
