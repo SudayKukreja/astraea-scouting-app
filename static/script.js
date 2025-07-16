@@ -25,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
     el.parentNode.appendChild(errorSpan);
   }
 
+  function switchToTab(tabId) {
+    tabs.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(t => t.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+  }
+
   // Tab switching
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -64,26 +71,22 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   let firstInputTime = null;
-
   function recordFirstInputTime() {
     if (!firstInputTime) {
       firstInputTime = Date.now();
     }
   }
 
-  // Attach once to all relevant fields
   form.querySelectorAll('input, select, textarea').forEach(el => {
     el.addEventListener('input', recordFirstInputTime, { once: true });
   });
 
-  // Queue for offline submissions
   function saveOffline(data) {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
     queue.push(data);
     localStorage.setItem('offlineQueue', JSON.stringify(queue));
   }
 
-  // Attempt to send all offline queued submissions
   async function sendQueuedSubmissions() {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
     if (!queue.length) return;
@@ -99,10 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
           queue.splice(i, 1);
           i--;
         } else {
-          break; // Server error
+          break;
         }
       } catch {
-        break; // Still offline
+        break;
       }
     }
     localStorage.setItem('offlineQueue', JSON.stringify(queue));
@@ -114,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendQueuedSubmissions();
   });
 
-  form.addEventListener('submit', async (e) => {  
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
 
@@ -124,17 +127,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const requiredFields = ['name', 'team', 'match'];
     let formValid = true;
 
-    requiredFields.forEach(id => {
+    for (const id of requiredFields) {
       const el = document.getElementById(id);
       if (!el || !el.value.trim()) {
         formValid = false;
         showError(el, 'Required field');
       }
-    });
+    }
 
-    if (!formValid) {
+    let tabErrors = [];
+
+    const autoFields = ['auto_ll1', 'auto_l2', 'auto_l3', 'auto_l4', 'auto_processor', 'auto_barge'];
+    const teleopFields = ['teleop_ll1', 'teleop_l2', 'teleop_l3', 'teleop_l4', 'teleop_processor', 'teleop_barge', 'offense_rating', 'defense_rating'];
+    const endgameFields = ['endgame_action'];
+
+    if (!autoFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && !getCheckbox('auto_no_move')) {
+      tabErrors.push({ tab: 'auto-tab', message: 'Please fill out something in Autonomous tab' });
+      autoFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
+    }
+
+    if (!teleopFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && !getCheckbox('teleop_no_move')) {
+      tabErrors.push({ tab: 'teleop-tab', message: 'Please fill out something in Teleop tab' });
+      teleopFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
+    }
+
+    if (!getValue('endgame_action')) {
+      tabErrors.push({ tab: 'endgame-tab', message: 'Please select an Endgame action' });
+      showError(document.getElementById('endgame_action'), 'Required');
+    }
+
+    if (!formValid || tabErrors.length > 0) {
       formWarning.style.display = 'block';
-      formWarning.textContent = 'Please fill out all required fields (highlighted).';
+      formWarning.style.color = '#b33';
+      formWarning.textContent = tabErrors.length > 0 ? tabErrors[0].message : 'Please fix required fields.';
+      if (tabErrors.length > 0) switchToTab(tabErrors[0].tab);
       return;
     }
 
@@ -144,16 +170,13 @@ document.addEventListener('DOMContentLoaded', () => {
     formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
     submitBtn.disabled = true;
 
-    await new Promise(requestAnimationFrame);
-
     const responseTimeField = document.getElementById('response_time');
     if (firstInputTime) {
       const responseTimeSec = ((Date.now() - firstInputTime) / 1000).toFixed(2);
       responseTimeField.value = responseTimeSec;
     } else {
-      responseTimeField.value = '-1'; // fallback in case they somehow submit instantly
+      responseTimeField.value = '-1';
     }
-
 
     const data = {
       name: getValue('name'),
@@ -240,7 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const climbDepthInput = document.getElementById('climb_depth');
         climbDepthInput.value = '';
 
-        // Clear climb_depth from saved draft in localStorage
         const savedDraft = localStorage.getItem('scoutDraft');
         if (savedDraft) {
           const draftObj = JSON.parse(savedDraft);
