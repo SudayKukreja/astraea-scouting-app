@@ -26,6 +26,34 @@ TEAM_NAMES = {
     "87": "Diablo",
     "102": "The Gearheads",
     "103": "Cybersonics",
+    "193": "MORT Beta",
+    "203": "SOUPERBOTS",
+    "204": "Eastern Robotic Vikings",
+    "219": "Team Impact",
+    "222": "Tigertrons",
+    "223": "Xtreme Heat",
+    "272": "Cyber Crusaders",
+    "293": "SPIKE",
+    "303": "The T.E.S.T. Team",
+    "316": "LUNATECS",
+    "321": "RoboLancers",
+    "341": "Miss Daisy",
+    "365": "Miracle Workerz",
+    "423": "Simple Machines",
+    "427": "LANCE-A-LOT",
+    "428": "BoroBlasters",
+    "430": "MORT GAMMA",
+    "433": "Firebirds",
+    "484": "Roboforce",
+    "486": "Positronic Panthers",
+    "555": "Montclair Robotics",
+    "708": "Hatters Robotics",
+    "709": "Femme Tech Fatale",
+    "714": "Panthera",
+    "752": "Chargers",
+    "816": "Anomaly",
+    "834": "SparTechs",
+    "1089": "Team Mercury",
     "1168": "Malvern Robotics",
     "1218": "SCH Robotics",
     "1257": "Parallel Universe",
@@ -41,15 +69,10 @@ TEAM_NAMES = {
     "1807": "Redbird Robotics",
     "1811": "FRESH",
     "1923": "The MidKnight Inventors",
-    "193": "MORT Beta",
     "2016": "Mighty Monkey Wrenches",
-    "203": "SOUPERBOTS",
-    "204": "Eastern Robotic Vikings",
+    "2095": "Direct Current",
     "2180": "Zero Gravity",
-    "219": "Team Impact",
     "2191": "Flux Core",
-    "222": "Tigertrons",
-    "223": "Xtreme Heat",
     "2234": "Alternating Current",
     "2458": "Team Chaos",
     "2495": "Hive Mind",
@@ -59,27 +82,13 @@ TEAM_NAMES = {
     "2577": "Pingry Robotics",
     "2590": "Nemesis",
     "2607": "The Fighting RoboVikings",
-    "2637": "N/A",  # not in your list but if needed, can add later
-    "272": "Cyber Crusaders",
     "2720": "Red Watch Robotics",
     "2722": "Charge Robotics",
-    "293": "SPIKE",
-    "303": "The T.E.S.T. Team",
     "3142": "Aperture",
-    "316": "LUNATECS",
-    "321": "RoboLancers",
-    "3340": "Union City MagneGeeks",
     "3314": "Mechanical Mustangs",
     "3340": "Union City MagneGeeks",
     "3637": "The Daleks",
-    "365": "Miracle Workerz",
-    "4039": "N/A",
-    "4099": "The Falcons",
-    "423": "Simple Machines",
-    "427": "LANCE-A-LOT",
-    "428": "BoroBlasters",
-    "430": "MORT GAMMA",
-    "433": "Firebirds",
+    "4285": "Camo-Bots",
     "4342": "Demon Robotics",
     "4361": "Roxbotix",
     "4373": "RooBotics",
@@ -89,8 +98,6 @@ TEAM_NAMES = {
     "4652": "Ironmen 2",
     "4653": "Ironmen Robotics",
     "4750": "Bert",
-    "484": "Roboforce",
-    "486": "Positronic Panthers",
     "5113": "Combustible Lemons",
     "5181": "Explorer Robotics",
     "5310": "Mecha Ravens",
@@ -98,7 +105,6 @@ TEAM_NAMES = {
     "5407": "Wolfpack Robotics",
     "5438": "Technological Terrors",
     "5490": "The Dark Byte",
-    "5566": "N/A",
     "5624": "TIGER TECH Robotics",
     "5666": "Purple Lightning",
     "5684": "Titans of Tech - Thrive Charter School",
@@ -113,17 +119,13 @@ TEAM_NAMES = {
     "6921": "Technados",
     "6945": "Children of the Corn",
     "7045": "MCCrusaders",
-    "708": "Hatters Robotics",
-    "709": "Femme Tech Fatale",
     "7110": "Heights Bytes",
-    "714": "Panthera",
     "7414": "RetroRobotics",
-    "752": "Chargers",
     "7587": "Metuchen Momentum",
     "8075": "CyberTigers",
     "8117": "The Easton RoboRovers",
     "8130": "Absegami Robotics",
-    "834": "SparTechs",
+    "8513": "Sisters 1st",
     "8588": "Tech Devils",
     "8628": "Newark School of Global Studies",
     "8630": "CAP ROBOTICS",
@@ -136,7 +138,6 @@ TEAM_NAMES = {
     "9014": "Vulcan Mechanics",
     "9015": "Questionable Engineering",
     "9027": "PATH to Domination",
-    "9060": "N/A",
     "9094": "The Earthquakers",
     "9100": "Robo Roses",
     "9116": "The Canucks & Bolts",
@@ -155,7 +156,7 @@ TEAM_NAMES = {
     "10480": "CyberStorm",
     "10584": "Pennridge RoboRams",
     "10600": "Two Steps Ahead",
-    "10653": "Reybotics",
+    "10653": "Reybotics"
 }
 
 @app.route('/', methods=['GET'])
@@ -182,9 +183,8 @@ def submit():
 
     auto_no_move = auto.get('no_move', False)
     teleop_no_move = teleop.get('no_move', False)
-    partial_match = data.get('partial_match', False)  # fix: get from root 'partial_match'
+    partial_match = data.get('partial_match', False) 
 
-    # Remove "No Move" from summaries:
     auto_summary = (
         f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
         f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}"
@@ -218,7 +218,6 @@ def submit():
     else:
         endgame_summary = "None"
 
-    # Mobility summary includes no move flags and partial match
     mobility_parts = []
     if auto_no_move:
         mobility_parts.append("No Auto Move")
@@ -260,10 +259,9 @@ def submit():
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
 
         if current_row > 0:
-            new_values.append([''] * 11)  # 11 columns total now
+            new_values.append([''] * 11) 
             current_row += 1
 
-        # Team header row (bold + bigger font size)
         new_values.append([f'Team {team_num}: {team_name}'] + [''] * 10)
         format_requests.append({
             "repeatCell": {
@@ -274,13 +272,12 @@ def submit():
         })
         current_row += 1
 
-        # Column headers row
         new_values.append([
             "Scouter Name", "Team Number", "Match Number", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
             "Endgame Summary", "Mobility", "Notes"
         ])
-        # Make headers bold, normal font size
+
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
@@ -290,11 +287,9 @@ def submit():
         })
         current_row += 1
 
-        # Add sorted data rows
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
             new_values.append(entry)
-            # Make data rows normal font, no bold
             format_requests.append({
                 "repeatCell": {
                     "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
@@ -319,7 +314,6 @@ def submit():
         ).execute()
 
     return jsonify({'status': 'success'})
-
 
 @app.route('/sw.js')
 def serve_sw():
