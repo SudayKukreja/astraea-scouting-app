@@ -216,11 +216,7 @@ def submit():
     elif endgame_action == 'did not park/climb':
         endgame_summary = "Did Not Park/Climb"
     else:
-        endgame_summary = "None"
-
-    # Append Partial Match text to endgame summary if checked
-    if partial_match:
-        endgame_summary += " (Partial Match Shutdown)"
+        endgame_summary = "None".\deploy.ps1
 
     # Mobility summary includes no move flags and partial match
     mobility_parts = []
@@ -272,7 +268,7 @@ def submit():
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 18}}},
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 14}}},
                 "fields": "userEnteredFormat.textFormat"
             }
         })
