@@ -9,8 +9,12 @@ import os, json
 app = Flask(__name__)
 CORS(app)
 
+# === CONFIGURATION ===
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
+SHEET_NAME = 'Testing'
+SHEET_ID = 305140406 
+# ======================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
 creds = service_account.Credentials.from_service_account_info(credentials_info, scopes=SCOPES)
@@ -234,7 +238,7 @@ def submit():
         endgame_summary, mobility_summary, notes
     ]
 
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range='Testing!A1:Z1000').execute()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
     all_values = result.get('values', [])
 
     teams_data = {}
@@ -249,7 +253,7 @@ def submit():
         teams_data[team] = []
     teams_data[team].append(data_row)
 
-    sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range='Testing!A1:Z1000').execute()
+    sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
 
     new_values = []
     format_requests = []
@@ -259,13 +263,13 @@ def submit():
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
 
         if current_row > 0:
-            new_values.append([''] * 11) 
+            new_values.append([''] * 11)
             current_row += 1
 
         new_values.append([f'Team {team_num}: {team_name}'] + [''] * 10)
         format_requests.append({
             "repeatCell": {
-                "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                 "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 14}}},
                 "fields": "userEnteredFormat.textFormat"
             }
@@ -277,10 +281,9 @@ def submit():
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
             "Endgame Summary", "Mobility", "Notes"
         ])
-
         format_requests.append({
             "repeatCell": {
-                "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                 "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
                 "fields": "userEnteredFormat.textFormat"
             }
@@ -292,7 +295,7 @@ def submit():
             new_values.append(entry)
             format_requests.append({
                 "repeatCell": {
-                    "range": {"sheetId": 305140406, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                    "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
                     "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
                     "fields": "userEnteredFormat.textFormat"
                 }
@@ -302,7 +305,7 @@ def submit():
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=f'Testing!A1:K{len(new_values)}',
+            range=f'{SHEET_NAME}!A1:K{len(new_values)}',
             valueInputOption='RAW',
             body={'values': new_values}
         ).execute()
