@@ -9,7 +9,7 @@ import os, json
 app = Flask(__name__)
 CORS(app)
 
-# === CONFIGURATION ===
+# === CONFIGURATIONS AREA ===
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
 SHEET_NAME = 'Testing'
