@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const spinner = document.getElementById('submit-spinner');
   const endgameAction = document.getElementById('endgame_action');
   const climbDepthLabel = document.getElementById('climb_depth_label');
+  const climbSuccessLabel = document.getElementById('climb_success_label');
 
   function clearErrors() {
     formWarning.style.display = 'none';
@@ -57,6 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
           el.value = value;
         }
       }
+    }
+    
+    // Trigger endgame action change to show/hide climb options if needed
+    if (endgameAction && endgameAction.value === 'climb') {
+      climbDepthLabel.classList.remove('hidden');
+      climbSuccessLabel.classList.remove('hidden');
     }
   }
 
@@ -210,7 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
       },
       endgame: {
         action: getValue('endgame_action') || '',
-        climb_depth: getValue('climb_depth') || ''
+        climb_depth: getValue('climb_depth') || '',
+        climb_successful: getCheckbox('climb_successful')
       },
       notes: getValue('notes') || '',
       response_time: responseTimeField.value,
@@ -235,6 +243,10 @@ document.addEventListener('DOMContentLoaded', () => {
         tabContents.forEach(t => t.classList.remove('active'));
         tabContents[0].classList.add('active');
 
+        // Hide climb options when form is reset
+        climbDepthLabel.classList.add('hidden');
+        climbSuccessLabel.classList.add('hidden');
+
         formWarning.style.display = 'none';
       } else {
         formWarning.style.display = 'block';
@@ -252,6 +264,10 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContents.forEach(t => t.classList.remove('active'));
       tabContents[0].classList.add('active');
 
+      // Hide climb options when form is reset
+      climbDepthLabel.classList.add('hidden');
+      climbSuccessLabel.classList.add('hidden');
+
       formWarning.style.display = 'none';
     } finally {
       spinner.style.display = 'none';
@@ -263,18 +279,26 @@ document.addEventListener('DOMContentLoaded', () => {
     endgameAction.addEventListener('change', () => {
       if (endgameAction.value === 'climb') {
         climbDepthLabel.classList.remove('hidden');
+        climbSuccessLabel.classList.remove('hidden');
       } else {
         climbDepthLabel.classList.add('hidden');
+        climbSuccessLabel.classList.add('hidden');
         const climbDepthInput = document.getElementById('climb_depth');
+        const climbSuccessfulInput = document.getElementById('climb_successful');
         climbDepthInput.value = '';
+        climbSuccessfulInput.checked = false;
 
+        // Update localStorage to remove climb-related fields
         const savedDraft = localStorage.getItem('scoutDraft');
         if (savedDraft) {
           const draftObj = JSON.parse(savedDraft);
           if ('climb_depth' in draftObj) {
             delete draftObj.climb_depth;
-            localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
           }
+          if ('climb_successful' in draftObj) {
+            delete draftObj.climb_successful;
+          }
+          localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
         }
       }
     });

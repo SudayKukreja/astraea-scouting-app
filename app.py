@@ -54,7 +54,6 @@ def submit():
 
     auto_dropped_pieces = auto.get('dropped_pieces', 0)
     
-    # Handle the auto_only_moved case in the summary
     if auto_only_moved:
         auto_summary = "Only moved forward (no scoring), Dropped:{}".format(auto_dropped_pieces)
     else:
@@ -84,7 +83,20 @@ def submit():
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':
         climb_depth = endgame.get('climb_depth', '').strip()
-        endgame_summary = f"Climb({climb_depth})" if climb_depth else "Climb"
+        climb_successful = endgame.get('climb_successful', False)
+
+        climb_parts = []
+        if climb_depth:
+            climb_parts.append(f"Climb({climb_depth})")
+        else:
+            climb_parts.append("Climb")
+            
+        if climb_successful:
+            climb_parts.append("✓ Success")
+        else:
+            climb_parts.append("✗ Failed")
+            
+        endgame_summary = " - ".join(climb_parts)
     elif endgame_action == 'park':
         endgame_summary = "Park"
     elif endgame_action == 'did not park/climb':
