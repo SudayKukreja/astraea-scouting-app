@@ -48,15 +48,21 @@ def submit():
     notes = data.get('notes', '').strip()
 
     auto_no_move = auto.get('no_move', False)
+    auto_only_moved = auto.get('only_moved', False)
     teleop_no_move = teleop.get('no_move', False)
     partial_match = data.get('partial_match', False) 
 
     auto_dropped_pieces = auto.get('dropped_pieces', 0)
-    auto_summary = (
-        f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
-        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}, "
-        f"Dropped:{auto_dropped_pieces}"
-    )
+    
+    # Handle the auto_only_moved case in the summary
+    if auto_only_moved:
+        auto_summary = "Only moved forward (no scoring), Dropped:{}".format(auto_dropped_pieces)
+    else:
+        auto_summary = (
+            f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
+            f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}, "
+            f"Dropped:{auto_dropped_pieces}"
+        )
 
     dropped_pieces = teleop.get('dropped_pieces', 0)
     teleop_summary = (
@@ -89,6 +95,9 @@ def submit():
     mobility_parts = []
     if auto_no_move:
         mobility_parts.append("No Auto Move")
+    elif auto_only_moved:
+        mobility_parts.append("Only Moved Forward in Auto")
+    
     if teleop_no_move:
         mobility_parts.append("No Teleop Move")
     if partial_match:

@@ -141,18 +141,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const teleopFields = ['teleop_ll1', 'teleop_l2', 'teleop_l3', 'teleop_l4', 'teleop_processor', 'teleop_barge', 'offense_rating', 'defense_rating'];
     const endgameFields = ['endgame_action'];
 
-    if (!autoFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && !getCheckbox('auto_no_move')) {
-      tabErrors.push({ tab: 'auto-tab', message: 'Please fill out something in Autonomous tab' });
+    // Check Auto tab - now includes the "only moved" checkbox as valid input
+    if (!autoFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && 
+        !getCheckbox('auto_no_move') && 
+        !getCheckbox('auto_only_moved')) {
+      tabErrors.push({ tab: 'auto', message: 'Please fill out something in Autonomous tab' });
       autoFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
     }
 
     if (!teleopFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && !getCheckbox('teleop_no_move')) {
-      tabErrors.push({ tab: 'teleop-tab', message: 'Please fill out something in Teleop tab' });
+      tabErrors.push({ tab: 'teleop', message: 'Please fill out something in Teleop tab' });
       teleopFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
     }
 
     if (!getValue('endgame_action')) {
-      tabErrors.push({ tab: 'endgame-tab', message: 'Please select an Endgame action' });
+      tabErrors.push({ tab: 'endgame', message: 'Please select an Endgame action' });
       showError(document.getElementById('endgame_action'), 'Required');
     }
 
@@ -190,7 +193,8 @@ document.addEventListener('DOMContentLoaded', () => {
         processor: getValue('auto_processor') || 0,
         barge: getValue('auto_barge') || 0,
         dropped_pieces: parseInt(getValue('auto_dropped_pieces')) || 0,
-        no_move: getCheckbox('auto_no_move')
+        no_move: getCheckbox('auto_no_move'),
+        only_moved: getCheckbox('auto_only_moved')
       },
       teleop: {
         ll1: getValue('teleop_ll1') || 0,

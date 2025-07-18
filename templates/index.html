@@ -83,6 +83,10 @@
               <input type="checkbox" id="auto_no_move" name="auto_no_move">
               <label for="auto_no_move">Did not move in Auto</label>
             </div>
+            <div class="checkbox-group">
+              <input type="checkbox" id="auto_only_moved" name="auto_only_moved">
+              <label for="auto_only_moved">Robot only moved forward (no scoring)</label>
+            </div>
           </div>
 
           <!-- Teleop Tab -->
@@ -159,7 +163,7 @@
               <div class="form-group hidden" id="climb_depth_label">
                 <label for="climb_depth">Climb Depth</label>
                 <select id="climb_depth" name="climb_depth">
-                  <option value="">Select Depth</option>
+                  <option value="">Select Climb Type</option>
                   <option value="shallow">Shallow</option>
                   <option value="deep">Deep</option>
                 </select>
