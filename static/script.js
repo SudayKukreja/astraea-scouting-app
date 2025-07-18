@@ -189,6 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         l4: getValue('auto_l4') || 0,
         processor: getValue('auto_processor') || 0,
         barge: getValue('auto_barge') || 0,
+        dropped_pieces: parseInt(getValue('auto_dropped_pieces')) || 0,
         no_move: getCheckbox('auto_no_move')
       },
       teleop: {

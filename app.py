@@ -36,12 +36,10 @@ def submit():
     est = timezone(timedelta(hours=-4))
     now = datetime.now(est)
 
-    # Internal unique timestamp (if you want to keep it)
     timestamp_us = now.isoformat(timespec='microseconds')
     unique_suffix = uuid4().hex[:8]
     submitted_time_internal = f"{timestamp_us}_{unique_suffix}"
 
-    # Display timestamp in 12-hour format with AM/PM for Google Sheet
     submitted_time_display = now.strftime("%m/%d/%Y %I:%M:%S %p")
 
     auto = data.get('auto', {})
@@ -53,9 +51,11 @@ def submit():
     teleop_no_move = teleop.get('no_move', False)
     partial_match = data.get('partial_match', False) 
 
+    auto_dropped_pieces = auto.get('dropped_pieces', 0)
     auto_summary = (
         f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
-        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}"
+        f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}, "
+        f"Dropped:{auto_dropped_pieces}"
     )
 
     dropped_pieces = teleop.get('dropped_pieces', 0)
