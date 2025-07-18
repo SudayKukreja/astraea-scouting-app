@@ -179,7 +179,7 @@
           <!-- Warning message area -->
           <div id="form-warning" class="form-warning" style="display:none; color: #b33; margin-bottom: 10px;"></div>
 
-          <!-- Spinner (hidden by default) -->
+          <!-- Spinner area -->
           <div id="submit-spinner" class="spinner" style="display:none; margin-bottom: 10px;"></div>
 
           <input type="hidden" id="response_time" name="response_time" value="">
@@ -199,12 +199,10 @@
         navigator.serviceWorker.register('/sw.js').then(function(registration) {
           console.log('ServiceWorker registration successful with scope: ', registration.scope);
           
-          // Check for updates
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing;
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // New service worker is available, prompt user to refresh
                 if (confirm('A new version of the app is available. Would you like to refresh to get the latest version?')) {
                   newWorker.postMessage({ type: 'SKIP_WAITING' });
                 }
@@ -216,7 +214,6 @@
         });
       });
 
-      // Handle service worker updates
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (!refreshing) {
           refreshing = true;
