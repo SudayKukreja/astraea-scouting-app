@@ -1,20 +1,19 @@
 $datetime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $dateVersion = Get-Date -Format "yyyyMMdd-HHmmss"
 
+# Prompt user for commit description
+$customDescription = Read-Host "Enter a short commit description"
+
 # Function to update service worker cache version with date
 function Update-ServiceWorkerVersion {
     $swPath = "sw.js"
     
     if (Test-Path $swPath) {
         $swContent = Get-Content $swPath -Raw
-        
-        # Replace any existing cache name with date-based version
+
         if ($swContent -match "const CACHE_NAME = '[^']*'") {
             $updatedContent = $swContent -replace "const CACHE_NAME = '[^']*'", "const CACHE_NAME = 'astraea-cache-$dateVersion'"
-            
-            # Write back to file
             Set-Content -Path $swPath -Value $updatedContent -NoNewline
-            
             Write-Host "Updated service worker cache version to: astraea-cache-$dateVersion" -ForegroundColor Green
             return $dateVersion
         } else {
@@ -30,18 +29,19 @@ function Update-ServiceWorkerVersion {
 # Update service worker version
 $newVersion = Update-ServiceWorkerVersion
 
-# Check git status
+# Git status summary
 $gitStatus = git status --short | Out-String
 $gitSummary = if ($gitStatus) { $gitStatus.Trim() } else { "No changes detected" }
 
-# Create commit message with version info
+# Commit message
 $commitMessage = if ($newVersion) {
-    "Auto deploy commit at $datetime (SW cache $newVersion)`nChanges:`n$gitSummary"
+    "$customDescription - Auto deploy at $datetime (SW cache $newVersion)`nChanges:`n$gitSummary"
 } else {
-    "Auto deploy commit at $datetime`nChanges:`n$gitSummary"
+    "$customDescription - Auto deploy at $datetime`nChanges:`n$gitSummary"
 }
 
 # Git operations
+Write-Host ""
 Write-Host "Adding files to git..." -ForegroundColor Cyan
 git add .
 
@@ -51,4 +51,5 @@ git commit -m $commitMessage
 Write-Host "Pushing to origin main..." -ForegroundColor Cyan
 git push origin main
 
+Write-Host ""
 Write-Host "Deploy completed successfully!" -ForegroundColor Green
