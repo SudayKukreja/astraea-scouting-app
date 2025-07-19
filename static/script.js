@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById(tabId).classList.add('active');
   }
 
-  // Tab switching
   tabs.forEach(btn => {
     btn.addEventListener('click', () => {
       tabs.forEach(b => b.classList.remove('active'));
@@ -45,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Restore draft from localStorage
   const savedDraft = localStorage.getItem('scoutDraft');
   if (savedDraft) {
     const draftObj = JSON.parse(savedDraft);
@@ -60,14 +58,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Trigger endgame action change to show/hide climb options if needed
     if (endgameAction && endgameAction.value === 'climb') {
       climbDepthLabel.classList.remove('hidden');
       climbSuccessLabel.classList.remove('hidden');
     }
   }
 
-  // Autosave draft to localStorage
   form.addEventListener('input', () => {
     const draft = new FormData(form);
     const draftObj = {};
@@ -243,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabContents.forEach(t => t.classList.remove('active'));
         tabContents[0].classList.add('active');
 
-        // Hide climb options when form is reset
         climbDepthLabel.classList.add('hidden');
         climbSuccessLabel.classList.add('hidden');
 
@@ -264,7 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContents.forEach(t => t.classList.remove('active'));
       tabContents[0].classList.add('active');
 
-      // Hide climb options when form is reset
       climbDepthLabel.classList.add('hidden');
       climbSuccessLabel.classList.add('hidden');
 
@@ -288,7 +282,6 @@ document.addEventListener('DOMContentLoaded', () => {
         climbDepthInput.value = '';
         climbSuccessfulInput.checked = false;
 
-        // Update localStorage to remove climb-related fields
         const savedDraft = localStorage.getItem('scoutDraft');
         if (savedDraft) {
           const draftObj = JSON.parse(savedDraft);

@@ -13,8 +13,8 @@ CORS(app)
 # === CONFIGURATIONS AREA ===
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'Testing'
-SHEET_ID = 305140406 
+SHEET_NAME = 'MoreTesting'
+SHEET_ID = 351218248 
 # ======================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
