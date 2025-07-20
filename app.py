@@ -13,8 +13,8 @@ CORS(app)
 # === CONFIGURATIONS AREA ===
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'MoreTesting'
-SHEET_ID = 351218248 
+SHEET_NAME = 'Testing2'
+SHEET_ID = 1557407027 
 # ======================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
@@ -54,8 +54,11 @@ def submit():
 
     auto_dropped_pieces = auto.get('dropped_pieces', 0)
     
-    if auto_only_moved:
-        auto_summary = "Only moved forward (no scoring), Dropped:{}".format(auto_dropped_pieces)
+    # Auto summary logic
+    if auto_no_move:
+        auto_summary = "Didn't move in auto"
+    elif auto_only_moved:
+        auto_summary = f"Only moved forward (no scoring), Dropped:{auto_dropped_pieces}"
     else:
         auto_summary = (
             f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
@@ -63,12 +66,16 @@ def submit():
             f"Dropped:{auto_dropped_pieces}"
         )
 
-    dropped_pieces = teleop.get('dropped_pieces', 0)
-    teleop_summary = (
-        f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
-        f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
-        f"Dropped:{dropped_pieces}"
-    )
+    # Teleop summary logic
+    if teleop_no_move:
+        teleop_summary = "Robot did not move in teleop"
+    else:
+        dropped_pieces = teleop.get('dropped_pieces', 0)
+        teleop_summary = (
+            f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
+            f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
+            f"Dropped:{dropped_pieces}"
+        )
 
     def clean_rating(val):
         try:
@@ -80,23 +87,23 @@ def submit():
     offense_rating = clean_rating(teleop.get('offense_rating', '-'))
     defense_rating = clean_rating(teleop.get('defense_rating', '-'))
 
+    # Endgame summary logic
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':
-        climb_depth = endgame.get('climb_depth', '').strip()
+        climb_depth = endgame.get('climb_depth', '').strip().lower()
         climb_successful = endgame.get('climb_successful', False)
 
-        climb_parts = []
-        if climb_depth:
-            climb_parts.append(f"Climb({climb_depth})")
+        if climb_depth == 'shallow':
+            climb_type = "Shallow climb"
+        elif climb_depth == 'deep':
+            climb_type = "Deep climb"
         else:
-            climb_parts.append("Climb")
+            climb_type = "Climb"
             
         if climb_successful:
-            climb_parts.append("✓ Success")
+            endgame_summary = f"{climb_type} - Success"
         else:
-            climb_parts.append("✗ Failed")
-            
-        endgame_summary = " - ".join(climb_parts)
+            endgame_summary = f"{climb_type} - Failed"
     elif endgame_action == 'park':
         endgame_summary = "Park"
     elif endgame_action == 'did not park/climb':
@@ -104,23 +111,13 @@ def submit():
     else:
         endgame_summary = "None"
 
-    mobility_parts = []
-    if auto_no_move:
-        mobility_parts.append("No Auto Move")
-    elif auto_only_moved:
-        mobility_parts.append("Only Moved Forward in Auto")
-    
-    if teleop_no_move:
-        mobility_parts.append("No Teleop Move")
-    if partial_match:
-        mobility_parts.append("Partial Match Shutdown")
-
-    mobility_summary = ", ".join(mobility_parts) if mobility_parts else "Moved"
+    # Partial match column
+    partial_match_status = "Yes" if partial_match else "No"
 
     data_row = [
         name, team, match_number, submitted_time_display, auto_summary,
         teleop_summary, offense_rating, defense_rating,
-        endgame_summary, mobility_summary, notes
+        endgame_summary, partial_match_status, notes
     ]
 
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
@@ -164,12 +161,12 @@ def submit():
         new_values.append([
             "Scouter Name", "Team Number", "Match Number", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
-            "Endgame Summary", "Mobility", "Notes"
+            "Endgame Summary", "Partial Match", "Notes"
         ])
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                "cell": {"userEnteredFormat": {"textFormat": {"bold": True}}},
+                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 11}}},
                 "fields": "userEnteredFormat.textFormat"
             }
         })
@@ -177,14 +174,39 @@ def submit():
 
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
+            # Check if this row has partial match = "Yes" for highlighting
+            is_partial_match = len(entry) > 9 and entry[9] == "Yes"
+            
             new_values.append(entry)
-            format_requests.append({
-                "repeatCell": {
-                    "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                    "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
-                    "fields": "userEnteredFormat.textFormat"
-                }
-            })
+            
+            if is_partial_match:
+                # Highlight the partial match cell (column 9, 0-indexed)
+                format_requests.append({
+                    "repeatCell": {
+                        "range": {
+                            "sheetId": SHEET_ID, 
+                            "startRowIndex": current_row, 
+                            "endRowIndex": current_row + 1,
+                            "startColumnIndex": 9,
+                            "endColumnIndex": 10
+                        },
+                        "cell": {
+                            "userEnteredFormat": {
+                                "backgroundColor": {"red": 1.0, "green": 1.0, "blue": 0.0},
+                                "textFormat": {"bold": False}
+                            }
+                        },
+                        "fields": "userEnteredFormat"
+                    }
+                })
+            else:
+                format_requests.append({
+                    "repeatCell": {
+                        "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
+                        "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
+                        "fields": "userEnteredFormat.textFormat"
+                    }
+                })
             current_row += 1
 
     if new_values:
