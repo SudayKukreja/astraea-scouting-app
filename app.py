@@ -68,7 +68,7 @@ def submit():
 
     # Teleop summary logic
     if teleop_no_move:
-        teleop_summary = "Robot did not move in teleop"
+        teleop_summary = "Didn't move in teleop"
     else:
         dropped_pieces = teleop.get('dropped_pieces', 0)
         teleop_summary = (
@@ -161,7 +161,7 @@ def submit():
         new_values.append([
             "Scouter Name", "Team Number", "Match Number", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
-            "Endgame Summary", "Partial Match", "Notes"
+            "Endgame Summary", "Partial Match Shutdown?", "Notes"
         ])
         format_requests.append({
             "repeatCell": {
@@ -174,13 +174,11 @@ def submit():
 
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
-            # Check if this row has partial match = "Yes" for highlighting
             is_partial_match = len(entry) > 9 and entry[9] == "Yes"
             
             new_values.append(entry)
             
             if is_partial_match:
-                # Highlight the partial match cell (column 9, 0-indexed)
                 format_requests.append({
                     "repeatCell": {
                         "range": {
