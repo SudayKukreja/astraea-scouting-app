@@ -15,7 +15,7 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
 SHEET_NAME = 'Testing2'
 SHEET_ID = 1557407027 
-# ======================
+# ===========================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
 creds = service_account.Credentials.from_service_account_info(credentials_info, scopes=SCOPES)
