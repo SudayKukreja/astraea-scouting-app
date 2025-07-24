@@ -23,16 +23,6 @@
     --radius-xl: 16px;
 }
 
-.logo-img {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 1rem;
-    border-radius: var(--radius-lg);
-    display: block;
-    box-shadow: var(--shadow-lg);
-    animation: logoFloat 3s ease-in-out infinite;
-}
-
 * {
     box-sizing: border-box;
 }
@@ -51,8 +41,22 @@ body {
 }
 
 @keyframes backgroundShift {
-    0%, 100% {background-position: 0% 50%;}
-    50% {background-position: 100% 50%;}
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .app-container {
@@ -67,10 +71,7 @@ body {
 .app-container::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
     pointer-events: none;
 }
@@ -95,28 +96,31 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
-.logo {
+.logo, .logo-img {
     width: 80px;
     height: 80px;
     margin: 0 auto 1rem;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-blue) 100%);
     border-radius: var(--radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
-    box-shadow: 0 12px 20px -5px rgba(37, 99, 235, 0.7);
     animation: logoFloat 3s ease-in-out infinite;
     transition: box-shadow 0.3s ease;
 }
 
-.logo:hover {
-    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.9), 0 0 15px 4px rgba(96, 165, 250, 0.6);
+.logo {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-blue) 100%);
+    font-size: 3rem;
+    box-shadow: 0 12px 20px -5px rgba(37, 99, 235, 0.7);
 }
 
-@keyframes logoFloat {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
+.logo-img {
+    display: block;
+    box-shadow: var(--shadow-lg);
+}
+
+.logo:hover {
+    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.9), 0 0 15px 4px rgba(96, 165, 250, 0.6);
 }
 
 .app-title {
@@ -250,7 +254,6 @@ textarea {
     box-shadow: 0 0 8px rgba(37, 99, 235, 0.15);
 }
 
-/* Hide default checkbox */
 .checkbox-group input[type="checkbox"] {
     position: absolute;
     opacity: 0;
@@ -259,7 +262,6 @@ textarea {
     cursor: pointer;
 }
 
-/* Style the label as the visible checkbox */
 .checkbox-group label {
     position: relative;
     padding-left: 30px;
@@ -273,7 +275,6 @@ textarea {
     line-height: 1.2;
 }
 
-/* The custom box */
 .checkbox-group label::before {
     content: "";
     position: absolute;
@@ -289,13 +290,11 @@ textarea {
     transition: background-color 0.2s, border-color 0.2s;
 }
 
-/* Checked state: fill box with primary blue */
 .checkbox-group input[type="checkbox"]:checked + label::before {
     background: var(--primary-blue);
     border-color: var(--primary-blue);
 }
 
-/* Checkmark styling */
 .checkbox-group label::after {
     content: "";
     position: absolute;
@@ -310,17 +309,14 @@ textarea {
     transition: opacity 0.2s;
 }
 
-/* Show checkmark when checked */
 .checkbox-group input[type="checkbox"]:checked + label::after {
     opacity: 1;
 }
 
-/* Hover effect on label box */
 .checkbox-group label:hover::before {
     border-color: var(--primary-blue-dark);
 }
 
-/* Keyboard focus ring for accessibility */
 .checkbox-group input[type="checkbox"]:focus + label::before {
     outline: 2px solid var(--border-focus);
     outline-offset: 2px;
@@ -385,17 +381,6 @@ textarea {
 
 .tab-content.active {
     display: block;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .endgame-options {
@@ -463,6 +448,18 @@ textarea {
     margin-bottom: 0.25rem;
 }
 
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 4px solid rgba(37, 99, 235, 0.3);
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .app-container {
@@ -512,6 +509,7 @@ textarea {
 
     .app-content {
         padding: 1rem 1.5rem 2rem;
+        padding-bottom: 80px;
     }
 
     .app-title {
@@ -539,47 +537,26 @@ textarea {
         border-radius: var(--radius-md);
     }
 
-    .app-content {
-        padding-bottom: 80px; /* prevent content hidden behind fixed button */
-    }
-
     .checkbox-group {
         gap: 1rem;
         padding: 1.25rem;
     }
 
-    .spinner {
-        width: 24px;
-        height: 24px;
-        border: 4px solid rgba(37, 99, 235, 0.3); /* light blue, transparent */
-        border-top-color: #2563eb; /* primary blue */
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-left: 8px;
-        display: inline-block;
-        vertical-align: middle;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Mobile: Make tabs horizontally scrollable */
     .tabs {
-        flex-direction: row;      /* horizontal */
+        flex-direction: row;
         overflow-x: auto;
-        -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+        -webkit-overflow-scrolling: touch;
         gap: 0.5rem;
     }
 
     .tab-btn {
-        flex: 0 0 auto;          /* no shrinking */
+        flex: 0 0 auto;
         min-width: 100px;
-        white-space: nowrap;     /* no wrap */
+        white-space: nowrap;
         text-align: center;
     }
 
     .tab-btn.active::after {
-        display: block;          /* show arrow */
+        display: block;
     }
 }
