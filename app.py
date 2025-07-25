@@ -6,6 +6,13 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
 
+# Load environment variables (add this for local development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available in production, that's fine
+
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
 from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
@@ -29,12 +36,8 @@ creds = service_account.Credentials.from_service_account_info(credentials_info, 
 service = build('sheets', 'v4', credentials=creds)
 sheet = service.spreadsheets()
 
-# Initialize TBA client
-tba_client = TBAClient()
-
-# =============================================================================
-# AUTHENTICATION ROUTES
-# =============================================================================
+# Initialize TBA client with API key from environment
+tba_client = TBAClient(api_key=os.environ.get('TBA_API_KEY'))
 
 @app.route('/login')
 def login_page():

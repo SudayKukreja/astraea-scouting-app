@@ -11,14 +11,27 @@ class TBAClient:
             'X-TBA-Auth-Key': self.api_key,
             'User-Agent': 'AstraeaScoutingApp/1.0'
         }
+        
+        # Debug: Print API key status (first 10 chars only for security)
+        if self.api_key and self.api_key != 'your_tba_api_key_here':
+            print(f"TBA API Key loaded: {self.api_key[:10]}...")
+        else:
+            print("WARNING: TBA API Key not found or using placeholder!")
 
     def get_current_events(self):
         """Get current/recent events"""
         try:
             year = datetime.now().year
-            response = requests.get(f'{self.base_url}/events/{year}', headers=self.headers)
+            url = f'{self.base_url}/events/{year}'
+            print(f"Fetching events from: {url}")
+            
+            response = requests.get(url, headers=self.headers, timeout=10)
+            print(f"TBA API Response Status: {response.status_code}")
+            
             if response.status_code == 200:
                 events = response.json()
+                print(f"Retrieved {len(events)} events from TBA")
+                
                 # Filter for current/upcoming events
                 current_events = []
                 for event in events:
@@ -30,8 +43,12 @@ class TBAClient:
                             'end_date': event['end_date'],
                             'location': f"{event.get('city', '')}, {event.get('state_prov', '')}"
                         })
+                
+                print(f"Filtered to {len(current_events)} relevant events")
                 return sorted(current_events, key=lambda x: x['start_date'])
-            return []
+            else:
+                print(f"TBA API Error: {response.status_code} - {response.text}")
+                return []
         except Exception as e:
             print(f"Error fetching events: {e}")
             return []
@@ -39,9 +56,16 @@ class TBAClient:
     def get_event_matches(self, event_key):
         """Get matches for a specific event"""
         try:
-            response = requests.get(f'{self.base_url}/event/{event_key}/matches', headers=self.headers)
+            url = f'{self.base_url}/event/{event_key}/matches'
+            print(f"Fetching matches from: {url}")
+            
+            response = requests.get(url, headers=self.headers, timeout=10)
+            print(f"TBA API Response Status: {response.status_code}")
+            
             if response.status_code == 200:
                 matches = response.json()
+                print(f"Retrieved {len(matches)} matches from TBA")
+                
                 processed_matches = []
                 
                 for match in matches:
@@ -61,8 +85,11 @@ class TBAClient:
                             'time': match.get('time')
                         })
                 
+                print(f"Processed {len(processed_matches)} qualification matches")
                 return sorted(processed_matches, key=lambda x: x['match_number'])
-            return []
+            else:
+                print(f"TBA API Error: {response.status_code} - {response.text}")
+                return []
         except Exception as e:
             print(f"Error fetching matches for {event_key}: {e}")
             return []
