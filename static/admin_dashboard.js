@@ -3,7 +3,6 @@ let scouters = {};
 let matches = [];
 let teams = [];
 
-// Load saved event from localStorage on page load
 document.addEventListener('DOMContentLoaded', () => {
   const savedEvent = localStorage.getItem('currentEvent');
   if (savedEvent) {
@@ -11,30 +10,24 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('event-key-input').value = savedEvent;
     document.getElementById('current-event-display').textContent = savedEvent;
     document.getElementById('event-section').style.display = 'block';
-    // Auto-load data for the saved event
     loadMatches();
   }
 });
 
-// Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.getAttribute('data-tab');
     
-    // Update active tab button
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     
-    // Update active tab content
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     
-    // Load data for the tab
     if (tabId === 'scouters') loadScouters();
   });
 });
 
-// Load initial data
 loadScouters();
 
 async function loadEventData() {
@@ -43,16 +36,13 @@ async function loadEventData() {
     alert('Please enter an event key');
     return;
   }
-  
-  // Set the current event and update the display
+
   currentEvent = eventKey;
   document.getElementById('current-event-display').textContent = `${eventKey} (TBA)`;
   document.getElementById('event-section').style.display = 'block';
   
-  // Save event to localStorage for persistence
   localStorage.setItem('currentEvent', eventKey);
-  
-  // Load matches and teams for this event
+
   await loadMatches();
   await loadTeamsForEvent(eventKey);  
 }
@@ -78,20 +68,15 @@ async function loadMatches() {
       return;
     }
     
-    // Load teams for this event if not already loaded
     if (teams.length === 0) {
       await loadTeamsForEvent(currentEvent);
     }
     
-    // Load current assignments
     const assignmentsResponse = await fetch(`/api/admin/assignments?event=${currentEvent}`);
     const assignments = await assignmentsResponse.json();
-    
-    // Load match summary for stats
     const summaryResponse = await fetch(`/api/admin/match-summary?event=${currentEvent}`);
     const summary = await summaryResponse.json();
-    
-    // Add summary display at the top
+
     const summaryHTML = `
       <div class="match-summary">
         <h3>Assignment Summary</h3>
@@ -118,7 +103,7 @@ async function loadMatches() {
     
     container.innerHTML = summaryHTML + matches.map(match => {
       const matchAssignments = assignments.filter(a => a.match_number === match.match_number);
-      const isHomeMatch = match.all_teams.includes('6897'); // Check if team 6897 is playing
+      const isHomeMatch = match.all_teams.includes('6897'); 
       
       return `
         <div class="match-card ${isHomeMatch ? 'home-match' : ''}">
@@ -203,9 +188,7 @@ function getAssignmentActions(assignment) {
   return '';
 }
 
-// Event tab switching
 document.addEventListener('DOMContentLoaded', () => {
-  // Add event tab switching functionality
   const eventTabBtns = document.querySelectorAll('.event-tab-btn');
   const eventTabContents = document.querySelectorAll('.event-tab-content');
   
@@ -213,24 +196,20 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-event-tab');
       
-      // Update active tab button
       eventTabBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
-      // Update active tab content
       eventTabContents.forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      
-      // Load manual events list when switching to manual-load tab
+
       if (tabId === 'manual-load') {
         loadManualEventsList();
       }
     });
   });
   
-  // Initialize manual events list on page load
   loadManualEventsList();
-  addManualMatch(); // Add first match by default
+  addManualMatch();
 });
 
 let manualMatchCount = 0;
@@ -274,7 +253,6 @@ function removeManualMatch(matchId) {
   if (matchElement) {
     matchElement.remove();
     
-    // Renumber remaining matches
     const remainingMatches = document.querySelectorAll('.match-builder');
     remainingMatches.forEach((match, index) => {
       const newNumber = index + 1;
@@ -282,7 +260,6 @@ function removeManualMatch(matchId) {
       match.querySelector('.match-title').textContent = `Match ${newNumber}`;
       match.querySelector('.remove-match-btn').setAttribute('onclick', `removeManualMatch(${newNumber})`);
       
-      // Update data attributes
       const inputs = match.querySelectorAll('input[data-match]');
       inputs.forEach(input => {
         input.setAttribute('data-match', newNumber);
@@ -297,7 +274,7 @@ function clearManualMatches() {
   if (confirm('Are you sure you want to clear all matches?')) {
     document.getElementById('manual-matches-container').innerHTML = '';
     manualMatchCount = 0;
-    addManualMatch(); // Add one match back
+    addManualMatch(); 
   }
 }
 
@@ -312,7 +289,6 @@ function getManualMatchesData() {
     const redTeams = Array.from(redInputs).map(input => input.value.trim()).filter(team => team);
     const blueTeams = Array.from(blueInputs).map(input => input.value.trim()).filter(team => team);
     
-    // Only add match if it has teams on both sides
     if (redTeams.length > 0 && blueTeams.length > 0) {
       matches.push({
         red_teams: redTeams,
@@ -354,21 +330,17 @@ async function createManualEvent() {
     if (response.ok) {
       alert(result.message);
       
-      // Set this as the current event and load it
       currentEvent = result.event_key;
       document.getElementById('current-event-display').textContent = `${eventName} (Manual)`;
       document.getElementById('event-section').style.display = 'block';
       localStorage.setItem('currentEvent', currentEvent);
       
-      // Clear the form
       document.getElementById('manual-event-name').value = '';
       clearManualMatches();
       
-      // Load the event data
       await loadMatches();
       await loadTeamsForEvent(currentEvent);
       
-      // Switch back to first tab
       document.querySelector('.event-tab-btn[data-event-tab="tba"]').click();
     } else {
       alert(result.error || 'Error creating manual event');
@@ -384,7 +356,6 @@ async function loadManualEventsList() {
     const response = await fetch('/api/admin/manual-events');
     const events = await response.json();
     
-    // Update dropdown
     const select = document.getElementById('manual-event-select');
     select.innerHTML = '<option value="">Select an event...</option>';
     
@@ -395,7 +366,6 @@ async function loadManualEventsList() {
       select.appendChild(option);
     });
     
-    // Update list display
     const listContainer = document.getElementById('manual-events-list');
     if (events.length === 0) {
       listContainer.innerHTML = '<p class="info-text">No manual events found. Create one to get started.</p>';
@@ -425,10 +395,8 @@ async function loadManualEvent() {
   }
   
   try {
-    // Set as current event
     currentEvent = eventKey;
     
-    // Get event name from dropdown text
     const select = document.getElementById('manual-event-select');
     const eventName = select.options[select.selectedIndex].textContent;
     
@@ -436,7 +404,6 @@ async function loadManualEvent() {
     document.getElementById('event-section').style.display = 'block';
     localStorage.setItem('currentEvent', currentEvent);
     
-    // Load the event data
     await loadMatches();
     await loadTeamsForEvent(currentEvent);
     
@@ -463,9 +430,8 @@ async function deleteManualEventConfirm(eventKey, eventName) {
     
     if (response.ok) {
       alert('Manual event deleted successfully');
-      loadManualEventsList(); // Refresh the list
+      loadManualEventsList(); 
       
-      // If this was the current event, clear it
       if (currentEvent === eventKey) {
         currentEvent = '';
         document.getElementById('current-event-display').textContent = '';
@@ -495,7 +461,7 @@ async function markHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadMatches(); // Refresh the display
+      loadMatches();
     } else {
       alert('Error marking as home game');
     }
@@ -518,7 +484,7 @@ async function unmarkHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadMatches(); // Refresh the display
+      loadMatches();
     } else {
       alert('Error removing home game status');
     }
@@ -536,7 +502,6 @@ async function loadTeamsForEvent(eventKey) {
     }
     teams = await response.json();
     
-    // Update the bulk assignment team dropdown
     const bulkTeamSelect = document.getElementById('bulk-team');
     if (bulkTeamSelect) {
       bulkTeamSelect.innerHTML = '<option value="">Select Team</option>';
@@ -550,7 +515,6 @@ async function loadTeamsForEvent(eventKey) {
     }
   } catch (error) {
     console.error('Error loading teams:', error);
-    // Fallback to empty dropdown
     const bulkTeamSelect = document.getElementById('bulk-team');
     if (bulkTeamSelect) {
       bulkTeamSelect.innerHTML = '<option value="">No teams found</option>';
@@ -633,7 +597,7 @@ function assignMatch(matchNumber) {
       
       if (response.ok) {
         closeModal();
-        loadMatches(); // Refresh the matches display
+        loadMatches(); 
       } else {
         alert('Error saving assignments');
       }
@@ -652,7 +616,6 @@ async function loadScouters() {
     }
     scouters = await response.json();
     
-    // Update the bulk assignment dropdown
     const bulkScouterSelect = document.getElementById('bulk-scouter');
     if (bulkScouterSelect) {
       bulkScouterSelect.innerHTML = '<option value="">Select Scouter</option>';
@@ -664,7 +627,6 @@ async function loadScouters() {
       });
     }
     
-    // Get scouting stats for each scouter
     try {
       const statsResponse = await fetch('/api/admin/scouter-stats');
       const stats = await statsResponse.json();
@@ -690,7 +652,6 @@ async function loadScouters() {
       }
     } catch (statsError) {
       console.warn('Could not load scouter stats:', statsError);
-      // Still display scouters without stats
       const scoutersList = document.getElementById('scouters-list');
       scoutersList.innerHTML = Object.keys(scouters).map(username => {
         const scouter = scouters[username];
@@ -737,12 +698,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('create-scouter-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    // Get form data properly
     const name = document.getElementById('scouter-name').value.trim();
     const username = document.getElementById('scouter-username').value.trim();
     const password = document.getElementById('scouter-password').value;
     
-    // Validate fields
     if (!name || !username || !password) {
       alert('All fields are required');
       return;
@@ -761,7 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (response.ok) {
         hideCreateScouterModal();
-        await loadScouters(); // Reload scouters to show the new one
+        await loadScouters();
         alert('Scouter created successfully!');
       } else {
         alert(result.error || 'Error creating scouter');
@@ -782,7 +741,6 @@ async function deleteScouter(username) {
     });
     
     if (response.ok) {
-      // Reload scouters to update the display immediately
       await loadScouters();
       alert('Scouter deleted successfully!');
     } else {
@@ -794,7 +752,6 @@ async function deleteScouter(username) {
   }
 }
 
-// Bulk assignment functions
 async function bulkAssignTeam() {
   const teamNumber = document.getElementById('bulk-team').value;
   const scouterUsername = document.getElementById('bulk-scouter').value;
@@ -823,8 +780,7 @@ async function bulkAssignTeam() {
     
     if (response.ok) {
       alert(result.message);
-      loadMatches(); // Refresh the display
-      // Clear the form
+      loadMatches(); 
       document.getElementById('bulk-team').value = '';
       document.getElementById('bulk-scouter').value = '';
     } else {
@@ -862,7 +818,7 @@ async function removeTeamAssignments() {
     
     if (response.ok) {
       alert(`Removed ${result.removed_count} assignments for team ${teamNumber}`);
-      loadMatches(); // Refresh the display
+      loadMatches();
       document.getElementById('bulk-team').value = '';
     } else {
       alert('Error removing assignments');
@@ -881,7 +837,6 @@ function closeModal() {
 async function logout() {
   try {
     await fetch('/api/logout', { method: 'POST' });
-    // Clear saved event data on logout
     localStorage.removeItem('currentEvent');
     window.location.href = '/login';
   } catch (error) {
@@ -890,7 +845,6 @@ async function logout() {
   }
 }
 
-// Close modals when clicking outside
 document.addEventListener('click', (e) => {
   if (e.target.classList.contains('modal')) {
     closeModal();

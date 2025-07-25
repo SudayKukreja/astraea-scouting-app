@@ -11,7 +11,7 @@ USERS_FILE = 'users.json'
 # Default admin credentials
 DEFAULT_ADMIN = {
     'username': 'admin',
-    'password_hash': hashlib.sha256('admin123'.encode()).hexdigest(),
+    'password_hash': hashlib.sha256('admin6897'.encode()).hexdigest(),
     'role': 'admin'
 }
 

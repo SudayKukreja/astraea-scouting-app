@@ -17,7 +17,6 @@ async function loadAssignments() {
     container.style.display = 'block';
     noAssignments.style.display = 'none';
     
-    // Group assignments by match
     const groupedAssignments = assignments.reduce((groups, assignment) => {
       const key = `${assignment.event_key}_${assignment.match_number}`;
       if (!groups[key]) {
@@ -119,7 +118,7 @@ async function markHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadAssignments(); // Refresh the display
+      loadAssignments(); 
       showSuccessMessage('Assignment marked as home game!');
     } else {
       const result = await response.json();
@@ -144,7 +143,7 @@ async function unmarkHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadAssignments(); // Refresh the display
+      loadAssignments();
       showSuccessMessage('Home game status removed!');
     } else {
       alert('Error removing home game status');
@@ -180,10 +179,8 @@ function showSuccessMessage(message) {
 }
 
 function startScouting(assignmentKey, teamNumber, matchNumber) {
-  // Store the assignment key in sessionStorage so we can mark it as completed later
   sessionStorage.setItem('currentAssignment', assignmentKey);
   
-  // Redirect to the scouting form with pre-filled data
   const url = `/scout?team=${teamNumber}&match=${matchNumber}&assignment=${assignmentKey}`;
   window.location.href = url;
 }
@@ -197,18 +194,13 @@ async function logout() {
   }
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
-  // Load assignments on page load
   loadAssignments();
 
-  // Refresh assignments every 30 seconds to see updates
   setInterval(loadAssignments, 30000);
 
-  // Check if we just came back from scouting
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('completed') === 'true') {
-    // Show success message
     const successMessage = document.createElement('div');
     successMessage.className = 'success-message';
     successMessage.textContent = 'Scout report submitted successfully!';
@@ -227,14 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     document.body.appendChild(successMessage);
     
-    // Remove the message after 3 seconds
     setTimeout(() => {
       successMessage.remove();
-      // Clean up the URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }, 3000);
     
-    // Reload assignments to reflect the completed status
     setTimeout(loadAssignments, 500);
   }
 });
