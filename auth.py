@@ -5,6 +5,9 @@ import secrets
 import json
 import os
 
+# Import team scouters from separate file
+from team_scouters import get_team_scouters
+
 # Simple user storage - in production, use a proper database
 USERS_FILE = 'users.json'
 
@@ -18,16 +21,44 @@ DEFAULT_ADMIN = {
 def load_users():
     """Load users from JSON file"""
     if not os.path.exists(USERS_FILE):
-        # Create default admin user
+        # Create default users (admin + team scouters)
         users = {'admin': DEFAULT_ADMIN}
+        team_scouters = get_team_scouters()
+        users.update(team_scouters)
         save_users(users)
+        print(f"Created {len(team_scouters)} team scouters")
         return users
     
     try:
         with open(USERS_FILE, 'r') as f:
-            return json.load(f)
+            existing_users = json.load(f)
+        
+        # Check if we need to add any new users
+        users_updated = False
+        
+        # Always ensure admin exists
+        if 'admin' not in existing_users:
+            existing_users['admin'] = DEFAULT_ADMIN
+            users_updated = True
+        
+        # Add any new team scouters that don't exist
+        team_scouters = get_team_scouters()
+        for username, scouter_data in team_scouters.items():
+            if username not in existing_users:
+                existing_users[username] = scouter_data
+                users_updated = True
+                print(f"Added team scouter: {username} ({scouter_data['name']})")
+        
+        # Save if we added any new users
+        if users_updated:
+            save_users(existing_users)
+        
+        return existing_users
     except:
+        # If file is corrupted, recreate with defaults
         users = {'admin': DEFAULT_ADMIN}
+        team_scouters = get_team_scouters()
+        users.update(team_scouters)
         save_users(users)
         return users
 
@@ -107,3 +138,38 @@ def delete_scouter(username):
         save_users(users)
         return True
     return False
+
+def create_bulk_scouters(scouters_list):
+    """
+    Create multiple scouters at once
+    scouters_list should be a list of dictionaries with keys: 'username', 'password', 'name'
+    """
+    users = load_users()
+    created_count = 0
+    errors = []
+    
+    for scouter_data in scouters_list:
+        username = scouter_data.get('username')
+        password = scouter_data.get('password')
+        name = scouter_data.get('name')
+        
+        if not all([username, password, name]):
+            errors.append(f"Missing data for scouter: {scouter_data}")
+            continue
+        
+        if username in users:
+            errors.append(f"Username '{username}' already exists")
+            continue
+        
+        users[username] = {
+            'username': username,
+            'password_hash': hash_password(password),
+            'role': 'scouter',
+            'name': name
+        }
+        created_count += 1
+    
+    if created_count > 0:
+        save_users(users)
+    
+    return created_count, errors
