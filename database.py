@@ -178,3 +178,56 @@ def remove_team_assignments(event_key, team_number):
     
     save_assignments(assignments)
     return len(keys_to_remove)
+
+def mark_assignment_as_home_game(assignment_key):
+    """Mark an assignment as a home game (no scouting needed)"""
+    assignments = load_assignments()
+    
+    if assignment_key in assignments:
+        assignments[assignment_key]['is_home_game'] = True
+        assignments[assignment_key]['marked_home_at'] = datetime.now().isoformat()
+        save_assignments(assignments)
+        return True
+    
+    return False
+
+def unmark_assignment_as_home_game(assignment_key):
+    """Remove home game status from an assignment"""
+    assignments = load_assignments()
+    
+    if assignment_key in assignments:
+        assignments[assignment_key]['is_home_game'] = False
+        if 'marked_home_at' in assignments[assignment_key]:
+            del assignments[assignment_key]['marked_home_at']
+        save_assignments(assignments)
+        return True
+    
+    return False
+
+def check_home_team_in_match(match_teams, home_team='6897'):
+    """Check if the home team is playing in this match"""
+    return str(home_team) in [str(team) for team in match_teams]
+
+def get_match_summary_for_admin(event_key=None):
+    """Get a summary of assignments including home games for admin view"""
+    assignments = load_assignments()
+    
+    if event_key:
+        assignments = {k: v for k, v in assignments.items() if v.get('event_key') == event_key}
+    
+    summary = {
+        'total_assignments': len(assignments),
+        'completed': 0,
+        'home_games': 0,
+        'pending': 0
+    }
+    
+    for assignment in assignments.values():
+        if assignment.get('is_home_game'):
+            summary['home_games'] += 1
+        elif assignment.get('completed'):
+            summary['completed'] += 1
+        else:
+            summary['pending'] += 1
+    
+    return summary

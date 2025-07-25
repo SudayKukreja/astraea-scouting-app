@@ -283,6 +283,86 @@ def get_admin_assignments():
     
     return jsonify(assignment_list)
 
+
+# =============================================================================
+# HOME GAME ROUTES
+# =============================================================================
+
+@app.route('/api/admin/mark-home-game', methods=['POST'])
+@admin_required
+def mark_home_game():
+    """Mark an assignment as a home game"""
+    data = request.json
+    assignment_key = data.get('assignment_key')
+    
+    if not assignment_key:
+        return jsonify({'error': 'Assignment key required'}), 400
+    
+    from database import mark_assignment_as_home_game
+    success = mark_assignment_as_home_game(assignment_key)
+    
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Assignment not found'}), 404
+
+@app.route('/api/admin/unmark-home-game', methods=['POST'])
+@admin_required
+def unmark_home_game():
+    """Remove home game status from an assignment"""
+    data = request.json
+    assignment_key = data.get('assignment_key')
+    
+    if not assignment_key:
+        return jsonify({'error': 'Assignment key required'}), 400
+    
+    from database import unmark_assignment_as_home_game
+    success = unmark_assignment_as_home_game(assignment_key)
+    
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Assignment not found'}), 404
+
+@app.route('/api/scouter/mark-home-game', methods=['POST'])
+@login_required
+def scouter_mark_home_game():
+    """Allow scouter to mark their assignment as a home game"""
+    data = request.json
+    assignment_key = data.get('assignment_key')
+    
+    if not assignment_key:
+        return jsonify({'error': 'Assignment key required'}), 400
+    
+    # Verify this assignment belongs to the current scouter
+    from database import load_assignments, mark_assignment_as_home_game
+    assignments = load_assignments()
+    
+    if assignment_key not in assignments:
+        return jsonify({'error': 'Assignment not found'}), 404
+    
+    assignment = assignments[assignment_key]
+    if assignment.get('scouter') != session['user_id']:
+        return jsonify({'error': 'Not authorized for this assignment'}), 403
+    
+    success = mark_assignment_as_home_game(assignment_key)
+    
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Failed to mark as home game'}), 500
+
+@app.route('/api/admin/match-summary')
+@admin_required
+def get_match_summary():
+    """Get summary of assignments including home games"""
+    event_key = request.args.get('event')
+    
+    from database import get_match_summary_for_admin
+    summary = get_match_summary_for_admin(event_key)
+    
+    return jsonify(summary)
+
 # =============================================================================
 # SCOUTER API ROUTES
 # =============================================================================
