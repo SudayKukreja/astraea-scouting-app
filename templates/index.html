@@ -17,7 +17,10 @@
         {% if session.user_id %}
         <div class="scout-info">
           <p>Scouting as: <strong>{{ session.user_name or session.user_id }}</strong></p>
-          <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+          <div class="header-actions">
+            <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+            <button type="button" id="back-btn" class="back-btn">← Go Back</button>
+          </div>
         </div>
         {% endif %}
       </div>
@@ -204,27 +207,77 @@
       </div>
     </div>
   </div>
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
-  <script>
-    // Override the form submission success to redirect back to dashboard if came from assignment
-    const originalFormSubmit = document.getElementById('scout-form');
-    if (originalFormSubmit) {
-      originalFormSubmit.addEventListener('submit', function(e) {
-        // Let the original script handle the submission
-        // After successful submission, check if we should redirect
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('assignment')) {
-          // We came from an assignment, so redirect back to dashboard after success
-          setTimeout(() => {
-            if (document.querySelector('.submit-btn').disabled === false) {
-              // Form was successfully submitted
-              window.location.href = '/dashboard?completed=true';
-            }
-          }, 2000);
-        }
-      });
+
+  <style>
+    .scout-info {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+    }
+    
+    .scout-info p {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .back-link, .back-btn {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .back-btn {
+      background: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    
+    .back-link:hover, .back-btn:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
     }
 
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 1rem;
+      padding-left: 1rem;
+      border-left: 3px solid var(--primary-blue);
+    }
+
+    @media (max-width: 480px) {
+      .header-actions {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .back-link, .back-btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <script>
     if ('serviceWorker' in navigator) {
       let refreshing = false;
       
@@ -255,32 +308,5 @@
       });
     }
   </script>
-
-  <style>
-    .scout-info {
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-      text-align: center;
-    }
-    
-    .scout-info p {
-      color: rgba(255, 255, 255, 0.9);
-      margin-bottom: 8px;
-      font-size: 0.9rem;
-    }
-    
-    .back-link {
-      color: rgba(255, 255, 255, 0.8);
-      text-decoration: none;
-      font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-    
-    .back-link:hover {
-      color: white;
-      text-decoration: underline;
-    }
-  </style>
 </body>
 </html>

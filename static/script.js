@@ -9,6 +9,23 @@ document.addEventListener('DOMContentLoaded', () => {
   const climbDepthLabel = document.getElementById('climb_depth_label');
   const climbSuccessLabel = document.getElementById('climb_success_label');
 
+  // Add back button functionality
+  const backBtn = document.getElementById('back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to go back? Any unsaved changes will be lost.')) {
+        // Check if we came from scouter dashboard
+        const referrer = document.referrer;
+        if (referrer && referrer.includes('/dashboard')) {
+          window.location.href = '/dashboard';
+        } else {
+          // Fallback - go to dashboard
+          window.location.href = '/dashboard';
+        }
+      }
+    });
+  }
+
   function clearErrors() {
     formWarning.style.display = 'none';
     formWarning.textContent = '';
@@ -184,10 +201,15 @@ document.addEventListener('DOMContentLoaded', () => {
       responseTimeField.value = '-1';
     }
 
+    // Get assignment key from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const assignmentKey = urlParams.get('assignment');
+
     const data = {
       name: getValue('name'),
       team: getValue('team'),
       match: getValue('match'),
+      assignment_key: assignmentKey, // Include assignment key
       auto: {
         ll1: getValue('auto_ll1') || 0,
         l2: getValue('auto_l2') || 0,
@@ -243,6 +265,9 @@ document.addEventListener('DOMContentLoaded', () => {
         climbSuccessLabel.classList.add('hidden');
 
         formWarning.style.display = 'none';
+
+        // Redirect back to dashboard with success parameter
+        window.location.href = '/dashboard?completed=true';
       } else {
         formWarning.style.display = 'block';
         formWarning.style.color = '#b33';
@@ -263,6 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
       climbSuccessLabel.classList.add('hidden');
 
       formWarning.style.display = 'none';
+
+      // Redirect back to dashboard
+      window.location.href = '/dashboard?completed=true';
     } finally {
       spinner.style.display = 'none';
       submitBtn.disabled = false;
