@@ -11,6 +11,8 @@ from auth import login_required, admin_required, authenticate_user, create_scout
 from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
                      mark_assignment_completed, bulk_assign_match, get_all_assignments,
                      bulk_assign_team_to_scouter, remove_team_assignments)
+from manual_matches import (create_manual_event, get_manual_event_matches, get_manual_event_teams,
+                           list_manual_events, delete_manual_event, is_manual_event)
 from tba_api import TBAClient, get_sample_matches
 from team_names import TEAM_NAMES
 
@@ -67,6 +69,56 @@ def api_login():
 def api_logout():
     session.clear()
     return jsonify({'success': True})
+
+# =============================================================================
+# MANUAL MATCHES ROUTES
+# =============================================================================
+
+@app.route('/api/admin/manual-events', methods=['GET'])
+@admin_required
+def get_manual_events():
+    """Get list of all manual events"""
+    try:
+        events = list_manual_events()
+        return jsonify(events)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/manual-events', methods=['POST'])
+@admin_required
+def create_manual_event_route():
+    """Create a new manual event"""
+    data = request.json
+    event_name = data.get('event_name', '').strip()
+    matches_data = data.get('matches', [])
+    
+    if not event_name:
+        return jsonify({'error': 'Event name is required'}), 400
+    
+    if not matches_data:
+        return jsonify({'error': 'At least one match is required'}), 400
+    
+    try:
+        event_key = create_manual_event(event_name, matches_data)
+        return jsonify({
+            'success': True,
+            'event_key': event_key,
+            'message': f'Manual event "{event_name}" created successfully'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/manual-events/<event_key>', methods=['DELETE'])
+@admin_required
+def delete_manual_event_route(event_key):
+    """Delete a manual event"""
+    try:
+        if delete_manual_event(event_key):
+            return jsonify({'success': True})
+        else:
+            return jsonify({'error': 'Event not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # =============================================================================
 # DASHBOARD ROUTES
@@ -148,10 +200,16 @@ def get_matches():
         return jsonify({'error': 'Event key required'}), 400
     
     try:
-        matches = tba_client.get_event_matches(event_key)
-        if not matches:  # Fallback to sample data
-            matches = get_sample_matches()
-        return jsonify(matches)
+        # Check if it's a manual event
+        if is_manual_event(event_key):
+            matches = get_manual_event_matches(event_key)
+            return jsonify(matches)
+        else:
+            # Original TBA logic
+            matches = tba_client.get_event_matches(event_key)
+            if not matches:  # Fallback to sample data
+                matches = get_sample_matches()
+            return jsonify(matches)
     except Exception as e:
         # Fallback to sample data for testing
         return jsonify(get_sample_matches())
@@ -165,20 +223,25 @@ def get_teams():
         return jsonify({'error': 'Event key required'}), 400
     
     try:
-        # Get matches first to extract teams
-        matches = tba_client.get_event_matches(event_key)
-        if not matches:
-            matches = get_sample_matches()
-        
-        # Extract unique teams from matches
-        teams = set()
-        for match in matches:
-            teams.update(match['all_teams'])
-        
-        # Convert to sorted list
-        teams_list = sorted(list(teams), key=int)
-        return jsonify(teams_list)
-        
+        # Check if it's a manual event
+        if is_manual_event(event_key):
+            teams = get_manual_event_teams(event_key)
+            return jsonify(teams)
+        else:
+            # Original TBA logic
+            matches = tba_client.get_event_matches(event_key)
+            if not matches:
+                matches = get_sample_matches()
+            
+            # Extract unique teams from matches
+            teams = set()
+            for match in matches:
+                teams.update(match['all_teams'])
+            
+            # Convert to sorted list
+            teams_list = sorted(list(teams), key=int)
+            return jsonify(teams_list)
+            
     except Exception as e:
         # Fallback to sample teams
         return jsonify(['254', '148', '1323', '2468', '2471', '5940', '1678', '5190', '6834', '973', '1114', '2056'])

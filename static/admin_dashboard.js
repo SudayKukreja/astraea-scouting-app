@@ -46,7 +46,7 @@ async function loadEventData() {
   
   // Set the current event and update the display
   currentEvent = eventKey;
-  document.getElementById('current-event-display').textContent = eventKey;
+  document.getElementById('current-event-display').textContent = `${eventKey} (TBA)`;
   document.getElementById('event-section').style.display = 'block';
   
   // Save event to localStorage for persistence
@@ -54,7 +54,7 @@ async function loadEventData() {
   
   // Load matches and teams for this event
   await loadMatches();
-  await loadTeamsForEvent(eventKey);
+  await loadTeamsForEvent(eventKey);  
 }
 
 async function loadMatches() {
@@ -201,6 +201,285 @@ function getAssignmentActions(assignment) {
     `;
   }
   return '';
+}
+
+// Event tab switching
+document.addEventListener('DOMContentLoaded', () => {
+  // Add event tab switching functionality
+  const eventTabBtns = document.querySelectorAll('.event-tab-btn');
+  const eventTabContents = document.querySelectorAll('.event-tab-content');
+  
+  eventTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-event-tab');
+      
+      // Update active tab button
+      eventTabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Update active tab content
+      eventTabContents.forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      
+      // Load manual events list when switching to manual-load tab
+      if (tabId === 'manual-load') {
+        loadManualEventsList();
+      }
+    });
+  });
+  
+  // Initialize manual events list on page load
+  loadManualEventsList();
+  addManualMatch(); // Add first match by default
+});
+
+let manualMatchCount = 0;
+
+function addManualMatch() {
+  manualMatchCount++;
+  const container = document.getElementById('manual-matches-container');
+  
+  const matchHTML = `
+    <div class="match-builder" id="match-${manualMatchCount}">
+      <div class="match-header">
+        <span class="match-title">Match ${manualMatchCount}</span>
+        <button type="button" onclick="removeManualMatch(${manualMatchCount})" class="remove-match-btn">Remove</button>
+      </div>
+      <div class="alliance-inputs">
+        <div class="alliance-section red">
+          <h5>Red Alliance</h5>
+          <div class="team-inputs">
+            <input type="text" placeholder="Team 1" data-match="${manualMatchCount}" data-alliance="red" data-position="1">
+            <input type="text" placeholder="Team 2" data-match="${manualMatchCount}" data-alliance="red" data-position="2">
+            <input type="text" placeholder="Team 3" data-match="${manualMatchCount}" data-alliance="red" data-position="3">
+          </div>
+        </div>
+        <div class="alliance-section blue">
+          <h5>Blue Alliance</h5>
+          <div class="team-inputs">
+            <input type="text" placeholder="Team 1" data-match="${manualMatchCount}" data-alliance="blue" data-position="1">
+            <input type="text" placeholder="Team 2" data-match="${manualMatchCount}" data-alliance="blue" data-position="2">
+            <input type="text" placeholder="Team 3" data-match="${manualMatchCount}" data-alliance="blue" data-position="3">
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  container.insertAdjacentHTML('beforeend', matchHTML);
+}
+
+function removeManualMatch(matchId) {
+  const matchElement = document.getElementById(`match-${matchId}`);
+  if (matchElement) {
+    matchElement.remove();
+    
+    // Renumber remaining matches
+    const remainingMatches = document.querySelectorAll('.match-builder');
+    remainingMatches.forEach((match, index) => {
+      const newNumber = index + 1;
+      match.id = `match-${newNumber}`;
+      match.querySelector('.match-title').textContent = `Match ${newNumber}`;
+      match.querySelector('.remove-match-btn').setAttribute('onclick', `removeManualMatch(${newNumber})`);
+      
+      // Update data attributes
+      const inputs = match.querySelectorAll('input[data-match]');
+      inputs.forEach(input => {
+        input.setAttribute('data-match', newNumber);
+      });
+    });
+    
+    manualMatchCount = remainingMatches.length;
+  }
+}
+
+function clearManualMatches() {
+  if (confirm('Are you sure you want to clear all matches?')) {
+    document.getElementById('manual-matches-container').innerHTML = '';
+    manualMatchCount = 0;
+    addManualMatch(); // Add one match back
+  }
+}
+
+function getManualMatchesData() {
+  const matches = [];
+  const matchElements = document.querySelectorAll('.match-builder');
+  
+  matchElements.forEach((matchElement) => {
+    const redInputs = matchElement.querySelectorAll('input[data-alliance="red"]');
+    const blueInputs = matchElement.querySelectorAll('input[data-alliance="blue"]');
+    
+    const redTeams = Array.from(redInputs).map(input => input.value.trim()).filter(team => team);
+    const blueTeams = Array.from(blueInputs).map(input => input.value.trim()).filter(team => team);
+    
+    // Only add match if it has teams on both sides
+    if (redTeams.length > 0 && blueTeams.length > 0) {
+      matches.push({
+        red_teams: redTeams,
+        blue_teams: blueTeams
+      });
+    }
+  });
+  
+  return matches;
+}
+
+async function createManualEvent() {
+  const eventName = document.getElementById('manual-event-name').value.trim();
+  
+  if (!eventName) {
+    alert('Please enter an event name');
+    return;
+  }
+  
+  const matchesData = getManualMatchesData();
+  
+  if (matchesData.length === 0) {
+    alert('Please add at least one match with teams on both red and blue alliances');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/manual-events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: eventName,
+        matches: matchesData
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      alert(result.message);
+      
+      // Set this as the current event and load it
+      currentEvent = result.event_key;
+      document.getElementById('current-event-display').textContent = `${eventName} (Manual)`;
+      document.getElementById('event-section').style.display = 'block';
+      localStorage.setItem('currentEvent', currentEvent);
+      
+      // Clear the form
+      document.getElementById('manual-event-name').value = '';
+      clearManualMatches();
+      
+      // Load the event data
+      await loadMatches();
+      await loadTeamsForEvent(currentEvent);
+      
+      // Switch back to first tab
+      document.querySelector('.event-tab-btn[data-event-tab="tba"]').click();
+    } else {
+      alert(result.error || 'Error creating manual event');
+    }
+  } catch (error) {
+    alert('Error creating manual event');
+    console.error(error);
+  }
+}
+
+async function loadManualEventsList() {
+  try {
+    const response = await fetch('/api/admin/manual-events');
+    const events = await response.json();
+    
+    // Update dropdown
+    const select = document.getElementById('manual-event-select');
+    select.innerHTML = '<option value="">Select an event...</option>';
+    
+    events.forEach(event => {
+      const option = document.createElement('option');
+      option.value = event.key;
+      option.textContent = `${event.name} (${event.match_count} matches)`;
+      select.appendChild(option);
+    });
+    
+    // Update list display
+    const listContainer = document.getElementById('manual-events-list');
+    if (events.length === 0) {
+      listContainer.innerHTML = '<p class="info-text">No manual events found. Create one to get started.</p>';
+    } else {
+      listContainer.innerHTML = events.map(event => `
+        <div class="manual-event-item">
+          <div class="manual-event-info">
+            <h5>${event.name}</h5>
+            <p>${event.match_count} matches • Created: ${new Date(event.created_at).toLocaleDateString()}</p>
+          </div>
+          <button onclick="deleteManualEventConfirm('${event.key}', '${event.name}')" class="delete-manual-event">Delete</button>
+        </div>
+      `).join('');
+    }
+  } catch (error) {
+    console.error('Error loading manual events:', error);
+    document.getElementById('manual-events-list').innerHTML = '<p class="error">Error loading manual events</p>';
+  }
+}
+
+async function loadManualEvent() {
+  const eventKey = document.getElementById('manual-event-select').value;
+  
+  if (!eventKey) {
+    alert('Please select a manual event');
+    return;
+  }
+  
+  try {
+    // Set as current event
+    currentEvent = eventKey;
+    
+    // Get event name from dropdown text
+    const select = document.getElementById('manual-event-select');
+    const eventName = select.options[select.selectedIndex].textContent;
+    
+    document.getElementById('current-event-display').textContent = `${eventName} (Manual)`;
+    document.getElementById('event-section').style.display = 'block';
+    localStorage.setItem('currentEvent', currentEvent);
+    
+    // Load the event data
+    await loadMatches();
+    await loadTeamsForEvent(currentEvent);
+    
+    alert('Manual event loaded successfully!');
+  } catch (error) {
+    alert('Error loading manual event');
+    console.error(error);
+  }
+}
+
+function refreshManualEvents() {
+  loadManualEventsList();
+}
+
+async function deleteManualEventConfirm(eventKey, eventName) {
+  if (!confirm(`Are you sure you want to delete the manual event "${eventName}"? This action cannot be undone.`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/admin/manual-events/${eventKey}`, {
+      method: 'DELETE'
+    });
+    
+    if (response.ok) {
+      alert('Manual event deleted successfully');
+      loadManualEventsList(); // Refresh the list
+      
+      // If this was the current event, clear it
+      if (currentEvent === eventKey) {
+        currentEvent = '';
+        document.getElementById('current-event-display').textContent = '';
+        document.getElementById('event-section').style.display = 'none';
+        localStorage.removeItem('currentEvent');
+        document.getElementById('matches-container').innerHTML = '<p class="info-text">Select an event to load matches</p>';
+      }
+    } else {
+      alert('Error deleting manual event');
+    }
+  } catch (error) {
+    alert('Error deleting manual event');
+    console.error(error);
+  }
 }
 
 async function markHomeGame(assignmentKey) {

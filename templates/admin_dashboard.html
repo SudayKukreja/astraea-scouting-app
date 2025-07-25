@@ -40,22 +40,270 @@
 
         <!-- Event Management -->
         <div class="event-section">
-          <h3>Event Selection</h3>
-          <p>Enter a TBA event key (e.g., 2024week1, 2024cmp) to load matches and teams.</p>
-          
-          <div class="event-form">
+        <h3>Event Selection</h3>
+        
+        <!-- Event Type Tabs -->
+        <div class="event-tabs">
+            <button class="event-tab-btn active" data-event-tab="tba">Load from TBA</button>
+            <button class="event-tab-btn" data-event-tab="manual-create">Create Manual Event</button>
+            <button class="event-tab-btn" data-event-tab="manual-load">Load Existing Manual Event</button>
+        </div>
+
+        <!-- TBA Event Tab -->
+        <div id="tba" class="event-tab-content active">
+            <p>Enter a TBA event key (e.g., 2024week1, 2024cmp) to load matches and teams.</p>
+            <div class="event-form">
             <div class="event-form-group">
-              <label for="event-key-input">Event Key:</label>
-              <input type="text" id="event-key-input" placeholder="e.g. 2024week1">
+                <label for="event-key-input">Event Key:</label>
+                <input type="text" id="event-key-input" placeholder="e.g. 2024week1">
             </div>
             <button onclick="loadEventData()" class="create-btn">Load Event</button>
-          </div>
+            </div>
+        </div>
 
-          <div id="event-section" class="current-event" style="display: none;">
+        <!-- Manual Create Event Tab -->
+        <div id="manual-create" class="event-tab-content">
+            <p>Create a custom event with manual match entry.</p>
+            <div class="manual-event-form">
+            <div class="event-form-group">
+                <label for="manual-event-name">Event Name:</label>
+                <input type="text" id="manual-event-name" placeholder="e.g. Practice Event 2024">
+            </div>
+            
+            <div class="matches-builder">
+                <h4>Matches</h4>
+                <div id="manual-matches-container">
+                <!-- Manual matches will be added here -->
+                </div>
+                <button type="button" onclick="addManualMatch()" class="add-match-btn">Add Match</button>
+            </div>
+            
+            <div class="manual-actions">
+                <button onclick="createManualEvent()" class="create-btn">Create Manual Event</button>
+                <button onclick="clearManualMatches()" class="clear-btn">Clear All Matches</button>
+            </div>
+            </div>
+        </div>
+
+        <!-- Manual Load Event Tab -->
+        <div id="manual-load" class="event-tab-content">
+            <p>Load a previously created manual event.</p>
+            <div class="manual-load-form">
+            <div class="event-form-group">
+                <label for="manual-event-select">Select Manual Event:</label>
+                <select id="manual-event-select">
+                <option value="">Select an event...</option>
+                </select>
+            </div>
+            <div class="manual-load-actions">
+                <button onclick="loadManualEvent()" class="create-btn">Load Event</button>
+                <button onclick="refreshManualEvents()" class="refresh-btn">Refresh List</button>
+            </div>
+            </div>
+            <div id="manual-events-list" class="manual-events-list">
+            <!-- Manual events list will be loaded here -->
+            </div>
+        </div>
+
+        <div id="event-section" class="current-event" style="display: none;">
             <span>Current Event: </span>
             <strong id="current-event-display"></strong>
-          </div>
         </div>
+        </div>
+
+        <!-- Add these styles in the <head> section or in your CSS file -->
+        <style>
+        .event-tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border-color, #e5e7eb);
+        }
+
+        .event-tab-btn {
+        padding: 10px 16px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--text-secondary, #6b7280);
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+        }
+
+        .event-tab-btn.active {
+        color: var(--primary-blue, #2563eb);
+        border-bottom-color: var(--primary-blue, #2563eb);
+        }
+
+        .event-tab-btn:hover {
+        color: var(--primary-blue, #2563eb);
+        }
+
+        .event-tab-content {
+        display: none;
+        }
+
+        .event-tab-content.active {
+        display: block;
+        }
+
+        .matches-builder {
+        margin: 20px 0;
+        padding: 20px;
+        border: 2px dashed var(--border-color, #e5e7eb);
+        border-radius: 8px;
+        }
+
+        .match-builder {
+        margin-bottom: 16px;
+        padding: 16px;
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 6px;
+        background: var(--bg-secondary, #f9fafb);
+        }
+
+        .match-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        }
+
+        .match-title {
+        font-weight: 600;
+        color: var(--text-primary, #1f2937);
+        }
+
+        .remove-match-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        }
+
+        .alliance-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        }
+
+        .alliance-section h5 {
+        color: var(--text-primary, #1f2937);
+        margin-bottom: 8px;
+        font-weight: 600;
+        }
+
+        .alliance-section.red h5 {
+        color: #dc2626;
+        }
+
+        .alliance-section.blue h5 {
+        color: #2563eb;
+        }
+
+        .team-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        }
+
+        .team-inputs input {
+        padding: 6px 8px;
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 4px;
+        font-size: 0.9rem;
+        }
+
+        .add-match-btn, .create-btn, .clear-btn, .refresh-btn {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+        }
+
+        .add-match-btn {
+        background: var(--primary-blue, #2563eb);
+        color: white;
+        }
+
+        .clear-btn {
+        background: #dc2626;
+        color: white;
+        }
+
+        .manual-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        }
+
+        .manual-load-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+        }
+
+        .manual-events-list {
+        margin-top: 20px;
+        }
+
+        .manual-event-item {
+        padding: 12px;
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 6px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        }
+
+        .manual-event-info h5 {
+        margin: 0 0 4px 0;
+        color: var(--text-primary, #1f2937);
+        }
+
+        .manual-event-info p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: var(--text-secondary, #6b7280);
+        }
+
+        .delete-manual-event {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+        .event-tabs {
+            flex-direction: column;
+        }
+        
+        .alliance-inputs {
+            grid-template-columns: 1fr;
+        }
+        
+        .manual-actions, .manual-load-actions {
+            flex-direction: column;
+        }
+        
+        .manual-event-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        }
+        </style>
 
         <!-- Bulk Team Assignment Section -->
         <div class="bulk-assignment">
