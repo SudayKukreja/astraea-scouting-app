@@ -38,23 +38,24 @@
           <button onclick="refreshMatches()" class="refresh-btn">Refresh Matches</button>
         </div>
 
-        <!-- Event Creation/Selection -->
+        <!-- Event Management -->
         <div class="event-management" style="margin-bottom: 24px; padding: 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-          <h3 style="margin-bottom: 16px; color: #1f2937;">Event Management</h3>
+          <h3 style="margin-bottom: 16px; color: #1f2937;">Event Selection</h3>
+          <p style="color: #6b7280; margin-bottom: 16px; font-size: 0.9rem;">Enter a TBA event key (e.g., 2024week1, 2024cmp) to load matches and teams.</p>
           
-          <div class="event-creation" style="display: flex; gap: 12px; align-items: end; margin-bottom: 20px; flex-wrap: wrap;">
+          <div class="event-input" style="display: flex; gap: 12px; align-items: end; margin-bottom: 16px; flex-wrap: wrap;">
             <div class="form-group" style="min-width: 200px;">
-              <label for="event-key-input" style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151;">Create New Event (enter event key):</label>
+              <label for="event-key-input" style="display: block; margin-bottom: 4px; font-weight: 500; color: #374151;">Event Key:</label>
               <input type="text" id="event-key-input" placeholder="e.g. 2024week1" style="padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; width: 100%;">
             </div>
-            <button onclick="createEvent()" class="create-btn" style="padding: 12px 20px; white-space: nowrap;">Create Event</button>
+            <button onclick="loadEventData()" class="create-btn" style="padding: 12px 20px; white-space: nowrap;">Load Event</button>
           </div>
 
-          <div class="event-selector">
-            <label for="event-select">Select Event:</label>
-            <select id="event-select" onchange="loadMatches()">
-              <option value="">Select an event...</option>
-            </select>
+          <div id="event-section" style="display: none;">
+            <div style="background: white; padding: 12px 16px; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <span style="color: #6b7280; font-size: 0.9rem;">Current Event: </span>
+              <strong id="current-event-display" style="color: #1f2937;"></strong>
+            </div>
           </div>
         </div>
 
@@ -83,7 +84,7 @@
 
         <!-- Matches List -->
         <div id="matches-container" class="matches-container">
-          <p class="info-text">Create or select an event to view matches</p>
+          <p class="info-text">Enter an event key above to load matches from The Blue Alliance</p>
         </div>
       </div>
 

@@ -24,29 +24,48 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // Load initial data
 loadScouters();
 
-async function loadMatches() {
-  const eventKey = document.getElementById('event-select').value;
-  if (!eventKey) return;
+async function loadEventData() {
+  const eventKey = document.getElementById('event-key-input').value.trim();
+  if (!eventKey) {
+    alert('Please enter an event key');
+    return;
+  }
   
+  // Set the current event and update the display
   currentEvent = eventKey;
+  document.getElementById('current-event-display').textContent = eventKey;
+  document.getElementById('event-section').style.display = 'block';
+  
+  // Load matches for this event
+  await loadMatches();
+}
+
+async function loadMatches() {
+  if (!currentEvent) {
+    alert('Please enter an event key first');
+    return;
+  }
   
   const container = document.getElementById('matches-container');
   container.innerHTML = '<p>Loading matches...</p>';
   
   try {
-    const response = await fetch(`/api/admin/matches?event=${eventKey}`);
+    const response = await fetch(`/api/admin/matches?event=${currentEvent}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     matches = await response.json();
     
     if (matches.length === 0) {
-      container.innerHTML = '<p>No matches found for this event.</p>';
+      container.innerHTML = '<p>No matches found for this event. Make sure the event key is correct.</p>';
       return;
     }
     
     // Load teams for this event
-    await loadTeamsForEvent(eventKey);
+    await loadTeamsForEvent(currentEvent);
     
     // Load current assignments
-    const assignmentsResponse = await fetch(`/api/admin/assignments?event=${eventKey}`);
+    const assignmentsResponse = await fetch(`/api/admin/assignments?event=${currentEvent}`);
     const assignments = await assignmentsResponse.json();
     
     container.innerHTML = matches.map(match => {
@@ -88,7 +107,7 @@ async function loadMatches() {
       `;
     }).join('');
   } catch (error) {
-    container.innerHTML = '<p>Error loading matches. Please try again.</p>';
+    container.innerHTML = '<p>Error loading matches. Please check the event key and try again.</p>';
     console.error('Error loading matches:', error);
   }
 }
@@ -254,43 +273,14 @@ function hideCreateScouterModal() {
   document.getElementById('create-scouter-form').reset();
 }
 
-// Create event function
-async function createEvent() {
-  const eventKey = document.getElementById('event-key-input').value.trim();
-  
-  if (!eventKey) {
-    alert('Please enter an event key');
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/admin/create-event', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_key: eventKey })
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      alert('Event created successfully!');
-      document.getElementById('event-key-input').value = '';
-      // Update the event selector
-      const eventSelect = document.getElementById('event-select');
-      const option = document.createElement('option');
-      option.value = eventKey;
-      option.textContent = eventKey;
-      eventSelect.appendChild(option);
-    } else {
-      alert(result.error || 'Error creating event');
-    }
-  } catch (error) {
-    alert('Error creating event');
-    console.error(error);
+// Create event function - removed since we're using TBA API
+function refreshMatches() {
+  if (currentEvent) {
+    loadMatches();
+  } else {
+    alert('Please enter an event key first');
   }
 }
-
-// Scouter creation form handler
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('create-scouter-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -340,7 +330,9 @@ async function deleteScouter(username) {
     });
     
     if (response.ok) {
-      loadScouters();
+      // Reload scouters to update the display immediately
+      await loadScouters();
+      alert('Scouter deleted successfully!');
     } else {
       alert('Error deleting scouter');
     }
