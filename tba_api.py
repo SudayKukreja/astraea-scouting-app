@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class TBAClient:
     def __init__(self, api_key=None):
@@ -19,7 +19,7 @@ class TBAClient:
             print("WARNING: TBA API Key not found or using placeholder!")
 
     def get_current_events(self):
-        """Get current/recent events"""
+        """Get current/recent events - filtered to show only relevant ones"""
         try:
             year = datetime.now().year
             url = f'{self.base_url}/events/{year}'
@@ -32,20 +32,44 @@ class TBAClient:
                 events = response.json()
                 print(f"Retrieved {len(events)} events from TBA")
                 
+                # Get current date and filter for recent/upcoming events
+                today = datetime.now().date()
+                two_weeks_ago = today - timedelta(days=14)
+                two_months_ahead = today + timedelta(days=60)
+                
                 # Filter for current/upcoming events
                 current_events = []
                 for event in events:
-                    if event.get('event_type') in [0, 1, 2, 3, 4]:  # Regional, District, etc.
-                        current_events.append({
-                            'key': event['key'],
-                            'name': event['name'],
-                            'start_date': event['start_date'],
-                            'end_date': event['end_date'],
-                            'location': f"{event.get('city', '')}, {event.get('state_prov', '')}"
-                        })
+                    # Only include competition events (not offseason or other types)
+                    if event.get('event_type') in [0, 1, 2, 3, 4]:  # Regional, District, District CMP, etc.
+                        try:
+                            event_start = datetime.strptime(event['start_date'], '%Y-%m-%d').date()
+                            event_end = datetime.strptime(event['end_date'], '%Y-%m-%d').date()
+                            
+                            # Include events that are:
+                            # 1. Currently happening (start <= today <= end)
+                            # 2. Starting within next 2 months
+                            # 3. Ended within last 2 weeks (for recent events)
+                            if (event_start <= today <= event_end or  # Currently happening
+                                event_start <= two_months_ahead or    # Starting soon
+                                event_end >= two_weeks_ago):          # Recently ended
+                                
+                                current_events.append({
+                                    'key': event['key'],
+                                    'name': event['name'],
+                                    'start_date': event['start_date'],
+                                    'end_date': event['end_date'],
+                                    'location': f"{event.get('city', '')}, {event.get('state_prov', '')}",
+                                    'event_type': event.get('event_type', 0),
+                                    'week': event.get('week')
+                                })
+                        except (ValueError, KeyError):
+                            # Skip events with invalid date formats
+                            continue
                 
                 print(f"Filtered to {len(current_events)} relevant events")
-                return sorted(current_events, key=lambda x: x['start_date'])
+                # Sort by start date, with current/upcoming events first
+                return sorted(current_events, key=lambda x: (x['start_date'], x['name']))
             else:
                 print(f"TBA API Error: {response.status_code} - {response.text}")
                 return []

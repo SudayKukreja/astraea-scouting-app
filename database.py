@@ -41,6 +41,36 @@ def assign_scouter_to_team(scouter_username, event_key, match_number, team_numbe
     save_assignments(assignments)
     return True
 
+def bulk_assign_team_to_scouter(scouter_username, event_key, team_number):
+    """Assign a scouter to scout a specific team across ALL matches for that event"""
+    from tba_api import TBAClient
+    
+    tba_client = TBAClient()
+    matches = tba_client.get_event_matches(event_key)
+    
+    if not matches:
+        return False, "Could not load matches for this event"
+    
+    assignments = load_assignments()
+    assigned_matches = []
+    
+    for match in matches:
+        if team_number in match['all_teams']:
+            assignment_key = f"{event_key}_qm{match['match_number']}_{team_number}"
+            
+            assignments[assignment_key] = {
+                'scouter': scouter_username,
+                'event_key': event_key,
+                'match_number': match['match_number'],
+                'team_number': team_number,
+                'assigned_at': datetime.now().isoformat(),
+                'completed': False
+            }
+            assigned_matches.append(match['match_number'])
+    
+    save_assignments(assignments)
+    return True, f"Assigned {scouter_username} to team {team_number} for {len(assigned_matches)} matches"
+
 def get_scouter_assignments(scouter_username, event_key=None):
     """Get all assignments for a specific scouter"""
     assignments = load_assignments()
@@ -131,3 +161,20 @@ def clear_event_assignments(event_key):
     
     save_assignments(assignments)
     return True
+
+def remove_team_assignments(event_key, team_number):
+    """Remove all assignments for a specific team in an event"""
+    assignments = load_assignments()
+    
+    # Find and remove all assignments for this team
+    keys_to_remove = []
+    for assignment_key, assignment in assignments.items():
+        if (assignment.get('event_key') == event_key and 
+            assignment.get('team_number') == team_number):
+            keys_to_remove.append(assignment_key)
+    
+    for key in keys_to_remove:
+        del assignments[key]
+    
+    save_assignments(assignments)
+    return len(keys_to_remove)

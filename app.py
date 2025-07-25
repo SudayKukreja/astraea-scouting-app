@@ -16,7 +16,8 @@ except ImportError:
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
 from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
-                     mark_assignment_completed, bulk_assign_match, get_all_assignments)
+                     mark_assignment_completed, bulk_assign_match, get_all_assignments,
+                     bulk_assign_team_to_scouter, remove_team_assignments)
 from tba_api import TBAClient, get_sample_matches
 from team_names import TEAM_NAMES
 
@@ -97,6 +98,38 @@ def scouter_dashboard():
 # =============================================================================
 # ADMIN API ROUTES
 # =============================================================================
+
+@app.route('/api/admin/bulk-assign-team', methods=['POST'])
+@admin_required
+def bulk_assign_team():
+    """Assign a scouter to a team across all matches"""
+    data = request.json
+    event_key = data.get('event_key')
+    team_number = data.get('team_number')
+    scouter_username = data.get('scouter_username')
+    
+    if not all([event_key, team_number, scouter_username]):
+        return jsonify({'error': 'Event key, team number, and scouter required'}), 400
+    
+    success, message = bulk_assign_team_to_scouter(scouter_username, event_key, str(team_number))
+    if success:
+        return jsonify({'success': True, 'message': message})
+    else:
+        return jsonify({'error': message}), 500
+
+@app.route('/api/admin/remove-team-assignments', methods=['POST'])
+@admin_required
+def remove_team_assignments_route():
+    """Remove all assignments for a team"""
+    data = request.json
+    event_key = data.get('event_key')
+    team_number = data.get('team_number')
+    
+    if not all([event_key, team_number]):
+        return jsonify({'error': 'Event key and team number required'}), 400
+    
+    removed_count = remove_team_assignments(event_key, str(team_number))
+    return jsonify({'success': True, 'removed_count': removed_count})
 
 @app.route('/api/admin/events')
 @admin_required
