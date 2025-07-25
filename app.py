@@ -6,13 +6,6 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
 
-# Load environment variables (add this for local development)
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenv not available in production, that's fine
-
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
 from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
