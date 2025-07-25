@@ -3,6 +3,19 @@ let scouters = {};
 let matches = [];
 let teams = [];
 
+// Load saved event from localStorage on page load
+document.addEventListener('DOMContentLoaded', () => {
+  const savedEvent = localStorage.getItem('currentEvent');
+  if (savedEvent) {
+    currentEvent = savedEvent;
+    document.getElementById('event-key-input').value = savedEvent;
+    document.getElementById('current-event-display').textContent = savedEvent;
+    document.getElementById('event-section').style.display = 'block';
+    // Auto-load data for the saved event
+    loadMatches();
+  }
+});
+
 // Tab switching
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -36,8 +49,12 @@ async function loadEventData() {
   document.getElementById('current-event-display').textContent = eventKey;
   document.getElementById('event-section').style.display = 'block';
   
-  // Load matches for this event
+  // Save event to localStorage for persistence
+  localStorage.setItem('currentEvent', eventKey);
+  
+  // Load matches and teams for this event
   await loadMatches();
+  await loadTeamsForEvent(eventKey);
 }
 
 async function loadMatches() {
@@ -61,8 +78,10 @@ async function loadMatches() {
       return;
     }
     
-    // Load teams for this event
-    await loadTeamsForEvent(currentEvent);
+    // Load teams for this event if not already loaded
+    if (teams.length === 0) {
+      await loadTeamsForEvent(currentEvent);
+    }
     
     // Load current assignments
     const assignmentsResponse = await fetch(`/api/admin/assignments?event=${currentEvent}`);
@@ -115,6 +134,9 @@ async function loadMatches() {
 async function loadTeamsForEvent(eventKey) {
   try {
     const response = await fetch(`/api/admin/teams?event=${eventKey}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     teams = await response.json();
     
     // Update the bulk assignment team dropdown
@@ -127,9 +149,15 @@ async function loadTeamsForEvent(eventKey) {
         option.textContent = `Team ${team}`;
         bulkTeamSelect.appendChild(option);
       });
+      console.log(`Loaded ${teams.length} teams for event ${eventKey}`);
     }
   } catch (error) {
     console.error('Error loading teams:', error);
+    // Fallback to empty dropdown
+    const bulkTeamSelect = document.getElementById('bulk-team');
+    if (bulkTeamSelect) {
+      bulkTeamSelect.innerHTML = '<option value="">No teams found</option>';
+    }
   }
 }
 
@@ -222,6 +250,9 @@ function assignMatch(matchNumber) {
 async function loadScouters() {
   try {
     const response = await fetch('/api/admin/scouters');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     scouters = await response.json();
     
     // Update the bulk assignment dropdown
@@ -237,30 +268,54 @@ async function loadScouters() {
     }
     
     // Get scouting stats for each scouter
-    const statsResponse = await fetch('/api/admin/scouter-stats');
-    const stats = await statsResponse.json();
-    
-    const scoutersList = document.getElementById('scouters-list');
-    scoutersList.innerHTML = Object.keys(scouters).map(username => {
-      const scouter = scouters[username];
-      const scouterStats = stats[username] || { completed: 0, assigned: 0 };
-      return `
-        <div class="scouter-card">
-          <div class="scouter-info">
-            <h4>${scouter.name}</h4>
-            <p>Username: ${username}</p>
-            <p class="scouter-stats">Completed: ${scouterStats.completed}/${scouterStats.assigned} matches</p>
+    try {
+      const statsResponse = await fetch('/api/admin/scouter-stats');
+      const stats = await statsResponse.json();
+      
+      const scoutersList = document.getElementById('scouters-list');
+      scoutersList.innerHTML = Object.keys(scouters).map(username => {
+        const scouter = scouters[username];
+        const scouterStats = stats[username] || { completed: 0, assigned: 0 };
+        return `
+          <div class="scouter-card">
+            <div class="scouter-info">
+              <h4>${scouter.name}</h4>
+              <p>Username: ${username}</p>
+              <p class="scouter-stats">Completed: ${scouterStats.completed}/${scouterStats.assigned} matches</p>
+            </div>
+            <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
           </div>
-          <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
-        </div>
-      `;
-    }).join('');
-    
-    if (Object.keys(scouters).length === 0) {
-      scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+        `;
+      }).join('');
+      
+      if (Object.keys(scouters).length === 0) {
+        scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+      }
+    } catch (statsError) {
+      console.warn('Could not load scouter stats:', statsError);
+      // Still display scouters without stats
+      const scoutersList = document.getElementById('scouters-list');
+      scoutersList.innerHTML = Object.keys(scouters).map(username => {
+        const scouter = scouters[username];
+        return `
+          <div class="scouter-card">
+            <div class="scouter-info">
+              <h4>${scouter.name}</h4>
+              <p>Username: ${username}</p>
+            </div>
+            <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
+          </div>
+        `;
+      }).join('');
+      
+      if (Object.keys(scouters).length === 0) {
+        scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+      }
     }
   } catch (error) {
     console.error('Error loading scouters:', error);
+    const scoutersList = document.getElementById('scouters-list');
+    scoutersList.innerHTML = '<p class="error">Error loading scouters. Please refresh the page.</p>';
   }
 }
 
@@ -273,7 +328,6 @@ function hideCreateScouterModal() {
   document.getElementById('create-scouter-form').reset();
 }
 
-// Create event function - removed since we're using TBA API
 function refreshMatches() {
   if (currentEvent) {
     loadMatches();
@@ -281,6 +335,7 @@ function refreshMatches() {
     alert('Please enter an event key first');
   }
 }
+
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('create-scouter-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -309,7 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (response.ok) {
         hideCreateScouterModal();
-        loadScouters();
+        await loadScouters(); // Reload scouters to show the new one
         alert('Scouter created successfully!');
       } else {
         alert(result.error || 'Error creating scouter');
@@ -426,17 +481,14 @@ function closeModal() {
   modals.forEach(modal => modal.remove());
 }
 
-function refreshMatches() {
-  if (currentEvent) {
-    loadMatches();
-  }
-}
-
 async function logout() {
   try {
     await fetch('/api/logout', { method: 'POST' });
+    // Clear saved event data on logout
+    localStorage.removeItem('currentEvent');
     window.location.href = '/login';
   } catch (error) {
+    localStorage.removeItem('currentEvent');
     window.location.href = '/login';
   }
 }

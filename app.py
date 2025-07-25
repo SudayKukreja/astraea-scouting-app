@@ -163,11 +163,67 @@ def get_matches():
         # Fallback to sample data for testing
         return jsonify(get_sample_matches())
 
+@app.route('/api/admin/teams')
+@admin_required
+def get_teams():
+    """Get teams for a specific event"""
+    event_key = request.args.get('event')
+    if not event_key:
+        return jsonify({'error': 'Event key required'}), 400
+    
+    try:
+        # Get matches first to extract teams
+        matches = tba_client.get_event_matches(event_key)
+        if not matches:
+            matches = get_sample_matches()
+        
+        # Extract unique teams from matches
+        teams = set()
+        for match in matches:
+            teams.update(match['all_teams'])
+        
+        # Convert to sorted list
+        teams_list = sorted(list(teams), key=int)
+        return jsonify(teams_list)
+        
+    except Exception as e:
+        # Fallback to sample teams
+        return jsonify(['254', '148', '1323', '2468', '2471', '5940', '1678', '5190', '6834', '973', '1114', '2056'])
+
 @app.route('/api/admin/scouters')
 @admin_required
 def get_scouters():
     scouters = get_all_scouters()
     return jsonify(scouters)
+
+@app.route('/api/admin/scouter-stats')
+@admin_required
+def get_scouter_stats():
+    """Get scouting statistics for each scouter"""
+    try:
+        scouters = get_all_scouters()
+        assignments = get_all_assignments()
+        
+        stats = {}
+        for username in scouters.keys():
+            assigned_count = 0
+            completed_count = 0
+            
+            for assignment in assignments.values():
+                if assignment.get('scouter') == username:
+                    assigned_count += 1
+                    if assignment.get('completed', False):
+                        completed_count += 1
+            
+            stats[username] = {
+                'assigned': assigned_count,
+                'completed': completed_count
+            }
+        
+        return jsonify(stats)
+    except Exception as e:
+        # Return empty stats if there's an error
+        return jsonify({})
 
 @app.route('/api/admin/create-scouter', methods=['POST'])
 @admin_required
