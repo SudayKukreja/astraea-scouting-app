@@ -1,4 +1,4 @@
-const CACHE_NAME = 'astraea-cache-20250725-092934'; // Increment version number when you deploy
+const CACHE_NAME = 'astraea-cache-20250725-100329'; // Increment version number when you deploy
 const FILES_TO_CACHE = [
   '/',
   '/static/style.css',
