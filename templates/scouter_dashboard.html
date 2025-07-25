@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scouter Dashboard - Astraea Scouting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="header-logo">
+          <h1>Scouter Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <span class="user-info">{{ session.user_name or session.user_id }}</span>
+          <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+      <div class="dashboard-content">
+        <div class="welcome-section">
+          <h2>Welcome, {{ session.user_name or session.user_id }}!</h2>
+          <p>Here are your assigned matches to scout:</p>
+        </div>
+
+        <!-- Assignments List -->
+        <div id="assignments-container" class="assignments-container">
+          <div class="loading">Loading your assignments...</div>
+        </div>
+
+        <!-- No assignments message -->
+        <div id="no-assignments" class="no-assignments" style="display: none;">
+          <div class="empty-state">
+            <h3>No Assignments Yet</h3>
+            <p>You don't have any matches assigned to scout yet. Contact your admin to get assignments.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let assignments = [];
+
+    async function loadAssignments() {
+      try {
+        const response = await fetch('/api/scouter/assignments');
+        assignments = await response.json();
+        
+        const container = document.getElementById('assignments-container');
+        const noAssignments = document.getElementById('no-assignments');
+        
+        if (assignments.length === 0) {
+          container.style.display = 'none';
+          noAssignments.style.display = 'block';
+          return;
+        }
+        
+        container.style.display = 'block';
+        noAssignments.style.display = 'none';
+        
+        // Group assignments by match
+        const groupedAssignments = assignments.reduce((groups, assignment) => {
+          const key = `${assignment.event_key}_${assignment.match_number}`;
+          if (!groups[key]) {
+            groups[key] = [];
+          }
+          groups[key].push(assignment);
+          return groups;
+        }, {});
+        
+        container.innerHTML = Object.keys(groupedAssignments)
+          .sort((a, b) => {
+            const matchA = parseInt(a.split('_').pop());
+            const matchB = parseInt(b.split('_').pop());
+            return matchA - matchB;
+          })
+          .map(key => {
+            const matchAssignments = groupedAssignments[key];
+            const firstAssignment = matchAssignments[0];
+            const matchNumber = firstAssignment.match_number;
+            const eventKey = firstAssignment.event_key;
+            
+            return `
+              <div class="match-assignment-card">
+                <div class="match-header">
+                  <h3>Match ${matchNumber}</h3>
+                  <span class="event-key">${eventKey}</span>
+                </div>
+                <div class="teams-to-scout">
+                  <h4>Teams to Scout:</h4>
+                  <div class="team-list">
+                    ${matchAssignments.map(assignment => {
+                      const statusClass = assignment.completed ? 'completed' : 'pending';
+                      const statusText = assignment.completed ? 'Completed' : 'Pending';
+                      
+                      return `
+                        <div class="team-item ${statusClass}">
+                          <span class="team-number">Team ${assignment.team_number}</span>
+                          <span class="status">${statusText}</span>
+                          ${!assignment.completed ? 
+                            `<button onclick="startScouting('${assignment.assignment_key}', ${assignment.team_number}, ${matchNumber})" class="scout-btn">Scout Team</button>` :
+                            '<span class="completed-check">✓</span>'
+                          }
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+                <div class="match-actions">
+                  <div class="match-progress">
+                    ${matchAssignments.filter(a => a.completed).length}/${matchAssignments.length} teams completed
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+      } catch (error) {
+        console.error('Error loading assignments:', error);
+        document.getElementById('assignments-container').innerHTML = 
+          '<div class="error">Error loading assignments. Please refresh the page.</div>';
+      }
+    }
+
+    function startScouting(assignmentKey, teamNumber, matchNumber) {
+      // Store the assignment key in sessionStorage so we can mark it as completed later
+      sessionStorage.setItem('currentAssignment', assignmentKey);
+      
+      // Redirect to the scouting form with pre-filled data
+      const url = `/scout?team=${teamNumber}&match=${matchNumber}&assignment=${assignmentKey}`;
+      window.location.href = url;
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Load assignments on page load
+    loadAssignments();
+
+    // Refresh assignments every 30 seconds to see updates
+    setInterval(loadAssignments, 30000);
+
+    // Check if we just came back from scouting
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('completed') === 'true') {
+      // Show success message
+      const successMessage = document.createElement('div');
+      successMessage.className = 'success-message';
+      successMessage.textContent = 'Scout report submitted successfully!';
+      successMessage.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #10b981;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+      `;
+      
+      document.body.appendChild(successMessage);
+      
+      // Remove the message after 3 seconds
+      setTimeout(() => {
+        successMessage.remove();
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }, 3000);
+      
+      // Reload assignments to reflect the completed status
+      setTimeout(loadAssignments, 500);
+    }
+  </script>
+
+  <style>
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #dc2626;
+      background: #fef2f2;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    .welcome-section {
+      margin-bottom: 30px;
+    }
+
+    .welcome-section h2 {
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+
+    .welcome-section p {
+      color: #6b7280;
+    }
+
+    .match-assignment-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .match-header h3 {
+      color: #1f2937;
+      margin: 0;
+    }
+
+    .event-key {
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+    }
+
+    .teams-to-scout h4 {
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    .team-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .team-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      transition: all 0.2s;
+    }
+
+    .team-item.pending {
+      background: #fef3c7;
+      border-color: #f59e0b;
+    }
+
+    .team-item.completed {
+      background: #d1fae5;
+      border-color: #10b981;
+    }
+
+    .team-number {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .status {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .scout-btn {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .scout-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .completed-check {
+      color: #10b981;
+      font-size: 1.25rem;
+      font-weight: bold;
+    }
+
+    .match-actions {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .match-progress {
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+
+    .no-assignments {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .empty-state h3 {
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    .empty-state p {
+      color: #6b7280;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .team-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      .team-item .scout-btn {
+        align-self: stretch;
+      }
+    }
+  </style>
+</body>
+</html>

@@ -1,13 +1,20 @@
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
-from team_names import TEAM_NAMES  
+
+# Import our new modules
+from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
+from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
+                     mark_assignment_completed, bulk_assign_match, get_all_assignments)
+from tba_api import TBAClient, get_sample_matches
+from team_names import TEAM_NAMES
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 CORS(app)
 
 # === CONFIGURATIONS AREA ===
@@ -22,11 +29,214 @@ creds = service_account.Credentials.from_service_account_info(credentials_info, 
 service = build('sheets', 'v4', credentials=creds)
 sheet = service.spreadsheets()
 
-@app.route('/', methods=['GET'])
-def form():
-    return render_template('index.html')
+# Initialize TBA client
+tba_client = TBAClient()
+
+# =============================================================================
+# AUTHENTICATION ROUTES
+# =============================================================================
+
+@app.route('/login')
+def login_page():
+    if 'user_id' in session:
+        # Redirect based on role
+        from auth import load_users
+        users = load_users()
+        user = users.get(session['user_id'])
+        if user and user.get('role') == 'admin':
+            return redirect('/admin')
+        else:
+            return redirect('/dashboard')
+    return render_template('login.html')
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = authenticate_user(username, password)
+    if user:
+        session['user_id'] = username
+        session['user_name'] = user.get('name', username)
+        return jsonify({
+            'success': True,
+            'role': user.get('role', 'scouter')
+        })
+    else:
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    session.clear()
+    return jsonify({'success': True})
+
+# =============================================================================
+# DASHBOARD ROUTES
+# =============================================================================
+
+@app.route('/admin')
+@login_required
+def admin_dashboard():
+    # Check admin role
+    from auth import load_users
+    users = load_users()
+    user = users.get(session['user_id'])
+    if not user or user.get('role') != 'admin':
+        return redirect('/dashboard')
+    return render_template('admin_dashboard.html')
+
+@app.route('/dashboard')
+@login_required
+def scouter_dashboard():
+    return render_template('scouter_dashboard.html')
+
+# =============================================================================
+# ADMIN API ROUTES
+# =============================================================================
+
+@app.route('/api/admin/events')
+@admin_required
+def get_events():
+    try:
+        events = tba_client.get_current_events()
+        return jsonify(events)
+    except Exception as e:
+        # Fallback to sample data for testing
+        return jsonify([{
+            'key': '2025test',
+            'name': 'Test Event 2025',
+            'start_date': '2025-03-01',
+            'end_date': '2025-03-03',
+            'location': 'Test Location, CA'
+        }])
+
+@app.route('/api/admin/matches')
+@admin_required
+def get_matches():
+    event_key = request.args.get('event')
+    if not event_key:
+        return jsonify({'error': 'Event key required'}), 400
+    
+    try:
+        matches = tba_client.get_event_matches(event_key)
+        if not matches:  # Fallback to sample data
+            matches = get_sample_matches()
+        return jsonify(matches)
+    except Exception as e:
+        # Fallback to sample data for testing
+        return jsonify(get_sample_matches())
+
+@app.route('/api/admin/scouters')
+@admin_required
+def get_scouters():
+    scouters = get_all_scouters()
+    return jsonify(scouters)
+
+@app.route('/api/admin/create-scouter', methods=['POST'])
+@admin_required
+def create_new_scouter():
+    data = request.json
+    name = data.get('name')
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not all([name, username, password]):
+        return jsonify({'error': 'All fields are required'}), 400
+    
+    success, message = create_scouter(username, password, name)
+    if success:
+        return jsonify({'success': True, 'message': message})
+    else:
+        return jsonify({'error': message}), 400
+
+@app.route('/api/admin/scouters/<username>', methods=['DELETE'])
+@admin_required
+def delete_scouter_account(username):
+    if delete_scouter(username):
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Scouter not found'}), 404
+
+@app.route('/api/admin/assign-match', methods=['POST'])
+@admin_required
+def assign_match():
+    data = request.json
+    event_key = data.get('event_key')
+    match_number = data.get('match_number')
+    assignments = data.get('assignments', {})
+    
+    if not all([event_key, match_number]):
+        return jsonify({'error': 'Event key and match number required'}), 400
+    
+    success = bulk_assign_match(event_key, match_number, assignments)
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'error': 'Failed to save assignments'}), 500
+
+@app.route('/api/admin/assignments')
+@admin_required
+def get_admin_assignments():
+    event_key = request.args.get('event')
+    assignments = get_all_assignments(event_key)
+    
+    # Convert to list format for easier frontend handling
+    assignment_list = []
+    for assignment_key, assignment in assignments.items():
+        assignment_list.append({
+            'assignment_key': assignment_key,
+            **assignment
+        })
+    
+    return jsonify(assignment_list)
+
+# =============================================================================
+# SCOUTER API ROUTES
+# =============================================================================
+
+@app.route('/api/scouter/assignments')
+@login_required
+def get_scouter_assignments_api():
+    scouter_username = session['user_id']
+    assignments = get_scouter_assignments(scouter_username)
+    return jsonify(assignments)
+
+# =============================================================================
+# SCOUTING FORM ROUTES
+# =============================================================================
+
+@app.route('/scout')
+@login_required
+def scout_form():
+    # Get pre-filled data from query parameters
+    team = request.args.get('team', '')
+    match = request.args.get('match', '')
+    assignment_key = request.args.get('assignment', '')
+    
+    # Store assignment key in session for completion tracking
+    if assignment_key:
+        session['current_assignment'] = assignment_key
+    
+    return render_template('index.html', prefill_team=team, prefill_match=match)
+
+@app.route('/')
+def home():
+    # Redirect to login if not authenticated
+    if 'user_id' not in session:
+        return redirect('/login')
+    
+    # Redirect to appropriate dashboard
+    from auth import load_users
+    users = load_users()
+    user = users.get(session['user_id'])
+    if user and user.get('role') == 'admin':
+        return redirect('/admin')
+    else:
+        return redirect('/dashboard')
 
 @app.route('/submit', methods=['POST'])
+@login_required
 def submit():
     data = request.json
 
@@ -220,6 +430,12 @@ def submit():
             spreadsheetId=SPREADSHEET_ID,
             body={"requests": format_requests}
         ).execute()
+
+    # Mark assignment as completed if this was from an assignment
+    if 'current_assignment' in session:
+        assignment_key = session['current_assignment']
+        mark_assignment_completed(assignment_key)
+        session.pop('current_assignment', None)
 
     return jsonify({'status': 'success'})
 

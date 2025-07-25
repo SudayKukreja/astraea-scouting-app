@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Astraea Scouting - Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='login.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="login-logo">
+        <h1>Astraea Scouting System</h1>
+        <p>Sign in to access your dashboard</p>
+      </div>
+      
+      <form id="login-form" class="login-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required autocomplete="username">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+        </div>
+        
+        <button type="submit" class="login-btn" id="login-btn">
+          <span class="btn-text">Sign In</span>
+          <div class="login-spinner" id="login-spinner" style="display: none;"></div>
+        </button>
+        
+        <div id="login-error" class="error-message" style="display: none;"></div>
+      </form>
+      
+      <div class="login-footer">
+        <p class="help-text">
+          Need help? Contact your team admin.<br>
+          Default admin: <code>admin</code> / <code>admin123</code>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('login-btn');
+      const spinner = document.getElementById('login-spinner');
+      const btnText = document.querySelector('.btn-text');
+      const errorDiv = document.getElementById('login-error');
+      
+      // Show loading state
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Signing in...';
+      errorDiv.style.display = 'none';
+      
+      const formData = new FormData(e.target);
+      const data = {
+        username: formData.get('username'),
+        password: formData.get('password')
+      };
+      
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Redirect based on role
+          if (result.role === 'admin') {
+            window.location.href = '/admin';
+          } else {
+            window.location.href = '/dashboard';
+          }
+        } else {
+          errorDiv.textContent = result.error || 'Login failed';
+          errorDiv.style.display = 'block';
+        }
+      } catch (error) {
+        errorDiv.textContent = 'Network error. Please try again.';
+        errorDiv.style.display = 'block';
+      } finally {
+        // Reset loading state
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

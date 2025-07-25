@@ -14,6 +14,12 @@
         <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="logo-img">
         <h1 class="app-title">Astraea Robotics Scouting App</h1>
         <p class="app-subtitle">Created by Suday Kukreja</p>
+        {% if session.user_id %}
+        <div class="scout-info">
+          <p>Scouting as: <strong>{{ session.user_name or session.user_id }}</strong></p>
+          <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+        </div>
+        {% endif %}
       </div>
       <div class="app-content">
         <form id="scout-form">
@@ -23,15 +29,15 @@
             <div class="form-row">
               <div class="form-group">
                 <label for="name">Scouter Name</label>
-                <input type="text" id="name" name="name" required>
+                <input type="text" id="name" name="name" required value="{{ session.user_name or session.user_id or '' }}">
               </div>
               <div class="form-group">
                 <label for="team">Team Number</label>
-                <input type="number" id="team" name="team" required>
+                <input type="number" id="team" name="team" required value="{{ prefill_team or '' }}">
               </div>
               <div class="form-group">
                 <label for="match">Match Number</label>
-                <input type="number" id="match" name="match" required>
+                <input type="number" id="match" name="match" required value="{{ prefill_match or '' }}">
               </div>
             </div>
           </div>
@@ -200,6 +206,25 @@
   </div>
   <script src="{{ url_for('static', filename='script.js') }}"></script>
   <script>
+    // Override the form submission success to redirect back to dashboard if came from assignment
+    const originalFormSubmit = document.getElementById('scout-form');
+    if (originalFormSubmit) {
+      originalFormSubmit.addEventListener('submit', function(e) {
+        // Let the original script handle the submission
+        // After successful submission, check if we should redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('assignment')) {
+          // We came from an assignment, so redirect back to dashboard after success
+          setTimeout(() => {
+            if (document.querySelector('.submit-btn').disabled === false) {
+              // Form was successfully submitted
+              window.location.href = '/dashboard?completed=true';
+            }
+          }, 2000);
+        }
+      });
+    }
+
     if ('serviceWorker' in navigator) {
       let refreshing = false;
       
@@ -230,5 +255,32 @@
       });
     }
   </script>
+
+  <style>
+    .scout-info {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      text-align: center;
+    }
+    
+    .scout-info p {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    
+    .back-link {
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    
+    .back-link:hover {
+      color: white;
+      text-decoration: underline;
+    }
+  </style>
 </body>
 </html>

@@ -1,0 +1,133 @@
+import json
+import os
+from datetime import datetime
+
+ASSIGNMENTS_FILE = 'assignments.json'
+
+def load_assignments():
+    """Load scouter assignments from JSON file"""
+    if not os.path.exists(ASSIGNMENTS_FILE):
+        return {}
+    
+    try:
+        with open(ASSIGNMENTS_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_assignments(assignments):
+    """Save assignments to JSON file"""
+    with open(ASSIGNMENTS_FILE, 'w') as f:
+        json.dump(assignments, f, indent=2)
+
+def assign_scouter_to_team(scouter_username, event_key, match_number, team_number):
+    """Assign a scouter to scout a specific team in a match"""
+    assignments = load_assignments()
+    
+    assignment_key = f"{event_key}_qm{match_number}_{team_number}"
+    
+    if assignment_key not in assignments:
+        assignments[assignment_key] = {}
+    
+    assignments[assignment_key] = {
+        'scouter': scouter_username,
+        'event_key': event_key,
+        'match_number': match_number,
+        'team_number': team_number,
+        'assigned_at': datetime.now().isoformat(),
+        'completed': False
+    }
+    
+    save_assignments(assignments)
+    return True
+
+def get_scouter_assignments(scouter_username, event_key=None):
+    """Get all assignments for a specific scouter"""
+    assignments = load_assignments()
+    scouter_assignments = []
+    
+    for assignment_key, assignment in assignments.items():
+        if assignment.get('scouter') == scouter_username:
+            if event_key is None or assignment.get('event_key') == event_key:
+                scouter_assignments.append({
+                    'assignment_key': assignment_key,
+                    **assignment
+                })
+    
+    return sorted(scouter_assignments, key=lambda x: x['match_number'])
+
+def get_match_assignments(event_key, match_number):
+    """Get all assignments for a specific match"""
+    assignments = load_assignments()
+    match_assignments = []
+    
+    for assignment_key, assignment in assignments.items():
+        if (assignment.get('event_key') == event_key and 
+            assignment.get('match_number') == match_number):
+            match_assignments.append({
+                'assignment_key': assignment_key,
+                **assignment
+            })
+    
+    return match_assignments
+
+def mark_assignment_completed(assignment_key):
+    """Mark an assignment as completed"""
+    assignments = load_assignments()
+    
+    if assignment_key in assignments:
+        assignments[assignment_key]['completed'] = True
+        assignments[assignment_key]['completed_at'] = datetime.now().isoformat()
+        save_assignments(assignments)
+        return True
+    
+    return False
+
+def remove_assignment(assignment_key):
+    """Remove an assignment"""
+    assignments = load_assignments()
+    
+    if assignment_key in assignments:
+        del assignments[assignment_key]
+        save_assignments(assignments)
+        return True
+    
+    return False
+
+def bulk_assign_match(event_key, match_number, team_assignments):
+    """Bulk assign scouters to teams for a match
+    team_assignments: dict like {'254': 'scouter1', '148': 'scouter2', ...}"""
+    assignments = load_assignments()
+    
+    for team_number, scouter_username in team_assignments.items():
+        if scouter_username:  # Only assign if scouter is selected
+            assignment_key = f"{event_key}_qm{match_number}_{team_number}"
+            assignments[assignment_key] = {
+                'scouter': scouter_username,
+                'event_key': event_key,
+                'match_number': match_number,
+                'team_number': team_number,
+                'assigned_at': datetime.now().isoformat(),
+                'completed': False
+            }
+    
+    save_assignments(assignments)
+    return True
+
+def get_all_assignments(event_key=None):
+    """Get all assignments, optionally filtered by event"""
+    assignments = load_assignments()
+    
+    if event_key:
+        return {k: v for k, v in assignments.items() if v.get('event_key') == event_key}
+    
+    return assignments
+
+def clear_event_assignments(event_key):
+    """Clear all assignments for an event"""
+    assignments = load_assignments()
+    
+    assignments = {k: v for k, v in assignments.items() if v.get('event_key') != event_key}
+    
+    save_assignments(assignments)
+    return True

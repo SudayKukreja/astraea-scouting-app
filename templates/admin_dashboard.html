@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Dashboard - Astraea Scouting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="header-logo">
+          <h1>Admin Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <span class="user-info">{{ session.user_name or session.user_id }}</span>
+          <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+      <!-- Navigation Tabs -->
+      <div class="dashboard-tabs">
+        <button class="tab-btn active" data-tab="assignments">Match Assignments</button>
+        <button class="tab-btn" data-tab="scouters">Manage Scouters</button>
+        <button class="tab-btn" data-tab="events">Events</button>
+      </div>
+
+      <!-- Assignments Tab -->
+      <div id="assignments" class="tab-content active">
+        <div class="tab-header">
+          <h2>Match Assignments</h2>
+          <button onclick="refreshMatches()" class="refresh-btn">Refresh Matches</button>
+        </div>
+
+        <!-- Event Selection -->
+        <div class="event-selector">
+          <label for="event-select">Select Event:</label>
+          <select id="event-select" onchange="loadMatches()">
+            <option value="">Loading events...</option>
+          </select>
+        </div>
+
+        <!-- Matches List -->
+        <div id="matches-container" class="matches-container">
+          <p class="info-text">Select an event to view matches</p>
+        </div>
+      </div>
+
+      <!-- Scouters Tab -->
+      <div id="scouters" class="tab-content">
+        <div class="tab-header">
+          <h2>Manage Scouters</h2>
+          <button onclick="showCreateScouterModal()" class="create-btn">Add New Scouter</button>
+        </div>
+
+        <div id="scouters-list" class="scouters-list">
+          <!-- Scouters will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Events Tab -->
+      <div id="events" class="tab-content">
+        <div class="tab-header">
+          <h2>Events</h2>
+          <button onclick="loadEvents()" class="refresh-btn">Refresh Events</button>
+        </div>
+
+        <div id="events-list" class="events-list">
+          <!-- Events will be loaded here -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Scouter Modal -->
+  <div id="create-scouter-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>Create New Scouter</h3>
+      <form id="create-scouter-form">
+        <div class="form-group">
+          <label for="scouter-name">Full Name:</label>
+          <input type="text" id="scouter-name" required>
+        </div>
+        <div class="form-group">
+          <label for="scouter-username">Username:</label>
+          <input type="text" id="scouter-username" required>
+        </div>
+        <div class="form-group">
+          <label for="scouter-password">Password:</label>
+          <input type="password" id="scouter-password" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" onclick="hideCreateScouterModal()">Cancel</button>
+          <button type="submit">Create Scouter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let currentEvent = '';
+    let scouters = {};
+    let matches = [];
+
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.getAttribute('data-tab');
+        
+        // Update active tab button
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Update active tab content
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        
+        // Load data for the tab
+        if (tabId === 'scouters') loadScouters();
+        if (tabId === 'events') loadEvents();
+      });
+    });
+
+    // Load initial data
+    loadEvents();
+    loadScouters();
+
+    async function loadEvents() {
+      try {
+        const response = await fetch('/api/admin/events');
+        const events = await response.json();
+        
+        const eventSelect = document.getElementById('event-select');
+        eventSelect.innerHTML = '<option value="">Select an event...</option>';
+        
+        events.forEach(event => {
+          const option = document.createElement('option');
+          option.value = event.key;
+          option.textContent = `${event.name} (${event.start_date})`;
+          eventSelect.appendChild(option);
+        });
+
+        // Update events list
+        const eventsList = document.getElementById('events-list');
+        eventsList.innerHTML = events.map(event => `
+          <div class="event-card">
+            <h4>${event.name}</h4>
+            <p><strong>Location:</strong> ${event.location}</p>
+            <p><strong>Dates:</strong> ${event.start_date} to ${event.end_date}</p>
+            <p><strong>Key:</strong> ${event.key}</p>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading events:', error);
+      }
+    }
+
+    async function loadMatches() {
+      const eventKey = document.getElementById('event-select').value;
+      if (!eventKey) return;
+      
+      currentEvent = eventKey;
+      
+      const container = document.getElementById('matches-container');
+      container.innerHTML = '<p>Loading matches...</p>';
+      
+      try {
+        const response = await fetch(`/api/admin/matches?event=${eventKey}`);
+        matches = await response.json();
+        
+        if (matches.length === 0) {
+          container.innerHTML = '<p>No matches found for this event.</p>';
+          return;
+        }
+        
+        // Load current assignments
+        const assignmentsResponse = await fetch(`/api/admin/assignments?event=${eventKey}`);
+        const assignments = await assignmentsResponse.json();
+        
+        container.innerHTML = matches.map(match => {
+          const matchAssignments = assignments.filter(a => a.match_number === match.match_number);
+          
+          return `
+            <div class="match-card">
+              <div class="match-header">
+                <h4>Match ${match.match_number}</h4>
+                <button onclick="assignMatch(${match.match_number})" class="assign-btn">Assign Scouters</button>
+              </div>
+              <div class="teams-grid">
+                <div class="alliance red">
+                  <h5>Red Alliance</h5>
+                  ${match.red_teams.map(team => {
+                    const assignment = matchAssignments.find(a => a.team_number === team);
+                    return `
+                      <div class="team-assignment">
+                        <span class="team-number">${team}</span>
+                        <span class="scouter-name">${assignment ? assignment.scouter : 'Unassigned'}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+                <div class="alliance blue">
+                  <h5>Blue Alliance</h5>
+                  ${match.blue_teams.map(team => {
+                    const assignment = matchAssignments.find(a => a.team_number === team);
+                    return `
+                      <div class="team-assignment">
+                        <span class="team-number">${team}</span>
+                        <span class="scouter-name">${assignment ? assignment.scouter : 'Unassigned'}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        container.innerHTML = '<p>Error loading matches. Please try again.</p>';
+        console.error('Error loading matches:', error);
+      }
+    }
+
+    function assignMatch(matchNumber) {
+      const match = matches.find(m => m.match_number === matchNumber);
+      if (!match) return;
+      
+      const modalHTML = `
+        <div class="modal">
+          <div class="modal-content large">
+            <h3>Assign Scouters - Match ${matchNumber}</h3>
+            <form id="assign-form">
+              <div class="assignment-grid">
+                <div class="alliance red">
+                  <h4>Red Alliance</h4>
+                  ${match.red_teams.map(team => `
+                    <div class="team-select">
+                      <label>Team ${team}:</label>
+                      <select name="team_${team}">
+                        <option value="">Select Scouter</option>
+                        ${Object.keys(scouters).map(username => 
+                          `<option value="${username}">${scouters[username].name} (${username})</option>`
+                        ).join('')}
+                      </select>
+                    </div>
+                  `).join('')}
+                </div>
+                <div class="alliance blue">
+                  <h4>Blue Alliance</h4>
+                  ${match.blue_teams.map(team => `
+                    <div class="team-select">
+                      <label>Team ${team}:</label>
+                      <select name="team_${team}">
+                        <option value="">Select Scouter</option>
+                        ${Object.keys(scouters).map(username => 
+                          `<option value="${username}">${scouters[username].name} (${username})</option>`
+                        ).join('')}
+                      </select>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              <div class="modal-actions">
+                <button type="button" onclick="closeModal()">Cancel</button>
+                <button type="submit">Save Assignments</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+      
+      document.getElementById('assign-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const assignments = {};
+        
+        for (const [key, value] of formData.entries()) {
+          if (key.startsWith('team_') && value) {
+            const teamNumber = key.replace('team_', '');
+            assignments[teamNumber] = value;
+          }
+        }
+        
+        try {
+          const response = await fetch('/api/admin/assign-match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              event_key: currentEvent,
+              match_number: matchNumber,
+              assignments: assignments
+            })
+          });
+          
+          if (response.ok) {
+            closeModal();
+            loadMatches(); // Refresh the matches display
+          } else {
+            alert('Error saving assignments');
+          }
+        } catch (error) {
+          alert('Error saving assignments');
+          console.error(error);
+        }
+      });
+    }
+
+    async function loadScouters() {
+      try {
+        const response = await fetch('/api/admin/scouters');
+        scouters = await response.json();
+        
+        const scoutersList = document.getElementById('scouters-list');
+        scoutersList.innerHTML = Object.keys(scouters).map(username => {
+          const scouter = scouters[username];
+          return `
+            <div class="scouter-card">
+              <div class="scouter-info">
+                <h4>${scouter.name}</h4>
+                <p>Username: ${username}</p>
+              </div>
+              <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
+            </div>
+          `;
+        }).join('');
+        
+        if (Object.keys(scouters).length === 0) {
+          scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+        }
+      } catch (error) {
+        console.error('Error loading scouters:', error);
+      }
+    }
+
+    function showCreateScouterModal() {
+      document.getElementById('create-scouter-modal').style.display = 'flex';
+    }
+
+    function hideCreateScouterModal() {
+      document.getElementById('create-scouter-modal').style.display = 'none';
+      document.getElementById('create-scouter-form').reset();
+    }
+
+    document.getElementById('create-scouter-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = {
+        name: formData.get('scouter-name'),
+        username: formData.get('scouter-username'),
+        password: formData.get('scouter-password')
+      };
+      
+      try {
+        const response = await fetch('/api/admin/create-scouter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          hideCreateScouterModal();
+          loadScouters();
+        } else {
+          alert(result.error || 'Error creating scouter');
+        }
+      } catch (error) {
+        alert('Error creating scouter');
+        console.error(error);
+      }
+    });
+
+    async function deleteScouter(username) {
+      if (!confirm(`Are you sure you want to delete scouter "${username}"?`)) return;
+      
+      try {
+        const response = await fetch(`/api/admin/scouters/${username}`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          loadScouters();
+        } else {
+          alert('Error deleting scouter');
+        }
+      } catch (error) {
+        alert('Error deleting scouter');
+        console.error(error);
+      }
+    }
+
+    function closeModal() {
+      const modals = document.querySelectorAll('.modal');
+      modals.forEach(modal => modal.remove());
+    }
+
+    function refreshMatches() {
+      if (currentEvent) {
+        loadMatches();
+      }
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Close modals when clicking outside
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('modal')) {
+        closeModal();
+      }
+    });
+  </script>
+</body>
+</html>
