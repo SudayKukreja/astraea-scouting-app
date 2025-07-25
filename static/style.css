@@ -560,3 +560,45 @@ textarea {
         display: block;
     }
 }
+
+/* Global horizontal scroll fix */
+html, body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Prevent iOS zoom-in on input focus */
+input, select, textarea {
+    font-size: 16px;
+}
+
+/* Scroll snap for tab experience on mobile */
+.tabs {
+    scroll-snap-type: x mandatory;
+}
+
+.tab-btn {
+    scroll-snap-align: start;
+}
+
+/* Ultra-small device support */
+@media (max-width: 375px) {
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .app-content {
+        padding: 0.75rem 1rem 6rem;
+    }
+
+    .submit-btn {
+        padding: 1.25rem 1rem;
+    }
+
+    .logo {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+}
