@@ -12,7 +12,6 @@ class TBAClient:
             'User-Agent': 'AstraeaScoutingApp/1.0'
         }
         
-        # Debug: Print API key status (first 10 chars only for security)
         if self.api_key and self.api_key != 'your_tba_api_key_here':
             print(f"TBA API Key loaded: {self.api_key[:10]}...")
         else:
@@ -32,27 +31,20 @@ class TBAClient:
                 events = response.json()
                 print(f"Retrieved {len(events)} events from TBA")
                 
-                # Get current date and filter for recent/upcoming events
                 today = datetime.now().date()
                 two_weeks_ago = today - timedelta(days=14)
                 two_months_ahead = today + timedelta(days=60)
                 
-                # Filter for current/upcoming events
                 current_events = []
                 for event in events:
-                    # Only include competition events (not offseason or other types)
-                    if event.get('event_type') in [0, 1, 2, 3, 4]:  # Regional, District, District CMP, etc.
+                    if event.get('event_type') in [0, 1, 2, 3, 4]: 
                         try:
                             event_start = datetime.strptime(event['start_date'], '%Y-%m-%d').date()
                             event_end = datetime.strptime(event['end_date'], '%Y-%m-%d').date()
                             
-                            # Include events that are:
-                            # 1. Currently happening (start <= today <= end)
-                            # 2. Starting within next 2 months
-                            # 3. Ended within last 2 weeks (for recent events)
-                            if (event_start <= today <= event_end or  # Currently happening
-                                event_start <= two_months_ahead or    # Starting soon
-                                event_end >= two_weeks_ago):          # Recently ended
+                            if (event_start <= today <= event_end or 
+                                event_start <= two_months_ahead or   
+                                event_end >= two_weeks_ago):          
                                 
                                 current_events.append({
                                     'key': event['key'],
@@ -68,7 +60,6 @@ class TBAClient:
                             continue
                 
                 print(f"Filtered to {len(current_events)} relevant events")
-                # Sort by start date, with current/upcoming events first
                 return sorted(current_events, key=lambda x: (x['start_date'], x['name']))
             else:
                 print(f"TBA API Error: {response.status_code} - {response.text}")
@@ -93,8 +84,7 @@ class TBAClient:
                 processed_matches = []
                 
                 for match in matches:
-                    if match['comp_level'] == 'qm':  # Qualification matches only
-                        # Extract team numbers
+                    if match['comp_level'] == 'qm':  
                         red_teams = [team.replace('frc', '') for team in match['alliances']['red']['team_keys']]
                         blue_teams = [team.replace('frc', '') for team in match['alliances']['blue']['team_keys']]
                         
@@ -138,7 +128,6 @@ class TBAClient:
             print(f"Error fetching team info for {team_key}: {e}")
             return None
 
-# Sample data for testing when TBA API is not available
 SAMPLE_MATCHES = [
     {
         'key': '2025test_qm1',

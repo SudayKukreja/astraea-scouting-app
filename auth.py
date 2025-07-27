@@ -5,13 +5,10 @@ import secrets
 import json
 import os
 
-# Import team scouters from separate file
 from team_scouters import get_team_scouters
 
-# Simple user storage - in production, use a proper database
 USERS_FILE = 'users.json'
 
-# Default admin credentials
 DEFAULT_ADMIN = {
     'username': 'admin',
     'password_hash': hashlib.sha256('admin6897'.encode()).hexdigest(),
@@ -21,7 +18,6 @@ DEFAULT_ADMIN = {
 def load_users():
     """Load users from JSON file"""
     if not os.path.exists(USERS_FILE):
-        # Create default users (admin + team scouters)
         users = {'admin': DEFAULT_ADMIN}
         team_scouters = get_team_scouters()
         users.update(team_scouters)
@@ -33,15 +29,12 @@ def load_users():
         with open(USERS_FILE, 'r') as f:
             existing_users = json.load(f)
         
-        # Check if we need to add any new users
         users_updated = False
         
-        # Always ensure admin exists
         if 'admin' not in existing_users:
             existing_users['admin'] = DEFAULT_ADMIN
             users_updated = True
         
-        # Add any new team scouters that don't exist
         team_scouters = get_team_scouters()
         for username, scouter_data in team_scouters.items():
             if username not in existing_users:
@@ -49,13 +42,11 @@ def load_users():
                 users_updated = True
                 print(f"Added team scouter: {username} ({scouter_data['name']})")
         
-        # Save if we added any new users
         if users_updated:
             save_users(existing_users)
         
         return existing_users
     except:
-        # If file is corrupted, recreate with defaults
         users = {'admin': DEFAULT_ADMIN}
         team_scouters = get_team_scouters()
         users.update(team_scouters)

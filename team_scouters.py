@@ -9,7 +9,6 @@ def hash_password(password):
     """Hash a password using SHA256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Team scouters data - automatically generated from team roster
 TEAM_SCOUTERS = {
     'skukreja': {
         'username': 'skukreja',
@@ -95,12 +94,7 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Kevin Hang'
     },
-    'aoza': {
-        'username': 'aoza',
-        'password_hash': hash_password('Aarush741'),
-        'role': 'scouter',
-        'name': 'Aarush Oza'
-    },
+
     'obarda': {
         'username': 'obarda',
         'password_hash': hash_password('Oz852'),
@@ -205,7 +199,6 @@ TEAM_SCOUTERS = {
     }
 }
 
-# Quick reference for passwords (for distribution to team members)
 PASSWORD_REFERENCE = {
     'Suday Kukreja': 'Suday123',
     'Jameela Bhinderwala': 'Jameela823',
@@ -225,7 +218,6 @@ PASSWORD_REFERENCE = {
     'Shiven Mishra': 'Shiven417',
     'Kevin Hang': 'Kevin528',
     'Mason Nam': 'Mason639',
-    'Aarush Oza': 'Aarush741',
     'Oz Barda': 'Oz852',
     'Thomas Sorial': 'Thomas963',
     'Christian Jung': 'Christian174',
@@ -262,7 +254,6 @@ def print_credentials():
     print("-"*60)
     
     for name, password in PASSWORD_REFERENCE.items():
-        # Get username from the team scouters data
         username = None
         for user_data in TEAM_SCOUTERS.values():
             if user_data['name'] == name:
@@ -277,5 +268,4 @@ def print_credentials():
     print("="*60)
 
 if __name__ == "__main__":
-    # If run directly, print all credentials
     print_credentials()

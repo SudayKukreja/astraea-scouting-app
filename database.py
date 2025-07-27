@@ -43,7 +43,6 @@ def assign_scouter_to_team(scouter_username, event_key, match_number, team_numbe
 
 def bulk_assign_team_to_scouter(scouter_username, event_key, team_number):
     """Assign a scouter to scout a specific team across ALL matches for that event"""
-    # Check if it's a manual event
     from manual_matches import is_manual_event, get_manual_event_matches
     
     if is_manual_event(event_key):
@@ -135,7 +134,7 @@ def bulk_assign_match(event_key, match_number, team_assignments):
     assignments = load_assignments()
     
     for team_number, scouter_username in team_assignments.items():
-        if scouter_username:  # Only assign if scouter is selected
+        if scouter_username:  
             assignment_key = f"{event_key}_qm{match_number}_{team_number}"
             assignments[assignment_key] = {
                 'scouter': scouter_username,
@@ -171,7 +170,6 @@ def remove_team_assignments(event_key, team_number):
     """Remove all assignments for a specific team in an event"""
     assignments = load_assignments()
     
-    # Find and remove all assignments for this team
     keys_to_remove = []
     for assignment_key, assignment in assignments.items():
         if (assignment.get('event_key') == event_key and 

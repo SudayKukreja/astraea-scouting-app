@@ -32,13 +32,11 @@ creds = service_account.Credentials.from_service_account_info(credentials_info, 
 service = build('sheets', 'v4', credentials=creds)
 sheet = service.spreadsheets()
 
-# Initialize TBA client with API key from environment
 tba_client = TBAClient(api_key=os.environ.get('TBA_API_KEY'))
 
 @app.route('/login')
 def login_page():
     if 'user_id' in session:
-        # Redirect based on role
         from auth import load_users
         users = load_users()
         user = users.get(session['user_id'])
@@ -183,7 +181,6 @@ def get_events():
         events = tba_client.get_current_events()
         return jsonify(events)
     except Exception as e:
-        # Fallback to sample data for testing
         return jsonify([{
             'key': '2025test',
             'name': 'Test Event 2025',
@@ -200,18 +197,15 @@ def get_matches():
         return jsonify({'error': 'Event key required'}), 400
     
     try:
-        # Check if it's a manual event
         if is_manual_event(event_key):
             matches = get_manual_event_matches(event_key)
             return jsonify(matches)
         else:
-            # Original TBA logic
             matches = tba_client.get_event_matches(event_key)
-            if not matches:  # Fallback to sample data
+            if not matches: 
                 matches = get_sample_matches()
             return jsonify(matches)
     except Exception as e:
-        # Fallback to sample data for testing
         return jsonify(get_sample_matches())
 
 @app.route('/api/admin/teams')
@@ -223,27 +217,22 @@ def get_teams():
         return jsonify({'error': 'Event key required'}), 400
     
     try:
-        # Check if it's a manual event
         if is_manual_event(event_key):
             teams = get_manual_event_teams(event_key)
             return jsonify(teams)
         else:
-            # Original TBA logic
             matches = tba_client.get_event_matches(event_key)
             if not matches:
                 matches = get_sample_matches()
             
-            # Extract unique teams from matches
             teams = set()
             for match in matches:
                 teams.update(match['all_teams'])
             
-            # Convert to sorted list
             teams_list = sorted(list(teams), key=int)
             return jsonify(teams_list)
             
     except Exception as e:
-        # Fallback to sample teams
         return jsonify(['254', '148', '1323', '2468', '2471', '5940', '1678', '5190', '6834', '973', '1114', '2056'])
 
 @app.route('/api/admin/scouters')
@@ -278,7 +267,6 @@ def get_scouter_stats():
         
         return jsonify(stats)
     except Exception as e:
-        # Return empty stats if there's an error
         return jsonify({})
 
 @app.route('/api/admin/create-scouter', methods=['POST'])
@@ -329,7 +317,6 @@ def get_admin_assignments():
     event_key = request.args.get('event')
     assignments = get_all_assignments(event_key)
     
-    # Convert to list format for easier frontend handling
     assignment_list = []
     for assignment_key, assignment in assignments.items():
         assignment_list.append({
@@ -390,7 +377,6 @@ def scouter_mark_home_game():
     if not assignment_key:
         return jsonify({'error': 'Assignment key required'}), 400
     
-    # Verify this assignment belongs to the current scouter
     from database import load_assignments, mark_assignment_as_home_game
     assignments = load_assignments()
     
@@ -437,12 +423,10 @@ def get_scouter_assignments_api():
 @app.route('/scout')
 @login_required
 def scout_form():
-    # Get pre-filled data from query parameters
     team = request.args.get('team', '')
     match = request.args.get('match', '')
     assignment_key = request.args.get('assignment', '')
     
-    # Store assignment key in session for completion tracking
     if assignment_key:
         session['current_assignment'] = assignment_key
     
@@ -450,11 +434,9 @@ def scout_form():
 
 @app.route('/')
 def home():
-    # Redirect to login if not authenticated
     if 'user_id' not in session:
         return redirect('/login')
-    
-    # Redirect to appropriate dashboard
+
     from auth import load_users
     users = load_users()
     user = users.get(session['user_id'])
@@ -659,7 +641,6 @@ def submit():
             body={"requests": format_requests}
         ).execute()
 
-    # Mark assignment as completed if this was from an assignment
     if 'current_assignment' in session:
         assignment_key = session['current_assignment']
         mark_assignment_completed(assignment_key)

@@ -24,10 +24,8 @@ def create_manual_event(event_name, matches_data):
     """Create a new manual event with matches"""
     events = load_manual_events()
     
-    # Generate event key from name
     event_key = f"manual_{event_name.lower().replace(' ', '_')}"
     
-    # Process matches data
     matches = []
     for i, match_data in enumerate(matches_data, 1):
         match = {
@@ -37,7 +35,6 @@ def create_manual_event(event_name, matches_data):
             'all_teams': []
         }
         
-        # Combine all teams
         match['all_teams'] = match['red_teams'] + match['blue_teams']
         matches.append(match)
     
@@ -107,7 +104,6 @@ def update_manual_event_matches(event_key, matches_data):
     if event_key not in events:
         return False
     
-    # Process matches data
     matches = []
     for i, match_data in enumerate(matches_data, 1):
         match = {
@@ -117,7 +113,6 @@ def update_manual_event_matches(event_key, matches_data):
             'all_teams': []
         }
         
-        # Combine all teams
         match['all_teams'] = match['red_teams'] + match['blue_teams']
         matches.append(match)
     
