@@ -146,17 +146,9 @@ $gitSummary
 "@
 }
 
-# Confirm deployment
-Write-Host "Commit message preview:" -ForegroundColor Cyan
+# Show commit message preview
+Write-Host "Commit message:" -ForegroundColor Cyan
 Write-Host $commitMessage -ForegroundColor Gray
-Write-Host ""
-
-$confirm = Read-Host "Proceed with deployment? (y/N)"
-if ($confirm -ne "y" -and $confirm -ne "Y") {
-    Write-Host "Deployment cancelled." -ForegroundColor Yellow
-    exit
-}
-
 Write-Host ""
 Write-Host "Starting deployment..." -ForegroundColor Cyan
 
@@ -183,7 +175,7 @@ try {
     }
 
     Write-Host ""
-    Write-Host "✅ Deploy completed successfully!" -ForegroundColor Green
+    Write-Host "Deploy completed successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Deployment Summary:" -ForegroundColor Cyan
     Write-Host "  - Time: $datetime" -ForegroundColor White
@@ -192,8 +184,6 @@ try {
         Write-Host "  - Cache Version: v$newVersion" -ForegroundColor White
     }
     Write-Host "  - Repository: Updated" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "🚀 Deployment completed!" -ForegroundColor Magenta
 
 } catch {
     Write-Host ""
