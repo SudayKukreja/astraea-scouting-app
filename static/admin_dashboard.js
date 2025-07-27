@@ -214,6 +214,258 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let manualMatchCount = 0;
 
+
+function showBulkMatchModal() {
+  const modalHTML = `
+    <div class="modal">
+      <div class="modal-content large">
+        <h3>Bulk Add Matches</h3>
+        <p>Enter match data in one of the formats below:</p>
+        
+        <!-- Format Selection -->
+        <div class="bulk-format-tabs">
+          <button class="format-tab-btn active" data-format="csv">CSV Format</button>
+          <button class="format-tab-btn" data-format="text">Text Format</button>
+          <button class="format-tab-btn" data-format="json">JSON Format</button>
+        </div>
+        
+        <!-- CSV Format Tab -->
+        <div id="csv-format" class="format-content active">
+          <p><strong>CSV Format:</strong> Each line is a match with red teams, then blue teams</p>
+          <code>254,148,1323,2468,2471,5940</code>
+          <textarea id="bulk-csv-input" placeholder="Enter CSV format matches (one per line):
+254,148,1323,2468,2471,5940
+1678,5190,6834,973,1114,2056
+..." rows="10" style="width: 100%; font-family: monospace;"></textarea>
+        </div>
+        
+        <!-- Text Format Tab -->
+        <div id="text-format" class="format-content">
+          <p><strong>Text Format:</strong> Natural language format</p>
+          <code>Red: 254, 148, 1323 vs Blue: 2468, 2471, 5940</code>
+          <textarea id="bulk-text-input" placeholder="Enter text format matches (one per line):
+Red: 254, 148, 1323 vs Blue: 2468, 2471, 5940
+Red: 1678, 5190, 6834 vs Blue: 973, 1114, 2056
+..." rows="10" style="width: 100%; font-family: monospace;"></textarea>
+        </div>
+        
+        <!-- JSON Format Tab -->
+        <div id="json-format" class="format-content">
+          <p><strong>JSON Format:</strong> Structured data format</p>
+          <textarea id="bulk-json-input" placeholder='Enter JSON format:
+[
+  {"red": ["254", "148", "1323"], "blue": ["2468", "2471", "5940"]},
+  {"red": ["1678", "5190", "6834"], "blue": ["973", "1114", "2056"]}
+]' rows="10" style="width: 100%; font-family: monospace;"></textarea>
+        </div>
+        
+        <div class="bulk-preview">
+          <h4>Preview:</h4>
+          <div id="bulk-preview-container">
+            <p class="info-text">Enter match data above to see preview</p>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" onclick="closeModal()">Cancel</button>
+          <button type="button" onclick="previewBulkMatches()">Preview Matches</button>
+          <button type="button" onclick="addBulkMatches()" id="add-bulk-btn" disabled>Add Matches</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Add event listeners for format tabs
+  document.querySelectorAll('.format-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const format = btn.getAttribute('data-format');
+      
+      // Update active tab
+      document.querySelectorAll('.format-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Update active content
+      document.querySelectorAll('.format-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`${format}-format`).classList.add('active');
+    });
+  });
+  
+  // Add real-time preview
+  ['bulk-csv-input', 'bulk-text-input', 'bulk-json-input'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('input', previewBulkMatches);
+    }
+  });
+}
+
+function parseMatchData(input, format) {
+  const matches = [];
+  
+  try {
+    switch (format) {
+      case 'csv':
+        const csvLines = input.trim().split('\n').filter(line => line.trim());
+        csvLines.forEach((line, index) => {
+          const teams = line.split(',').map(t => t.trim()).filter(t => t);
+          if (teams.length === 6) {
+            matches.push({
+              red_teams: teams.slice(0, 3),
+              blue_teams: teams.slice(3, 6)
+            });
+          } else if (teams.length > 0) {
+            throw new Error(`Line ${index + 1}: Expected 6 teams, got ${teams.length}`);
+          }
+        });
+        break;
+        
+      case 'text':
+        const textLines = input.trim().split('\n').filter(line => line.trim());
+        textLines.forEach((line, index) => {
+          // Parse "Red: 254, 148, 1323 vs Blue: 2468, 2471, 5940" format
+          const match = line.toLowerCase().match(/red:\s*([^v]+)vs\s*blue:\s*(.+)/);
+          if (match) {
+            const redTeams = match[1].split(',').map(t => t.trim()).filter(t => t);
+            const blueTeams = match[2].split(',').map(t => t.trim()).filter(t => t);
+            if (redTeams.length >= 1 && blueTeams.length >= 1) {
+              matches.push({
+                red_teams: redTeams,
+                blue_teams: blueTeams
+              });
+            }
+          } else {
+            throw new Error(`Line ${index + 1}: Invalid format. Expected "Red: ... vs Blue: ..."`);
+          }
+        });
+        break;
+        
+      case 'json':
+        const jsonData = JSON.parse(input);
+        if (Array.isArray(jsonData)) {
+          jsonData.forEach((match, index) => {
+            if (match.red && match.blue && Array.isArray(match.red) && Array.isArray(match.blue)) {
+              matches.push({
+                red_teams: match.red.map(t => String(t).trim()),
+                blue_teams: match.blue.map(t => String(t).trim())
+              });
+            } else {
+              throw new Error(`Match ${index + 1}: Invalid structure. Expected {red: [...], blue: [...]}`);
+            }
+          });
+        } else {
+          throw new Error('JSON must be an array of match objects');
+        }
+        break;
+    }
+  } catch (error) {
+    throw new Error(`Parse error: ${error.message}`);
+  }
+  
+  return matches;
+}
+
+function previewBulkMatches() {
+  const activeFormat = document.querySelector('.format-tab-btn.active').getAttribute('data-format');
+  const inputId = `bulk-${activeFormat}-input`;
+  const input = document.getElementById(inputId).value.trim();
+  const previewContainer = document.getElementById('bulk-preview-container');
+  const addBtn = document.getElementById('add-bulk-btn');
+  
+  if (!input) {
+    previewContainer.innerHTML = '<p class="info-text">Enter match data above to see preview</p>';
+    addBtn.disabled = true;
+    return;
+  }
+  
+  try {
+    const matches = parseMatchData(input, activeFormat);
+    
+    if (matches.length === 0) {
+      previewContainer.innerHTML = '<p class="error">No valid matches found</p>';
+      addBtn.disabled = true;
+      return;
+    }
+    
+    let previewHTML = `<p class="success">Found ${matches.length} matches:</p>`;
+    previewHTML += '<div class="matches-preview">';
+    
+    matches.forEach((match, index) => {
+      previewHTML += `
+        <div class="preview-match">
+          <strong>Match ${index + 1}:</strong>
+          <span class="red-teams">Red: ${match.red_teams.join(', ')}</span>
+          <span class="vs">vs</span>
+          <span class="blue-teams">Blue: ${match.blue_teams.join(', ')}</span>
+        </div>
+      `;
+    });
+    
+    previewHTML += '</div>';
+    previewContainer.innerHTML = previewHTML;
+    addBtn.disabled = false;
+    
+  } catch (error) {
+    previewContainer.innerHTML = `<p class="error">${error.message}</p>`;
+    addBtn.disabled = true;
+  }
+}
+
+function addBulkMatches() {
+  const activeFormat = document.querySelector('.format-tab-btn.active').getAttribute('data-format');
+  const inputId = `bulk-${activeFormat}-input`;
+  const input = document.getElementById(inputId).value.trim();
+  
+  try {
+    const matches = parseMatchData(input, activeFormat);
+    
+    // Add matches to the manual matches container
+    const container = document.getElementById('manual-matches-container');
+    const currentMatches = container.querySelectorAll('.match-builder').length;
+    
+    matches.forEach((matchData, index) => {
+      manualMatchCount++;
+      const matchNumber = manualMatchCount;
+      
+      const matchHTML = `
+        <div class="match-builder" id="match-${matchNumber}">
+          <div class="match-header">
+            <span class="match-title">Match ${matchNumber}</span>
+            <button type="button" onclick="removeManualMatch(${matchNumber})" class="remove-match-btn">Remove</button>
+          </div>
+          <div class="alliance-inputs">
+            <div class="alliance-section red">
+              <h5>Red Alliance</h5>
+              <div class="team-inputs">
+                <input type="text" placeholder="Team 1" data-match="${matchNumber}" data-alliance="red" data-position="1" value="${matchData.red_teams[0] || ''}">
+                <input type="text" placeholder="Team 2" data-match="${matchNumber}" data-alliance="red" data-position="2" value="${matchData.red_teams[1] || ''}">
+                <input type="text" placeholder="Team 3" data-match="${matchNumber}" data-alliance="red" data-position="3" value="${matchData.red_teams[2] || ''}">
+              </div>
+            </div>
+            <div class="alliance-section blue">
+              <h5>Blue Alliance</h5>
+              <div class="team-inputs">
+                <input type="text" placeholder="Team 1" data-match="${matchNumber}" data-alliance="blue" data-position="1" value="${matchData.blue_teams[0] || ''}">
+                <input type="text" placeholder="Team 2" data-match="${matchNumber}" data-alliance="blue" data-position="2" value="${matchData.blue_teams[1] || ''}">
+                <input type="text" placeholder="Team 3" data-match="${matchNumber}" data-alliance="blue" data-position="3" value="${matchData.blue_teams[2] || ''}">
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('beforeend', matchHTML);
+    });
+    
+    closeModal();
+    alert(`Successfully added ${matches.length} matches!`);
+    
+  } catch (error) {
+    alert(`Error adding matches: ${error.message}`);
+  }
+}
+
 function addManualMatch() {
   manualMatchCount++;
   const container = document.getElementById('manual-matches-container');

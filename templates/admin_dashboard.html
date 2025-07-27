@@ -65,23 +65,26 @@
         <div id="manual-create" class="event-tab-content">
             <p>Create a custom event with manual match entry.</p>
             <div class="manual-event-form">
-            <div class="event-form-group">
-                <label for="manual-event-name">Event Name:</label>
-                <input type="text" id="manual-event-name" placeholder="e.g. Practice Event 2024">
-            </div>
-            
-            <div class="matches-builder">
-                <h4>Matches</h4>
-                <div id="manual-matches-container">
-                <!-- Manual matches will be added here -->
+                <div class="event-form-group">
+                    <label for="manual-event-name">Event Name:</label>
+                    <input type="text" id="manual-event-name" placeholder="e.g. Practice Event 2024">
                 </div>
-                <button type="button" onclick="addManualMatch()" class="add-match-btn">Add Match</button>
-            </div>
-            
-            <div class="manual-actions">
-                <button onclick="createManualEvent()" class="create-btn">Create Manual Event</button>
-                <button onclick="clearManualMatches()" class="clear-btn">Clear All Matches</button>
-            </div>
+                
+                <div class="matches-builder">
+                    <div class="matches-builder-header">
+                        <h4>Matches</h4>
+                        <button type="button" onclick="showBulkMatchModal()" class="bulk-add-btn">Bulk Add Matches</button>
+                    </div>
+                    <div id="manual-matches-container">
+                        <!-- Manual matches will be added here -->
+                    </div>
+                    <button type="button" onclick="addManualMatch()" class="add-match-btn">Add Single Match</button>
+                </div>
+                
+                <div class="manual-actions">
+                    <button onclick="createManualEvent()" class="create-btn">Create Manual Event</button>
+                    <button onclick="clearManualMatches()" class="clear-btn">Clear All Matches</button>
+                </div>
             </div>
         </div>
 

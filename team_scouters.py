@@ -46,30 +46,12 @@ TEAM_SCOUTERS = {
         'password_hash': hash_password('Mohammud654'),
         'role': 'scouter',
         'name': 'Mohammud Bhuiyan'
-    },
-    'idasgupta': {
-        'username': 'idasgupta',
-        'password_hash': hash_password('Ishan147'),
-        'role': 'scouter',
-        'name': 'Ishan Dasgupta'
-    },
-    'fquadri': {
-        'username': 'fquadri',
-        'password_hash': hash_password('Faizaan258'),
-        'role': 'scouter',
-        'name': 'Faizaan Quadri'
-    },
+    },  
     'ograsberger-dorman': {
         'username': 'ograsberger-dorman',
         'password_hash': hash_password('Oliver369'),
         'role': 'scouter',
         'name': 'Oliver Grasberger-Dorman'
-    },
-    'aroy': {
-        'username': 'aroy',
-        'password_hash': hash_password('Akash741'),
-        'role': 'scouter',
-        'name': 'Akash Roy'
     },
     'ghe': {
         'username': 'ghe',
