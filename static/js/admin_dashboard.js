@@ -1,39 +1,286 @@
+// ===== REAL-TIME UPDATES SYSTEM =====
+class RealtimeUpdates {
+  constructor() {
+    this.updateInterval = null;
+    this.isVisible = true;
+    this.lastUpdateTime = 0;
+    this.setupVisibilityHandling();
+    this.setupConnectionStatus();
+  }
+
+  setupVisibilityHandling() {
+    document.addEventListener('visibilitychange', () => {
+      this.isVisible = !document.hidden;
+      if (this.isVisible) {
+        console.log('Page became visible, refreshing data...');
+        this.triggerUpdate();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      if (!this.isVisible) {
+        this.isVisible = true;
+        this.triggerUpdate();
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      this.isVisible = false;
+    });
+  }
+
+  setupConnectionStatus() {
+    window.addEventListener('online', () => {
+      this.showNotification('Connection restored! Refreshing data...', 'success');
+      this.triggerUpdate();
+    });
+
+    window.addEventListener('offline', () => {
+      this.showNotification('You are offline. Data may not be current.', 'warning');
+    });
+  }
+
+  start(callback, interval = 10000) {
+    this.callback = callback;
+    
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
+
+    this.updateInterval = setInterval(() => {
+      if (this.isVisible && navigator.onLine) {
+        this.triggerUpdate();
+      }
+    }, interval);
+
+    console.log(`Auto-refresh started with ${interval/1000}s interval`);
+  }
+
+  stop() {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+      console.log('Auto-refresh stopped');
+    }
+  }
+
+  async triggerUpdate() {
+    if (!this.callback) return;
+
+    const now = Date.now();
+    if (now - this.lastUpdateTime < 2000) {
+      return;
+    }
+
+    try {
+      this.lastUpdateTime = now;
+      await this.callback();
+    } catch (error) {
+      console.error('Auto-refresh failed:', error);
+      this.showNotification('Failed to refresh data', 'error');
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    const existing = document.querySelectorAll('.realtime-notification');
+    existing.forEach(el => el.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `realtime-notification ${type}`;
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span class="notification-icon">${this.getIcon(type)}</span>
+        <span class="notification-message">${message}</span>
+        <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+      </div>
+    `;
+
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${this.getColor(type)};
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      max-width: 350px;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+      font-size: 0.9rem;
+    `;
+
+    notification.querySelector('.notification-content').style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+
+    notification.querySelector('.notification-close').style.cssText = `
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0;
+      margin-left: auto;
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 10);
+
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => notification.remove(), 300);
+      }
+    }, type === 'error' ? 8000 : 4000);
+  }
+
+  getIcon(type) {
+    const icons = {
+      success: '✅',
+      error: '❌',
+      warning: '⚠️',
+      info: 'ℹ️'
+    };
+    return icons[type] || icons.info;
+  }
+
+  getColor(type) {
+    const colors = {
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+      info: '#3b82f6'
+    };
+    return colors[type] || colors.info;
+  }
+}
+
+// ===== GLOBAL VARIABLES =====
 let currentEvent = '';
 let scouters = {};
 let matches = [];
 let teams = [];
+let lastMatchesHash = '';
+let lastScoutersHash = '';
 
+// Global realtime instance
+let realtimeUpdates = new RealtimeUpdates();
+
+// ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+  setupTabs();
+  setupEventTabs();
+  setupConnectionIndicator();
+  
   const savedEvent = localStorage.getItem('currentEvent');
   if (savedEvent) {
     currentEvent = savedEvent;
     document.getElementById('event-key-input').value = savedEvent;
     document.getElementById('current-event-display').textContent = savedEvent;
     document.getElementById('event-section').style.display = 'block';
-    loadMatches();
+    loadMatchesWithUpdates();
   }
+
+  loadScoutersWithUpdates();
+  loadManualEventsList();
+  addManualMatch();
+
+  // Start auto-refresh
+  realtimeUpdates.start(async () => {
+    await loadMatchesWithUpdates();
+    await loadScoutersWithUpdates();
+  }, 15000); // 15 seconds
+
+  // Setup form handlers
+  setupFormHandlers();
 });
 
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const tabId = btn.getAttribute('data-tab');
-    
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    
-    if (tabId === 'scouters') loadScouters();
+function setupConnectionIndicator() {
+  const indicator = document.createElement('div');
+  indicator.id = 'connection-indicator';
+  indicator.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: #10b981;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    z-index: 999;
+    transition: all 0.3s ease;
+    opacity: 0;
+  `;
+  indicator.innerHTML = '🟢 Live Updates Active';
+  document.body.appendChild(indicator);
+  
+  setTimeout(() => indicator.style.opacity = '1', 1000);
+  setTimeout(() => indicator.style.opacity = '0', 4000);
+  
+  window.addEventListener('offline', () => {
+    indicator.innerHTML = '🔴 Offline Mode';
+    indicator.style.background = '#ef4444';
+    indicator.style.opacity = '1';
   });
-});
+  
+  window.addEventListener('online', () => {
+    indicator.innerHTML = '🟢 Live Updates Active';
+    indicator.style.background = '#10b981';
+    setTimeout(() => indicator.style.opacity = '0', 3000);
+  });
+}
 
-loadScouters();
+// ===== TAB SYSTEM =====
+function setupTabs() {
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-tab');
+      
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      
+      if (tabId === 'scouters') loadScoutersWithUpdates();
+    });
+  });
+}
 
+function setupEventTabs() {
+  const eventTabBtns = document.querySelectorAll('.event-tab-btn');
+  const eventTabContents = document.querySelectorAll('.event-tab-content');
+  
+  eventTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabId = btn.getAttribute('data-event-tab');
+      
+      eventTabBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      eventTabContents.forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+
+      if (tabId === 'manual-load') {
+        loadManualEventsList();
+      }
+    });
+  });
+}
+
+// ===== ENHANCED MATCHES SYSTEM =====
 async function loadEventData() {
   const eventKey = document.getElementById('event-key-input').value.trim();
   if (!eventKey) {
-    alert('Please enter an event key');
+    realtimeUpdates.showNotification('Please enter an event key', 'error');
     return;
   }
 
@@ -43,38 +290,61 @@ async function loadEventData() {
   
   localStorage.setItem('currentEvent', eventKey);
 
-  await loadMatches();
-  await loadTeamsForEvent(eventKey);  
+  await loadMatchesWithUpdates();
+  await loadTeamsForEvent(eventKey);
+  
+  realtimeUpdates.showNotification('Event data loaded successfully!', 'success');
 }
 
-async function loadMatches() {
-  if (!currentEvent) {
-    alert('Please enter an event key first');
-    return;
-  }
-  
-  const container = document.getElementById('matches-container');
-  container.innerHTML = '<p>Loading matches...</p>';
+async function loadMatchesWithUpdates() {
+  if (!currentEvent) return;
   
   try {
     const response = await fetch(`/api/admin/matches?event=${currentEvent}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    matches = await response.json();
+    const newMatches = await response.json();
+    const newHash = JSON.stringify(newMatches);
     
-    if (matches.length === 0) {
-      container.innerHTML = '<p>No matches found for this event. Make sure the event key is correct.</p>';
-      return;
+    // Check if data actually changed
+    if (newHash !== lastMatchesHash) {
+      const hadMatches = matches.length > 0;
+      lastMatchesHash = newHash;
+      matches = newMatches;
+      await renderMatches();
+      
+      // Show update notification (only if not first load)
+      if (hadMatches && document.querySelector('.match-card')) {
+        realtimeUpdates.showNotification('Match assignments updated!', 'success');
+      }
     }
+  } catch (error) {
+    console.error('Error updating matches:', error);
+    const container = document.getElementById('matches-container');
+    container.innerHTML = '<p class="error">Error loading matches. Please check the event key and try again.</p>';
+  }
+}
+
+async function renderMatches() {
+  const container = document.getElementById('matches-container');
+  
+  if (matches.length === 0) {
+    container.innerHTML = '<p class="info-text">No matches found for this event. Make sure the event key is correct.</p>';
+    return;
+  }
+  
+  if (teams.length === 0) {
+    await loadTeamsForEvent(currentEvent);
+  }
+  
+  try {
+    const [assignmentsResponse, summaryResponse] = await Promise.all([
+      fetch(`/api/admin/assignments?event=${currentEvent}`),
+      fetch(`/api/admin/match-summary?event=${currentEvent}`)
+    ]);
     
-    if (teams.length === 0) {
-      await loadTeamsForEvent(currentEvent);
-    }
-    
-    const assignmentsResponse = await fetch(`/api/admin/assignments?event=${currentEvent}`);
     const assignments = await assignmentsResponse.json();
-    const summaryResponse = await fetch(`/api/admin/match-summary?event=${currentEvent}`);
     const summary = await summaryResponse.json();
 
     const summaryHTML = `
@@ -101,12 +371,12 @@ async function loadMatches() {
       </div>
     `;
     
-    container.innerHTML = summaryHTML + matches.map(match => {
+    const matchesHTML = matches.map(match => {
       const matchAssignments = assignments.filter(a => a.match_number === match.match_number);
       const isHomeMatch = match.all_teams.includes('6897'); 
       
       return `
-        <div class="match-card ${isHomeMatch ? 'home-match' : ''}">
+        <div class="match-card ${isHomeMatch ? 'home-match' : ''}" data-match="${match.match_number}">
           <div class="match-header">
             <div class="match-info">
               <h4>Match ${match.match_number}</h4>
@@ -121,7 +391,7 @@ async function loadMatches() {
                 const assignment = matchAssignments.find(a => a.team_number === team);
                 const isHomeTeam = team === '6897';
                 return `
-                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}">
+                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}" data-team="${team}">
                     <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
                     <span class="assignment-status">
                       ${assignment ? getAssignmentStatusDisplay(assignment) : 'Unassigned'}
@@ -137,7 +407,7 @@ async function loadMatches() {
                 const assignment = matchAssignments.find(a => a.team_number === team);
                 const isHomeTeam = team === '6897';
                 return `
-                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}">
+                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}" data-team="${team}">
                     <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
                     <span class="assignment-status">
                       ${assignment ? getAssignmentStatusDisplay(assignment) : 'Unassigned'}
@@ -151,9 +421,25 @@ async function loadMatches() {
         </div>
       `;
     }).join('');
+    
+    container.innerHTML = summaryHTML + matchesHTML;
   } catch (error) {
-    container.innerHTML = '<p>Error loading matches. Please check the event key and try again.</p>';
-    console.error('Error loading matches:', error);
+    console.error('Error rendering matches:', error);
+    container.innerHTML = '<p class="error">Error loading match assignments.</p>';
+  }
+}
+
+// Legacy function for compatibility
+async function loadMatches() {
+  await loadMatchesWithUpdates();
+}
+
+function refreshMatches() {
+  if (currentEvent) {
+    loadMatchesWithUpdates();
+    realtimeUpdates.showNotification('Refreshing matches...', 'info');
+  } else {
+    realtimeUpdates.showNotification('Please enter an event key first', 'error');
   }
 }
 
@@ -188,32 +474,346 @@ function getAssignmentActions(assignment) {
   return '';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const eventTabBtns = document.querySelectorAll('.event-tab-btn');
-  const eventTabContents = document.querySelectorAll('.event-tab-content');
+// ===== HOME GAME FUNCTIONS =====
+async function markHomeGame(assignmentKey) {
+  if (!confirm('Mark this assignment as a home game? The scouter will not need to scout this match.')) {
+    return;
+  }
   
-  eventTabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabId = btn.getAttribute('data-event-tab');
-      
-      eventTabBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      eventTabContents.forEach(t => t.classList.remove('active'));
-      document.getElementById(tabId).classList.add('active');
-
-      if (tabId === 'manual-load') {
-        loadManualEventsList();
-      }
+  try {
+    const response = await fetch('/api/admin/mark-home-game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignment_key: assignmentKey })
     });
-  });
+    
+    if (response.ok) {
+      await loadMatchesWithUpdates();
+      realtimeUpdates.showNotification('Assignment marked as home game!', 'success');
+    } else {
+      realtimeUpdates.showNotification('Error marking as home game', 'error');
+    }
+  } catch (error) {
+    realtimeUpdates.showNotification('Error marking as home game', 'error');
+    console.error(error);
+  }
+}
+
+async function unmarkHomeGame(assignmentKey) {
+  if (!confirm('Remove home game status? The scouter will need to complete this assignment.')) {
+    return;
+  }
   
-  loadManualEventsList();
-  addManualMatch();
-});
+  try {
+    const response = await fetch('/api/admin/unmark-home-game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assignment_key: assignmentKey })
+    });
+    
+    if (response.ok) {
+      await loadMatchesWithUpdates();
+      realtimeUpdates.showNotification('Home game status removed!', 'success');
+    } else {
+      realtimeUpdates.showNotification('Error removing home game status', 'error');
+    }
+  } catch (error) {
+    realtimeUpdates.showNotification('Error removing home game status', 'error');
+    console.error(error);
+  }
+}
 
+// ===== TEAMS LOADING =====
+async function loadTeamsForEvent(eventKey) {
+  try {
+    const response = await fetch(`/api/admin/teams?event=${eventKey}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    teams = await response.json();
+    
+    const bulkTeamSelect = document.getElementById('bulk-team');
+    if (bulkTeamSelect) {
+      bulkTeamSelect.innerHTML = '<option value="">Select Team</option>';
+      teams.forEach(team => {
+        const option = document.createElement('option');
+        option.value = team;
+        option.textContent = `Team ${team}`;
+        bulkTeamSelect.appendChild(option);
+      });
+      console.log(`Loaded ${teams.length} teams for event ${eventKey}`);
+    }
+  } catch (error) {
+    console.error('Error loading teams:', error);
+    const bulkTeamSelect = document.getElementById('bulk-team');
+    if (bulkTeamSelect) {
+      bulkTeamSelect.innerHTML = '<option value="">No teams found</option>';
+    }
+  }
+}
+
+// ===== ENHANCED SCOUTERS SYSTEM =====
+async function loadScoutersWithUpdates() {
+  try {
+    const response = await fetch('/api/admin/scouters');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const newScouters = await response.json();
+    const newHash = JSON.stringify(newScouters);
+    
+    // Check if data actually changed
+    if (newHash !== lastScoutersHash) {
+      lastScoutersHash = newHash;
+      scouters = newScouters;
+      await renderScouters();
+      
+      // Update bulk scouter select
+      const bulkScouterSelect = document.getElementById('bulk-scouter');
+      if (bulkScouterSelect) {
+        bulkScouterSelect.innerHTML = '<option value="">Select Scouter</option>';
+        Object.keys(scouters).forEach(username => {
+          const option = document.createElement('option');
+          option.value = username;
+          option.textContent = `${scouters[username].name} (${username})`;
+          bulkScouterSelect.appendChild(option);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error loading scouters:', error);
+    const scoutersList = document.getElementById('scouters-list');
+    scoutersList.innerHTML = '<p class="error">Error loading scouters. Please refresh the page.</p>';
+  }
+}
+
+async function renderScouters() {
+  try {
+    const statsResponse = await fetch('/api/admin/scouter-stats');
+    const stats = await statsResponse.json();
+    
+    const scoutersList = document.getElementById('scouters-list');
+    scoutersList.innerHTML = Object.keys(scouters).map(username => {
+      const scouter = scouters[username];
+      const scouterStats = stats[username] || { completed: 0, assigned: 0 };
+      return `
+        <div class="scouter-card" data-scouter="${username}">
+          <div class="scouter-info">
+            <h4>${scouter.name}</h4>
+            <p>Username: ${username}</p>
+            <p class="scouter-stats">Completed: ${scouterStats.completed}/${scouterStats.assigned} matches</p>
+          </div>
+          <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
+        </div>
+      `;
+    }).join('');
+    
+    if (Object.keys(scouters).length === 0) {
+      scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+    }
+  } catch (statsError) {
+    console.warn('Could not load scouter stats:', statsError);
+    const scoutersList = document.getElementById('scouters-list');
+    scoutersList.innerHTML = Object.keys(scouters).map(username => {
+      const scouter = scouters[username];
+      return `
+        <div class="scouter-card" data-scouter="${username}">
+          <div class="scouter-info">
+            <h4>${scouter.name}</h4>
+            <p>Username: ${username}</p>
+          </div>
+          <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
+        </div>
+      `;
+    }).join('');
+    
+    if (Object.keys(scouters).length === 0) {
+      scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
+    }
+  }
+}
+
+// Legacy function for compatibility
+async function loadScouters() {
+  await loadScoutersWithUpdates();
+}
+
+// ===== ASSIGNMENT FUNCTIONS =====
+async function assignMatch(matchNumber) {
+  const match = matches.find(m => m.match_number === matchNumber);
+  if (!match) return;
+  
+  const modalHTML = `
+    <div class="modal">
+      <div class="modal-content large">
+        <h3>Assign Scouters - Match ${matchNumber}</h3>
+        <form id="assign-form">
+          <div class="assignment-grid">
+            <div class="alliance red">
+              <h4>Red Alliance</h4>
+              ${match.red_teams.map(team => `
+                <div class="team-select">
+                  <label>Team ${team}:</label>
+                  <select name="team_${team}">
+                    <option value="">Select Scouter</option>
+                    ${Object.keys(scouters).map(username => 
+                      `<option value="${username}">${scouters[username].name} (${username})</option>`
+                    ).join('')}
+                  </select>
+                </div>
+              `).join('')}
+            </div>
+            <div class="alliance blue">
+              <h4>Blue Alliance</h4>
+              ${match.blue_teams.map(team => `
+                <div class="team-select">
+                  <label>Team ${team}:</label>
+                  <select name="team_${team}">
+                    <option value="">Select Scouter</option>
+                    ${Object.keys(scouters).map(username => 
+                      `<option value="${username}">${scouters[username].name} (${username})</option>`
+                    ).join('')}
+                  </select>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" onclick="closeModal()">Cancel</button>
+            <button type="submit" id="save-assignments-btn">Save Assignments</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  document.getElementById('assign-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const saveBtn = document.getElementById('save-assignments-btn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+    
+    const formData = new FormData(e.target);
+    const assignments = {};
+    
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith('team_') && value) {
+        const teamNumber = key.replace('team_', '');
+        assignments[teamNumber] = value;
+      }
+    }
+    
+    try {
+      const response = await fetch('/api/admin/assign-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_key: currentEvent,
+          match_number: matchNumber,
+          assignments: assignments
+        })
+      });
+      
+      if (response.ok) {
+        closeModal();
+        await loadMatchesWithUpdates();
+        realtimeUpdates.showNotification('Assignments saved successfully!', 'success');
+      } else {
+        throw new Error('Failed to save assignments');
+      }
+    } catch (error) {
+      realtimeUpdates.showNotification('Error saving assignments', 'error');
+      console.error(error);
+    } finally {
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+async function bulkAssignTeam() {
+  const teamNumber = document.getElementById('bulk-team').value;
+  const scouterUsername = document.getElementById('bulk-scouter').value;
+  
+  if (!teamNumber || !scouterUsername || !currentEvent) {
+    realtimeUpdates.showNotification('Please select an event, team, and scouter', 'error');
+    return;
+  }
+  
+  if (!confirm(`Assign ${scouters[scouterUsername]?.name} to scout team ${teamNumber} across ALL their matches in this event?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/bulk-assign-team', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_key: currentEvent,
+        team_number: teamNumber,
+        scouter_username: scouterUsername
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      realtimeUpdates.showNotification(result.message, 'success');
+      await loadMatchesWithUpdates();
+      document.getElementById('bulk-team').value = '';
+      document.getElementById('bulk-scouter').value = '';
+    } else {
+      realtimeUpdates.showNotification(result.error || 'Error making bulk assignment', 'error');
+    }
+  } catch (error) {
+    realtimeUpdates.showNotification('Error making bulk assignment', 'error');
+    console.error(error);
+  }
+}
+
+async function removeTeamAssignments() {
+  const teamNumber = document.getElementById('bulk-team').value;
+  
+  if (!teamNumber || !currentEvent) {
+    realtimeUpdates.showNotification('Please select an event and team', 'error');
+    return;
+  }
+  
+  if (!confirm(`Remove ALL assignments for team ${teamNumber} in this event?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/remove-team-assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_key: currentEvent,
+        team_number: teamNumber
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      realtimeUpdates.showNotification(`Removed ${result.removed_count} assignments for team ${teamNumber}`, 'success');
+      await loadMatchesWithUpdates();
+      document.getElementById('bulk-team').value = '';
+    } else {
+      realtimeUpdates.showNotification('Error removing assignments', 'error');
+    }
+  } catch (error) {
+    realtimeUpdates.showNotification('Error removing assignments', 'error');
+    console.error(error);
+  }
+}
+
+// ===== MANUAL MATCHES SYSTEM =====
 let manualMatchCount = 0;
-
 
 function showBulkMatchModal() {
   const modalHTML = `
@@ -222,14 +822,12 @@ function showBulkMatchModal() {
         <h3>Bulk Add Matches</h3>
         <p>Enter match data in one of the formats below:</p>
         
-        <!-- Format Selection -->
         <div class="bulk-format-tabs">
           <button class="format-tab-btn active" data-format="csv">CSV Format</button>
           <button class="format-tab-btn" data-format="text">Text Format</button>
           <button class="format-tab-btn" data-format="json">JSON Format</button>
         </div>
         
-        <!-- CSV Format Tab -->
         <div id="csv-format" class="format-content active">
           <p><strong>CSV Format:</strong> Each line is a match with red teams, then blue teams</p>
           <code>254,148,1323,2468,2471,5940</code>
@@ -239,7 +837,6 @@ function showBulkMatchModal() {
 ..." rows="10" style="width: 100%; font-family: monospace;"></textarea>
         </div>
         
-        <!-- Text Format Tab -->
         <div id="text-format" class="format-content">
           <p><strong>Text Format:</strong> Natural language format</p>
           <code>Red: 254, 148, 1323 vs Blue: 2468, 2471, 5940</code>
@@ -249,7 +846,6 @@ Red: 1678, 5190, 6834 vs Blue: 973, 1114, 2056
 ..." rows="10" style="width: 100%; font-family: monospace;"></textarea>
         </div>
         
-        <!-- JSON Format Tab -->
         <div id="json-format" class="format-content">
           <p><strong>JSON Format:</strong> Structured data format</p>
           <textarea id="bulk-json-input" placeholder='Enter JSON format:
@@ -407,7 +1003,7 @@ function previewBulkMatches() {
     addBtn.disabled = false;
     
   } catch (error) {
-    previewContainer.innerHTML = `<p class="error">${error.message}</p>`;
+    previewContainer.innerHTML = `<p class="error">${error.message}</p>`
     addBtn.disabled = true;
   }
 }
@@ -422,7 +1018,6 @@ function addBulkMatches() {
     
     // Add matches to the manual matches container
     const container = document.getElementById('manual-matches-container');
-    const currentMatches = container.querySelectorAll('.match-builder').length;
     
     matches.forEach((matchData, index) => {
       manualMatchCount++;
@@ -459,10 +1054,10 @@ function addBulkMatches() {
     });
     
     closeModal();
-    alert(`Successfully added ${matches.length} matches!`);
+    realtimeUpdates.showNotification(`Successfully added ${matches.length} matches!`, 'success');
     
   } catch (error) {
-    alert(`Error adding matches: ${error.message}`);
+    realtimeUpdates.showNotification(`Error adding matches: ${error.message}`, 'error');
   }
 }
 
@@ -556,14 +1151,14 @@ async function createManualEvent() {
   const eventName = document.getElementById('manual-event-name').value.trim();
   
   if (!eventName) {
-    alert('Please enter an event name');
+    realtimeUpdates.showNotification('Please enter an event name', 'error');
     return;
   }
   
   const matchesData = getManualMatchesData();
   
   if (matchesData.length === 0) {
-    alert('Please add at least one match with teams on both red and blue alliances');
+    realtimeUpdates.showNotification('Please add at least one match with teams on both red and blue alliances', 'error');
     return;
   }
   
@@ -580,7 +1175,7 @@ async function createManualEvent() {
     const result = await response.json();
     
     if (response.ok) {
-      alert(result.message);
+      realtimeUpdates.showNotification(result.message, 'success');
       
       currentEvent = result.event_key;
       document.getElementById('current-event-display').textContent = `${eventName} (Manual)`;
@@ -590,15 +1185,15 @@ async function createManualEvent() {
       document.getElementById('manual-event-name').value = '';
       clearManualMatches();
       
-      await loadMatches();
+      await loadMatchesWithUpdates();
       await loadTeamsForEvent(currentEvent);
       
       document.querySelector('.event-tab-btn[data-event-tab="tba"]').click();
     } else {
-      alert(result.error || 'Error creating manual event');
+      realtimeUpdates.showNotification(result.error || 'Error creating manual event', 'error');
     }
   } catch (error) {
-    alert('Error creating manual event');
+    realtimeUpdates.showNotification('Error creating manual event', 'error');
     console.error(error);
   }
 }
@@ -642,7 +1237,7 @@ async function loadManualEvent() {
   const eventKey = document.getElementById('manual-event-select').value;
   
   if (!eventKey) {
-    alert('Please select a manual event');
+    realtimeUpdates.showNotification('Please select a manual event', 'error');
     return;
   }
   
@@ -656,12 +1251,12 @@ async function loadManualEvent() {
     document.getElementById('event-section').style.display = 'block';
     localStorage.setItem('currentEvent', currentEvent);
     
-    await loadMatches();
+    await loadMatchesWithUpdates();
     await loadTeamsForEvent(currentEvent);
     
-    alert('Manual event loaded successfully!');
+    realtimeUpdates.showNotification('Manual event loaded successfully!', 'success');
   } catch (error) {
-    alert('Error loading manual event');
+    realtimeUpdates.showNotification('Error loading manual event', 'error');
     console.error(error);
   }
 }
@@ -681,7 +1276,7 @@ async function deleteManualEventConfirm(eventKey, eventName) {
     });
     
     if (response.ok) {
-      alert('Manual event deleted successfully');
+      realtimeUpdates.showNotification('Manual event deleted successfully', 'success');
       loadManualEventsList(); 
       
       if (currentEvent === eventKey) {
@@ -692,243 +1287,15 @@ async function deleteManualEventConfirm(eventKey, eventName) {
         document.getElementById('matches-container').innerHTML = '<p class="info-text">Select an event to load matches</p>';
       }
     } else {
-      alert('Error deleting manual event');
+      realtimeUpdates.showNotification('Error deleting manual event', 'error');
     }
   } catch (error) {
-    alert('Error deleting manual event');
+    realtimeUpdates.showNotification('Error deleting manual event', 'error');
     console.error(error);
   }
 }
 
-async function markHomeGame(assignmentKey) {
-  if (!confirm('Mark this assignment as a home game? The scouter will not need to scout this match.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/admin/mark-home-game', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assignment_key: assignmentKey })
-    });
-    
-    if (response.ok) {
-      loadMatches();
-    } else {
-      alert('Error marking as home game');
-    }
-  } catch (error) {
-    alert('Error marking as home game');
-    console.error(error);
-  }
-}
-
-async function unmarkHomeGame(assignmentKey) {
-  if (!confirm('Remove home game status? The scouter will need to complete this assignment.')) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/admin/unmark-home-game', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assignment_key: assignmentKey })
-    });
-    
-    if (response.ok) {
-      loadMatches();
-    } else {
-      alert('Error removing home game status');
-    }
-  } catch (error) {
-    alert('Error removing home game status');
-    console.error(error);
-  }
-}
-
-async function loadTeamsForEvent(eventKey) {
-  try {
-    const response = await fetch(`/api/admin/teams?event=${eventKey}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    teams = await response.json();
-    
-    const bulkTeamSelect = document.getElementById('bulk-team');
-    if (bulkTeamSelect) {
-      bulkTeamSelect.innerHTML = '<option value="">Select Team</option>';
-      teams.forEach(team => {
-        const option = document.createElement('option');
-        option.value = team;
-        option.textContent = `Team ${team}`;
-        bulkTeamSelect.appendChild(option);
-      });
-      console.log(`Loaded ${teams.length} teams for event ${eventKey}`);
-    }
-  } catch (error) {
-    console.error('Error loading teams:', error);
-    const bulkTeamSelect = document.getElementById('bulk-team');
-    if (bulkTeamSelect) {
-      bulkTeamSelect.innerHTML = '<option value="">No teams found</option>';
-    }
-  }
-}
-
-function assignMatch(matchNumber) {
-  const match = matches.find(m => m.match_number === matchNumber);
-  if (!match) return;
-  
-  const modalHTML = `
-    <div class="modal">
-      <div class="modal-content large">
-        <h3>Assign Scouters - Match ${matchNumber}</h3>
-        <form id="assign-form">
-          <div class="assignment-grid">
-            <div class="alliance red">
-              <h4>Red Alliance</h4>
-              ${match.red_teams.map(team => `
-                <div class="team-select">
-                  <label>Team ${team}:</label>
-                  <select name="team_${team}">
-                    <option value="">Select Scouter</option>
-                    ${Object.keys(scouters).map(username => 
-                      `<option value="${username}">${scouters[username].name} (${username})</option>`
-                    ).join('')}
-                  </select>
-                </div>
-              `).join('')}
-            </div>
-            <div class="alliance blue">
-              <h4>Blue Alliance</h4>
-              ${match.blue_teams.map(team => `
-                <div class="team-select">
-                  <label>Team ${team}:</label>
-                  <select name="team_${team}">
-                    <option value="">Select Scouter</option>
-                    ${Object.keys(scouters).map(username => 
-                      `<option value="${username}">${scouters[username].name} (${username})</option>`
-                    ).join('')}
-                  </select>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button type="button" onclick="closeModal()">Cancel</button>
-            <button type="submit">Save Assignments</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  `;
-  
-  document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  document.getElementById('assign-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const assignments = {};
-    
-    for (const [key, value] of formData.entries()) {
-      if (key.startsWith('team_') && value) {
-        const teamNumber = key.replace('team_', '');
-        assignments[teamNumber] = value;
-      }
-    }
-    
-    try {
-      const response = await fetch('/api/admin/assign-match', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event_key: currentEvent,
-          match_number: matchNumber,
-          assignments: assignments
-        })
-      });
-      
-      if (response.ok) {
-        closeModal();
-        loadMatches(); 
-      } else {
-        alert('Error saving assignments');
-      }
-    } catch (error) {
-      alert('Error saving assignments');
-      console.error(error);
-    }
-  });
-}
-
-async function loadScouters() {
-  try {
-    const response = await fetch('/api/admin/scouters');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    scouters = await response.json();
-    
-    const bulkScouterSelect = document.getElementById('bulk-scouter');
-    if (bulkScouterSelect) {
-      bulkScouterSelect.innerHTML = '<option value="">Select Scouter</option>';
-      Object.keys(scouters).forEach(username => {
-        const option = document.createElement('option');
-        option.value = username;
-        option.textContent = `${scouters[username].name} (${username})`;
-        bulkScouterSelect.appendChild(option);
-      });
-    }
-    
-    try {
-      const statsResponse = await fetch('/api/admin/scouter-stats');
-      const stats = await statsResponse.json();
-      
-      const scoutersList = document.getElementById('scouters-list');
-      scoutersList.innerHTML = Object.keys(scouters).map(username => {
-        const scouter = scouters[username];
-        const scouterStats = stats[username] || { completed: 0, assigned: 0 };
-        return `
-          <div class="scouter-card">
-            <div class="scouter-info">
-              <h4>${scouter.name}</h4>
-              <p>Username: ${username}</p>
-              <p class="scouter-stats">Completed: ${scouterStats.completed}/${scouterStats.assigned} matches</p>
-            </div>
-            <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
-          </div>
-        `;
-      }).join('');
-      
-      if (Object.keys(scouters).length === 0) {
-        scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
-      }
-    } catch (statsError) {
-      console.warn('Could not load scouter stats:', statsError);
-      const scoutersList = document.getElementById('scouters-list');
-      scoutersList.innerHTML = Object.keys(scouters).map(username => {
-        const scouter = scouters[username];
-        return `
-          <div class="scouter-card">
-            <div class="scouter-info">
-              <h4>${scouter.name}</h4>
-              <p>Username: ${username}</p>
-            </div>
-            <button onclick="deleteScouter('${username}')" class="delete-btn">Delete</button>
-          </div>
-        `;
-      }).join('');
-      
-      if (Object.keys(scouters).length === 0) {
-        scoutersList.innerHTML = '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
-      }
-    }
-  } catch (error) {
-    console.error('Error loading scouters:', error);
-    const scoutersList = document.getElementById('scouters-list');
-    scoutersList.innerHTML = '<p class="error">Error loading scouters. Please refresh the page.</p>';
-  }
-}
-
+// ===== SCOUTER MANAGEMENT =====
 function showCreateScouterModal() {
   document.getElementById('create-scouter-modal').style.display = 'flex';
 }
@@ -937,52 +1304,6 @@ function hideCreateScouterModal() {
   document.getElementById('create-scouter-modal').style.display = 'none';
   document.getElementById('create-scouter-form').reset();
 }
-
-function refreshMatches() {
-  if (currentEvent) {
-    loadMatches();
-  } else {
-    alert('Please enter an event key first');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('create-scouter-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const name = document.getElementById('scouter-name').value.trim();
-    const username = document.getElementById('scouter-username').value.trim();
-    const password = document.getElementById('scouter-password').value;
-    
-    if (!name || !username || !password) {
-      alert('All fields are required');
-      return;
-    }
-    
-    const data = { name, username, password };
-    
-    try {
-      const response = await fetch('/api/admin/create-scouter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      const result = await response.json();
-      
-      if (response.ok) {
-        hideCreateScouterModal();
-        await loadScouters();
-        alert('Scouter created successfully!');
-      } else {
-        alert(result.error || 'Error creating scouter');
-      }
-    } catch (error) {
-      alert('Error creating scouter');
-      console.error(error);
-    }
-  });
-});
 
 async function deleteScouter(username) {
   if (!confirm(`Are you sure you want to delete scouter "${username}"?`)) return;
@@ -993,99 +1314,73 @@ async function deleteScouter(username) {
     });
     
     if (response.ok) {
-      await loadScouters();
-      alert('Scouter deleted successfully!');
+      await loadScoutersWithUpdates();
+      realtimeUpdates.showNotification('Scouter deleted successfully!', 'success');
     } else {
-      alert('Error deleting scouter');
+      realtimeUpdates.showNotification('Error deleting scouter', 'error');
     }
   } catch (error) {
-    alert('Error deleting scouter');
+    realtimeUpdates.showNotification('Error deleting scouter', 'error');
     console.error(error);
   }
 }
 
-async function bulkAssignTeam() {
-  const teamNumber = document.getElementById('bulk-team').value;
-  const scouterUsername = document.getElementById('bulk-scouter').value;
-  
-  if (!teamNumber || !scouterUsername || !currentEvent) {
-    alert('Please select an event, team, and scouter');
-    return;
-  }
-  
-  if (!confirm(`Assign ${scouters[scouterUsername]?.name} to scout team ${teamNumber} across ALL their matches in this event?`)) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/admin/bulk-assign-team', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_key: currentEvent,
-        team_number: teamNumber,
-        scouter_username: scouterUsername
-      })
+// ===== FORM HANDLERS =====
+function setupFormHandlers() {
+  const createScouterForm = document.getElementById('create-scouter-form');
+  if (createScouterForm) {
+    createScouterForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('scouter-name').value.trim();
+      const username = document.getElementById('scouter-username').value.trim();
+      const password = document.getElementById('scouter-password').value;
+      
+      if (!name || !username || !password) {
+        realtimeUpdates.showNotification('All fields are required', 'error');
+        return;
+      }
+      
+      const data = { name, username, password };
+      
+      try {
+        const response = await fetch('/api/admin/create-scouter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          hideCreateScouterModal();
+          await loadScoutersWithUpdates();
+          realtimeUpdates.showNotification('Scouter created successfully!', 'success');
+        } else {
+          realtimeUpdates.showNotification(result.error || 'Error creating scouter', 'error');
+        }
+      } catch (error) {
+        realtimeUpdates.showNotification('Error creating scouter', 'error');
+        console.error(error);
+      }
     });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      alert(result.message);
-      loadMatches(); 
-      document.getElementById('bulk-team').value = '';
-      document.getElementById('bulk-scouter').value = '';
-    } else {
-      alert(result.error || 'Error making bulk assignment');
-    }
-  } catch (error) {
-    alert('Error making bulk assignment');
-    console.error(error);
   }
 }
 
-async function removeTeamAssignments() {
-  const teamNumber = document.getElementById('bulk-team').value;
-  
-  if (!teamNumber || !currentEvent) {
-    alert('Please select an event and team');
-    return;
-  }
-  
-  if (!confirm(`Remove ALL assignments for team ${teamNumber} in this event?`)) {
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/admin/remove-team-assignments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_key: currentEvent,
-        team_number: teamNumber
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (response.ok) {
-      alert(`Removed ${result.removed_count} assignments for team ${teamNumber}`);
-      loadMatches();
-      document.getElementById('bulk-team').value = '';
-    } else {
-      alert('Error removing assignments');
-    }
-  } catch (error) {
-    alert('Error removing assignments');
-    console.error(error);
-  }
-}
-
+// ===== MODAL MANAGEMENT =====
 function closeModal() {
   const modals = document.querySelectorAll('.modal');
   modals.forEach(modal => modal.remove());
 }
 
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    closeModal();
+  }
+});
+
+// ===== LOGOUT =====
 async function logout() {
   try {
     await fetch('/api/logout', { method: 'POST' });
@@ -1097,9 +1392,7 @@ async function logout() {
   }
 }
 
-document.addEventListener('click', (e) => {
-  if (e.target.classList.contains('modal')) {
-    closeModal();
-  }
+// ===== CLEANUP =====
+window.addEventListener('beforeunload', () => {
+  realtimeUpdates.stop();
 });
-
