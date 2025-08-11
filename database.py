@@ -234,3 +234,19 @@ def get_match_summary_for_admin(event_key=None):
             summary['pending'] += 1
     
     return summary
+
+def clear_match_assignments_db(event_key, match_number):
+    """Clear all assignments for a specific match"""
+    assignments = load_assignments()
+    
+    keys_to_remove = []
+    for assignment_key, assignment in assignments.items():
+        if (assignment.get('event_key') == event_key and 
+            assignment.get('match_number') == int(match_number)):
+            keys_to_remove.append(assignment_key)
+    
+    for key in keys_to_remove:
+        del assignments[key]
+    
+    save_assignments(assignments)
+    return len(keys_to_remove)

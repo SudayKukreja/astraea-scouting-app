@@ -106,13 +106,18 @@ async function loadMatches() {
       const isHomeMatch = match.all_teams.includes('6897'); 
       
       return `
-        <div class="match-card ${isHomeMatch ? 'home-match' : ''}">
+        <div class="match-card ${isHomeMatch ? 'home-match' : ''}" data-match="${match.match_number}">
           <div class="match-header">
             <div class="match-info">
               <h4>Match ${match.match_number}</h4>
               ${isHomeMatch ? '<span class="home-indicator">🏠 Home Match</span>' : ''}
             </div>
-            <button onclick="assignMatch(${match.match_number})" class="assign-btn">Assign Scouters</button>
+            <div class="match-actions">
+              <button onclick="assignMatch(${match.match_number})" class="assign-btn">Assign Scouters</button>
+              <button onclick="clearMatchAssignments(${match.match_number})" class="clear-match-btn" title="Clear all assignments for this match">
+                Clear Match
+              </button>
+            </div>
           </div>
           <div class="teams-grid">
             <div class="alliance red">
@@ -121,11 +126,13 @@ async function loadMatches() {
                 const assignment = matchAssignments.find(a => a.team_number === team);
                 const isHomeTeam = team === '6897';
                 return `
-                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}">
-                    <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
-                    <span class="assignment-status">
-                      ${assignment ? getAssignmentStatusDisplay(assignment) : 'Unassigned'}
-                    </span>
+                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''} ${assignment ? 'assigned' : 'unassigned'}" data-team="${team}">
+                    <div class="team-info">
+                      <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
+                      <div class="assignment-status">
+                        ${assignment ? getAssignmentStatusDisplay(assignment) : '<span class="status-badge unassigned">Unassigned</span>'}
+                      </div>
+                    </div>
                     ${assignment && !isHomeTeam ? getAssignmentActions(assignment) : ''}
                   </div>
                 `;
@@ -137,11 +144,13 @@ async function loadMatches() {
                 const assignment = matchAssignments.find(a => a.team_number === team);
                 const isHomeTeam = team === '6897';
                 return `
-                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''}">
-                    <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
-                    <span class="assignment-status">
-                      ${assignment ? getAssignmentStatusDisplay(assignment) : 'Unassigned'}
-                    </span>
+                  <div class="team-assignment ${isHomeTeam ? 'home-team' : ''} ${assignment ? 'assigned' : 'unassigned'}" data-team="${team}">
+                    <div class="team-info">
+                      <span class="team-number">${team}${isHomeTeam ? ' (HOME)' : ''}</span>
+                      <div class="assignment-status">
+                        ${assignment ? getAssignmentStatusDisplay(assignment) : '<span class="status-badge unassigned">Unassigned</span>'}
+                      </div>
+                    </div>
                     ${assignment && !isHomeTeam ? getAssignmentActions(assignment) : ''}
                   </div>
                 `;
@@ -168,24 +177,121 @@ function getAssignmentStatusDisplay(assignment) {
 }
 
 function getAssignmentActions(assignment) {
+  const actions = [];
+  
   if (assignment.is_home_game) {
-    return `
-      <div class="assignment-actions">
-        <button onclick="unmarkHomeGame('${assignment.assignment_key}')" class="action-btn unmark-home">
-          Remove Home
-        </button>
-      </div>
-    `;
+    actions.push(`
+      <button onclick="unmarkHomeGame('${assignment.assignment_key}')" class="action-btn unmark-home" title="Remove home game status">
+        Remove Home
+      </button>
+    `);
   } else if (!assignment.completed) {
-    return `
-      <div class="assignment-actions">
-        <button onclick="markHomeGame('${assignment.assignment_key}')" class="action-btn mark-home">
-          Mark Home
-        </button>
-      </div>
-    `;
+    actions.push(`
+      <button onclick="markHomeGame('${assignment.assignment_key}')" class="action-btn mark-home" title="Mark as home game">
+        Mark Home
+      </button>
+    `);
   }
+  
+  // Always show individual remove button (unless it's a completed assignment)
+  if (!assignment.completed) {
+    actions.push(`
+      <button onclick="removeIndividualAssignment('${assignment.assignment_key}', '${assignment.team_number}', '${assignment.scouter}')" class="action-btn remove-individual" title="Remove this specific assignment">
+        Remove Assignment
+      </button>
+    `);
+  }
+  
+  if (actions.length > 0) {
+    return `<div class="assignment-actions">${actions.join('')}</div>`;
+  }
+  
   return '';
+}
+
+async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName) {
+  if (!confirm(`Remove assignment for Team ${teamNumber} from ${scouterName}?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/remove-individual-assignment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        assignment_key: assignmentKey 
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Show success notification
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(`Removed assignment for Team ${teamNumber} from ${scouterName}`, 'success');
+      } else {
+        alert(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
+      }
+      
+      // Refresh the matches display
+      await loadMatches();
+    } else {
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(result.error || 'Error removing assignment', 'error');
+      } else {
+        alert(result.error || 'Error removing assignment');
+      }
+    }
+  } catch (error) {
+    console.error('Error removing individual assignment:', error);
+    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+      window.realtimeUpdates.showNotification('Error removing assignment', 'error');
+    } else {
+      alert('Error removing assignment');
+    }
+  }
+}
+
+async function clearMatchAssignments(matchNumber) {
+  if (!confirm(`Clear ALL assignments for Match ${matchNumber}?`)) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/clear-match-assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_key: currentEvent,
+        match_number: matchNumber
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`, 'success');
+      } else {
+        alert(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
+      }
+      
+      await loadMatches();
+    } else {
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(result.error || 'Error clearing assignments', 'error');
+      } else {
+        alert(result.error || 'Error clearing assignments');
+      }
+    }
+  } catch (error) {
+    console.error('Error clearing match assignments:', error);
+    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+      window.realtimeUpdates.showNotification('Error clearing assignments', 'error');
+    } else {
+      alert('Error clearing assignments');
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -2041,3 +2041,277 @@ font-size: 0.8rem;
 .manual-actions .bulk-add-btn {
   order: -1; /* Put bulk add button first */
 }
+
+/* Add this CSS to your dashboard.css file */
+
+/* Enhanced match card styling */
+.match-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  overflow: hidden;
+  transition: box-shadow 0.3s ease;
+}
+
+.match-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.match-header {
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.match-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.clear-match-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clear-match-btn:hover {
+  background: #dc2626;
+}
+
+/* Enhanced team assignment styling */
+.team-assignment {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.team-assignment.assigned {
+  border-color: #10b981;
+  background: #f0fdfa;
+}
+
+.team-assignment.unassigned {
+  border-color: #f59e0b;
+  background: #fefbf3;
+}
+
+.team-assignment.home-team {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.team-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.team-number {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.assignment-status {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.status-badge.completed {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.status-badge.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge.home-game {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge.unassigned {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Assignment actions */
+.assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.action-btn.mark-home {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.action-btn.mark-home:hover {
+  background: #bfdbfe;
+}
+
+.action-btn.unmark-home {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.action-btn.unmark-home:hover {
+  background: #fca5a5;
+}
+
+.action-btn.remove-individual {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.action-btn.remove-individual:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* Teams grid enhancement */
+.teams-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 20px;
+}
+
+.alliance {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.alliance.red {
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(to right, #fef2f2, #ffffff);
+}
+
+.alliance.blue {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(to right, #eff6ff, #ffffff);
+}
+
+.alliance h5 {
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alliance.red h5 {
+  color: #dc2626;
+}
+
+.alliance.blue h5 {
+  color: #2563eb;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+  
+  .match-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .match-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .team-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .assignment-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* Hover effects for better UX */
+.team-assignment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.action-btn:active {
+  transform: translateY(1px);
+}
+
+/* Loading state */
+.matches-container p {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Success/Error states */
+.matches-container .error {
+  color: #dc2626;
+  background: #fef2f2;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
+.matches-container .info-text {
+  color: #6b7280;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}

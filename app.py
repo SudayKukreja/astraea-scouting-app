@@ -326,6 +326,43 @@ def get_admin_assignments():
     
     return jsonify(assignment_list)
 
+@app.route('/api/admin/remove-individual-assignment', methods=['POST'])
+@admin_required
+def remove_individual_assignment():
+    """Remove a specific individual assignment"""
+    data = request.json
+    assignment_key = data.get('assignment_key')
+    
+    if not assignment_key:
+        return jsonify({'error': 'Assignment key required'}), 400
+    
+    from database import remove_assignment
+    success = remove_assignment(assignment_key)
+    
+    if success:
+        return jsonify({'success': True, 'message': 'Assignment removed successfully'})
+    else:
+        return jsonify({'error': 'Assignment not found or could not be removed'}), 404
+
+@app.route('/api/admin/clear-match-assignments', methods=['POST'])
+@admin_required
+def clear_match_assignments():
+    """Clear all assignments for a specific match"""
+    data = request.json
+    event_key = data.get('event_key')
+    match_number = data.get('match_number')
+    
+    if not all([event_key, match_number]):
+        return jsonify({'error': 'Event key and match number required'}), 400
+    
+    from database import clear_match_assignments_db
+    removed_count = clear_match_assignments_db(event_key, match_number)
+    
+    return jsonify({
+        'success': True, 
+        'removed_count': removed_count,
+        'message': f'Cleared {removed_count} assignments from match {match_number}'
+    })
 
 # =============================================================================
 # HOME GAME ROUTES
