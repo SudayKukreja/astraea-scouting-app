@@ -2,7 +2,6 @@ let currentEvent = '';
 let scouters = {};
 let matches = [];
 let teams = [];
-let isUpdating = false; // Prevent multiple simultaneous updates
 
 document.addEventListener('DOMContentLoaded', () => {
   const savedEvent = localStorage.getItem('currentEvent');
@@ -13,40 +12,66 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('event-section').style.display = 'block';
     loadMatches();
   }
-  
-  // Set up auto-refresh every 10 seconds for matches
-  setInterval(async () => {
-    if (currentEvent && !isUpdating) {
-      await silentLoadMatches();
-    }
-  }, 10000);
 });
 
-// Silent refresh that doesn't show loading states
-async function silentLoadMatches() {
-  if (!currentEvent || isUpdating) return;
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabId = btn.getAttribute('data-tab');
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    if (tabId === 'scouters') loadScouters();
+  });
+});
+
+loadScouters();
+
+async function loadEventData() {
+  const eventKey = document.getElementById('event-key-input').value.trim();
+  if (!eventKey) {
+    alert('Please enter an event key');
+    return;
+  }
+
+  currentEvent = eventKey;
+  document.getElementById('current-event-display').textContent = `${eventKey} (TBA)`;
+  document.getElementById('event-section').style.display = 'block';
+  
+  localStorage.setItem('currentEvent', eventKey);
+
+  await loadMatches();
+  await loadTeamsForEvent(eventKey);  
+}
+
+async function loadMatches() {
+  if (!currentEvent) {
+    alert('Please enter an event key first');
+    return;
+  }
+  
+  const container = document.getElementById('matches-container');
+  container.innerHTML = '<p>Loading matches...</p>';
   
   try {
     const response = await fetch(`/api/admin/matches?event=${currentEvent}`);
-    if (!response.ok) return;
-    
-    const newMatches = await response.json();
-    
-    // Only update if data has changed
-    if (JSON.stringify(newMatches) !== JSON.stringify(matches)) {
-      matches = newMatches;
-      await renderMatches();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  } catch (error) {
-    console.error('Silent refresh error:', error);
-  }
-}
-
-async function renderMatches() {
-  const container = document.getElementById('matches-container');
-  if (!container) return;
-  
-  try {
+    matches = await response.json();
+    
+    if (matches.length === 0) {
+      container.innerHTML = '<p>No matches found for this event. Make sure the event key is correct.</p>';
+      return;
+    }
+    
+    if (teams.length === 0) {
+      await loadTeamsForEvent(currentEvent);
+    }
+    
     const assignmentsResponse = await fetch(`/api/admin/assignments?event=${currentEvent}`);
     const assignments = await assignmentsResponse.json();
     const summaryResponse = await fetch(`/api/admin/match-summary?event=${currentEvent}`);
@@ -136,77 +161,8 @@ async function renderMatches() {
       `;
     }).join('');
   } catch (error) {
-    console.error('Error rendering matches:', error);
-  }
-}
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const tabId = btn.getAttribute('data-tab');
-    
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    
-    if (tabId === 'scouters') loadScouters();
-  });
-});
-
-loadScouters();
-
-async function loadEventData() {
-  const eventKey = document.getElementById('event-key-input').value.trim();
-  if (!eventKey) {
-    alert('Please enter an event key');
-    return;
-  }
-
-  currentEvent = eventKey;
-  document.getElementById('current-event-display').textContent = `${eventKey} (TBA)`;
-  document.getElementById('event-section').style.display = 'block';
-  
-  localStorage.setItem('currentEvent', eventKey);
-
-  await loadMatches();
-  await loadTeamsForEvent(eventKey);  
-}
-
-async function loadMatches() {
-  if (!currentEvent) {
-    alert('Please enter an event key first');
-    return;
-  }
-  
-  if (isUpdating) return;
-  isUpdating = true;
-  
-  const container = document.getElementById('matches-container');
-  container.innerHTML = '<p>Loading matches...</p>';
-  
-  try {
-    const response = await fetch(`/api/admin/matches?event=${currentEvent}`);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    matches = await response.json();
-    
-    if (matches.length === 0) {
-      container.innerHTML = '<p>No matches found for this event. Make sure the event key is correct.</p>';
-      return;
-    }
-    
-    if (teams.length === 0) {
-      await loadTeamsForEvent(currentEvent);
-    }
-    
-    await renderMatches();
-  } catch (error) {
     container.innerHTML = '<p>Error loading matches. Please check the event key and try again.</p>';
     console.error('Error loading matches:', error);
-  } finally {
-    isUpdating = false;
   }
 }
 
@@ -258,12 +214,6 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
     return;
   }
   
-  // Show loading state
-  const teamElement = document.querySelector(`[data-team="${teamNumber}"]`);
-  if (teamElement) {
-    teamElement.classList.add('loading');
-  }
-  
   try {
     const response = await fetch('/api/admin/remove-individual-assignment', {
       method: 'POST',
@@ -276,18 +226,28 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
     const result = await response.json();
     
     if (response.ok) {
-      await silentLoadMatches(); // Use silent update instead of full reload
-      showSuccessMessage(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
+      // Show success notification
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(`Removed assignment for Team ${teamNumber} from ${scouterName}`, 'success');
+      } else {
+        alert(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
+      }
+      
+      // Refresh the matches display
+      await loadMatches();
     } else {
-      showErrorMessage(result.error || 'Error removing assignment');
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(result.error || 'Error removing assignment', 'error');
+      } else {
+        alert(result.error || 'Error removing assignment');
+      }
     }
   } catch (error) {
     console.error('Error removing individual assignment:', error);
-    showErrorMessage('Error removing assignment');
-  } finally {
-    // Remove loading state
-    if (teamElement) {
-      teamElement.classList.remove('loading');
+    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+      window.realtimeUpdates.showNotification('Error removing assignment', 'error');
+    } else {
+      alert('Error removing assignment');
     }
   }
 }
@@ -295,12 +255,6 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
 async function clearMatchAssignments(matchNumber) {
   if (!confirm(`Clear ALL assignments for Match ${matchNumber}?`)) {
     return;
-  }
-  
-  // Show loading state for the entire match card
-  const matchCard = document.querySelector(`[data-match="${matchNumber}"]`);
-  if (matchCard) {
-    matchCard.classList.add('loading');
   }
   
   try {
@@ -316,18 +270,26 @@ async function clearMatchAssignments(matchNumber) {
     const result = await response.json();
     
     if (response.ok) {
-      await silentLoadMatches(); // Use silent update instead of full reload
-      showSuccessMessage(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`, 'success');
+      } else {
+        alert(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
+      }
+      
+      await loadMatches();
     } else {
-      showErrorMessage(result.error || 'Error clearing assignments');
+      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+        window.realtimeUpdates.showNotification(result.error || 'Error clearing assignments', 'error');
+      } else {
+        alert(result.error || 'Error clearing assignments');
+      }
     }
   } catch (error) {
     console.error('Error clearing match assignments:', error);
-    showErrorMessage('Error clearing assignments');
-  } finally {
-    // Remove loading state
-    if (matchCard) {
-      matchCard.classList.remove('loading');
+    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
+      window.realtimeUpdates.showNotification('Error clearing assignments', 'error');
+    } else {
+      alert('Error clearing assignments');
     }
   }
 }
@@ -357,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let manualMatchCount = 0;
+
 
 function showBulkMatchModal() {
   const modalHTML = `
@@ -856,13 +819,12 @@ async function markHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      await silentLoadMatches(); // Use silent update instead of full reload
-      showSuccessMessage('Assignment marked as home game!');
+      loadMatches();
     } else {
-      showErrorMessage('Error marking as home game');
+      alert('Error marking as home game');
     }
   } catch (error) {
-    showErrorMessage('Error marking as home game');
+    alert('Error marking as home game');
     console.error(error);
   }
 }
@@ -880,13 +842,12 @@ async function unmarkHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      await silentLoadMatches(); // Use silent update instead of full reload
-      showSuccessMessage('Home game status removed!');
+      loadMatches();
     } else {
-      showErrorMessage('Error removing home game status');
+      alert('Error removing home game status');
     }
   } catch (error) {
-    showErrorMessage('Error removing home game status');
+    alert('Error removing home game status');
     console.error(error);
   }
 }
@@ -960,7 +921,7 @@ function assignMatch(matchNumber) {
           </div>
           <div class="modal-actions">
             <button type="button" onclick="closeModal()">Cancel</button>
-            <button type="submit" id="save-assignments-btn">Save Assignments</button>
+            <button type="submit">Save Assignments</button>
           </div>
         </form>
       </div>
@@ -971,12 +932,6 @@ function assignMatch(matchNumber) {
   
   document.getElementById('assign-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
-    const saveBtn = document.getElementById('save-assignments-btn');
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = 'Saving...';
-    saveBtn.disabled = true;
-    
     const formData = new FormData(e.target);
     const assignments = {};
     
@@ -1000,17 +955,13 @@ function assignMatch(matchNumber) {
       
       if (response.ok) {
         closeModal();
-        await silentLoadMatches(); // Use silent update instead of full reload
-        showSuccessMessage('Assignments saved successfully!');
+        loadMatches(); 
       } else {
-        throw new Error('Failed to save assignments');
+        alert('Error saving assignments');
       }
     } catch (error) {
-      showErrorMessage('Error saving assignments');
+      alert('Error saving assignments');
       console.error(error);
-    } finally {
-      saveBtn.textContent = originalText;
-      saveBtn.disabled = false;
     }
   });
 }
@@ -1164,7 +1115,7 @@ async function bulkAssignTeam() {
   const scouterUsername = document.getElementById('bulk-scouter').value;
   
   if (!teamNumber || !scouterUsername || !currentEvent) {
-    showErrorMessage('Please select an event, team, and scouter');
+    alert('Please select an event, team, and scouter');
     return;
   }
   
@@ -1186,16 +1137,15 @@ async function bulkAssignTeam() {
     const result = await response.json();
     
     if (response.ok) {
-      showSuccessMessage(result.message);
-      await silentLoadMatches(); // Use silent update instead of full reload
-      // Clear the form
+      alert(result.message);
+      loadMatches(); 
       document.getElementById('bulk-team').value = '';
       document.getElementById('bulk-scouter').value = '';
     } else {
-      showErrorMessage(result.error || 'Error making bulk assignment');
+      alert(result.error || 'Error making bulk assignment');
     }
   } catch (error) {
-    showErrorMessage('Error making bulk assignment');
+    alert('Error making bulk assignment');
     console.error(error);
   }
 }
@@ -1259,51 +1209,3 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function showSuccessMessage(message) {
-  showNotification(message, 'success');
-}
-
-function showErrorMessage(message) {
-  showNotification(message, 'error');
-}
-
-function showNotification(message, type = 'info') {
-  // Remove existing notifications
-  const existingNotifications = document.querySelectorAll('.notification');
-  existingNotifications.forEach(n => n.remove());
-  
-  const notification = document.createElement('div');
-  notification.className = `notification ${type}`;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 1000;
-    max-width: 350px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transform: translateX(400px);
-    transition: transform 0.3s ease;
-  `;
-  notification.textContent = message;
-  
-  document.body.appendChild(notification);
-  
-  // Slide in
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 10);
-  
-  // Auto remove after 4 seconds
-  setTimeout(() => {
-    if (notification.parentNode) {
-      notification.style.transform = 'translateX(400px)';
-      setTimeout(() => notification.remove(), 300);
-    }
-  }, 4000);
-}
