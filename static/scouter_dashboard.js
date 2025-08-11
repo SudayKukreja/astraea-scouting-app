@@ -1,4 +1,16 @@
+// Fixed scouter_dashboard.js with better update detection
 let assignments = [];
+let lastUpdateHash = '';
+
+// Create a hash of assignments to detect changes
+function createAssignmentsHash(assignmentsList) {
+  const relevant = assignmentsList.map(a => ({
+    key: a.assignment_key,
+    completed: a.completed,
+    home: a.is_home_game
+  }));
+  return JSON.stringify(relevant);
+}
 
 async function loadAssignments() {
   try {
@@ -8,13 +20,19 @@ async function loadAssignments() {
     }
     const newAssignments = await response.json();
     
-    // Only update if there are actual changes
-    const newAssignmentsStr = JSON.stringify(newAssignments);
-    const currentAssignmentsStr = JSON.stringify(assignments);
+    // Create hash of relevant data for comparison
+    const newHash = createAssignmentsHash(newAssignments);
     
-    if (newAssignmentsStr !== currentAssignmentsStr) {
+    // Only update if there are actual meaningful changes
+    if (newHash !== lastUpdateHash) {
       assignments = newAssignments;
+      lastUpdateHash = newHash;
       await renderAssignments();
+      
+      // Show update notification if not the first load
+      if (lastUpdateHash !== '') {
+        showInfoMessage('Assignments updated');
+      }
     }
   } catch (error) {
     console.error('Error loading assignments:', error);
@@ -43,11 +61,10 @@ async function markHomeGame(assignmentKey) {
     return;
   }
   
-  // Add loading state
-  const assignmentElement = document.querySelector(`[data-assignment="${assignmentKey}"]`);
-  if (assignmentElement) {
-    assignmentElement.classList.add('loading');
-  }
+  // Disable the button to prevent double-clicks
+  const button = event.target;
+  button.disabled = true;
+  button.textContent = 'Updating...';
   
   try {
     const response = await fetch('/api/scouter/mark-home-game', {
@@ -57,35 +74,33 @@ async function markHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      // IMMEDIATE UPDATE - this was missing!
       await loadAssignments();
       showSuccessMessage('Assignment marked as home game!');
     } else {
       const result = await response.json();
       showErrorMessage(result.error || 'Error marking as home game');
+      // Re-enable button on error
+      button.disabled = false;
+      button.textContent = 'Mark Home Game';
     }
   } catch (error) {
     showErrorMessage('Error marking as home game');
     console.error(error);
-  } finally {
-    // Remove loading state
-    if (assignmentElement) {
-      assignmentElement.classList.remove('loading');
-    }
+    // Re-enable button on error
+    button.disabled = false;
+    button.textContent = 'Mark Home Game';
   }
 }
-
 
 async function unmarkHomeGame(assignmentKey) {
   if (!confirm('Remove home game status? You will need to complete this assignment.')) {
     return;
   }
   
-  // Add loading state
-  const assignmentElement = document.querySelector(`[data-assignment="${assignmentKey}"]`);
-  if (assignmentElement) {
-    assignmentElement.classList.add('loading');
-  }
+  // Disable the button to prevent double-clicks
+  const button = event.target;
+  button.disabled = true;
+  button.textContent = 'Updating...';
   
   try {
     const response = await fetch('/api/admin/unmark-home-game', {
@@ -95,20 +110,20 @@ async function unmarkHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      // IMMEDIATE UPDATE - this was missing!
       await loadAssignments();
       showSuccessMessage('Home game status removed!');
     } else {
       showErrorMessage('Error removing home game status');
+      // Re-enable button on error
+      button.disabled = false;
+      button.textContent = 'Remove Home Status';
     }
   } catch (error) {
     showErrorMessage('Error removing home game status');
     console.error(error);
-  } finally {
-    // Remove loading state
-    if (assignmentElement) {
-      assignmentElement.classList.remove('loading');
-    }
+    // Re-enable button on error
+    button.disabled = false;
+    button.textContent = 'Remove Home Status';
   }
 }
 
@@ -146,8 +161,11 @@ async function renderAssignments() {
       const matchNumber = firstAssignment.match_number;
       const eventKey = firstAssignment.event_key;
       
+      // Check if any assignments are incomplete
+      const hasIncomplete = matchAssignments.some(a => !a.completed && !a.is_home_game);
+      
       return `
-        <div class="match-assignment-card">
+        <div class="match-assignment-card ${hasIncomplete ? 'has-incomplete' : 'all-complete'}">
           <div class="match-header">
             <h3>Match ${matchNumber}</h3>
             <span class="event-key">${eventKey}</span>
@@ -167,7 +185,7 @@ async function renderAssignments() {
                 }
                 
                 const statusClass = assignment.completed ? 'completed' : 'pending';
-                const statusText = assignment.completed ? 'Completed' : 'Pending';
+                const statusText = assignment.completed ? '✅ Completed' : '⏳ Pending';
                 
                 return `
                   <div class="team-item ${statusClass}" data-assignment="${assignment.assignment_key}">
@@ -177,7 +195,7 @@ async function renderAssignments() {
                       ${!assignment.completed ? 
                         `<button onclick="startScouting('${assignment.assignment_key}', ${assignment.team_number}, ${matchNumber})" class="scout-btn">Scout Team</button>
                          <button onclick="markHomeGame('${assignment.assignment_key}')" class="home-game-btn">Mark Home Game</button>` :
-                        '<span class="completed-check">✓</span>'
+                        ''
                       }
                     </div>
                   </div>
@@ -193,30 +211,6 @@ async function renderAssignments() {
         </div>
       `;
     }).join('');
-}
-
-function showSuccessMessage(message) {
-  const successDiv = document.createElement('div');
-  successDiv.className = 'success-message';
-  successDiv.textContent = message;
-  successDiv.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #10b981;
-    color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
-  `;
-  
-  document.body.appendChild(successDiv);
-  
-  setTimeout(() => {
-    successDiv.remove();
-  }, 3000);
 }
 
 function startScouting(assignmentKey, teamNumber, matchNumber) {
@@ -235,46 +229,17 @@ async function logout() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadAssignments();
-
-  setInterval(loadAssignments, 30000);
-
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('completed') === 'true') {
-    const successMessage = document.createElement('div');
-    successMessage.className = 'success-message';
-    successMessage.textContent = 'Scout report submitted successfully!';
-    successMessage.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #10b981;
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1000;
-      animation: slideIn 0.3s ease;
-    `;
-    
-    document.body.appendChild(successMessage);
-    
-    setTimeout(() => {
-      successMessage.remove();
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }, 3000);
-    
-    setTimeout(loadAssignments, 500);
-  }
-});
-
+// Notification functions
 function showSuccessMessage(message) {
   showNotification(message, 'success');
 }
 
 function showErrorMessage(message) {
   showNotification(message, 'error');
+}
+
+function showInfoMessage(message) {
+  showNotification(message, 'info');
 }
 
 function showNotification(message, type = 'info') {
@@ -284,11 +249,25 @@ function showNotification(message, type = 'info') {
   
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
+  
+  // Choose colors and icons based on type
+  const colors = {
+    success: '#10b981',
+    error: '#ef4444',
+    info: '#3b82f6'
+  };
+  
+  const icons = {
+    success: '✓',
+    error: '✕',
+    info: 'ℹ'
+  };
+  
   notification.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    background: ${colors[type]};
     color: white;
     padding: 12px 16px;
     border-radius: 8px;
@@ -299,8 +278,15 @@ function showNotification(message, type = 'info') {
     font-weight: 500;
     transform: translateX(400px);
     transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   `;
-  notification.textContent = message;
+  
+  notification.innerHTML = `
+    <span style="font-size: 1.2rem;">${icons[type]}</span>
+    <span>${message}</span>
+  `;
   
   document.body.appendChild(notification);
   
@@ -309,11 +295,32 @@ function showNotification(message, type = 'info') {
     notification.style.transform = 'translateX(0)';
   }, 10);
   
-  // Auto remove after 4 seconds
+  // Auto remove after 4 seconds (shorter for info messages)
+  const duration = type === 'info' ? 2000 : 4000;
   setTimeout(() => {
     if (notification.parentNode) {
       notification.style.transform = 'translateX(400px)';
       setTimeout(() => notification.remove(), 300);
     }
-  }, 4000);
+  }, duration);
 }
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+  loadAssignments();
+
+  // Check for updates every 15 seconds (more frequent than before)
+  setInterval(loadAssignments, 15000);
+
+  // Handle completion redirect
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('completed') === 'true') {
+    showSuccessMessage('Scout report submitted successfully!');
+    
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    // Reload assignments after a short delay
+    setTimeout(loadAssignments, 500);
+  }
+});

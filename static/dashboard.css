@@ -2643,3 +2643,408 @@ font-size: 0.8rem;
 .team-assignment.success .status-badge.completed {
   animation: successPulse 0.6s ease-in-out;
 }
+
+/* ===== ENHANCED BUTTON SYSTEM ===== */
+
+/* Primary buttons - main actions */
+.assign-btn, .create-btn, .refresh-btn, .bulk-assign-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.025em;
+  text-decoration: none;
+  border: 2px solid transparent;
+}
+
+.assign-btn:hover, .create-btn:hover, .refresh-btn:hover, .bulk-assign-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.assign-btn:active, .create-btn:active, .refresh-btn:active, .bulk-assign-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.25);
+}
+
+/* Secondary buttons - destructive actions */
+.clear-match-btn, .delete-btn, .remove-btn, .remove-individual {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.025em;
+  text-decoration: none;
+  border: 2px solid transparent;
+}
+
+.clear-match-btn:hover, .delete-btn:hover, .remove-btn:hover, .remove-individual:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.clear-match-btn:active, .delete-btn:active, .remove-btn:active, .remove-individual:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+/* Action buttons - smaller utility buttons */
+.action-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.025em;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+}
+
+/* Mark Home button */
+.action-btn.mark-home {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+}
+
+.action-btn.mark-home:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(245, 158, 11, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Unmark Home button */
+.action-btn.unmark-home {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.25);
+}
+
+.action-btn.unmark-home:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(107, 114, 128, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Remove Assignment button */
+.action-btn.remove-individual {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+
+.action-btn.remove-individual:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Tertiary buttons - neutral actions */
+.modal-actions button[type="button"] {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #374151;
+  border: 2px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.025em;
+}
+
+.modal-actions button[type="button"]:hover {
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border-color: #9ca3af;
+}
+
+/* Submit buttons in modals */
+.modal-actions button[type="submit"] {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.025em;
+  border: 2px solid transparent;
+}
+
+.modal-actions button[type="submit"]:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Logout button - special styling */
+.logout-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+  letter-spacing: 0.025em;
+  border: 2px solid transparent;
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(239, 68, 68, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Scout button for scouter dashboard */
+.scout-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  transition: all 0.25s ease;
+  letter-spacing: 0.025em;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+  border: 2px solid transparent;
+}
+
+.scout-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.35);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Button icons enhancement */
+.assign-btn:before {
+  content: "👥";
+  margin-right: 4px;
+}
+
+.clear-match-btn:before {
+  content: "🗑️";
+  margin-right: 2px;
+}
+
+.action-btn.mark-home:before {
+  content: "🏠";
+  margin-right: 2px;
+}
+
+.action-btn.unmark-home:before {
+  content: "❌";
+  margin-right: 2px;
+}
+
+.action-btn.remove-individual:before {
+  content: "🗑️";
+  margin-right: 2px;
+  font-size: 0.7rem;
+}
+
+.scout-btn:before {
+  content: "📝";
+  margin-right: 2px;
+}
+
+.refresh-btn:before {
+  content: "🔄";
+  margin-right: 2px;
+}
+
+.create-btn:before {
+  content: "➕";
+  margin-right: 2px;
+}
+
+/* Button groups */
+.match-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-end;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid #f3f4f6;
+}
+
+/* Disabled state */
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+button:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Loading state */
+.button-loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.button-loading:after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: button-loading-spin 1s linear infinite;
+}
+
+@keyframes button-loading-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success state animation */
+@keyframes button-success {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.button-success {
+  animation: button-success 0.3s ease-in-out;
+}
+
+/* Focus states for accessibility */
+.assign-btn:focus-visible,
+.clear-match-btn:focus-visible,
+.action-btn:focus-visible,
+.scout-btn:focus-visible,
+.create-btn:focus-visible,
+.refresh-btn:focus-visible,
+.logout-btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Responsive button adjustments */
+@media (max-width: 768px) {
+  .match-actions {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .assign-btn,
+  .clear-match-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .assignment-actions {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .modal-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .assignment-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .action-btn {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  /* Smaller padding on mobile */
+  .assign-btn, .create-btn, .refresh-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+  
+  .clear-match-btn, .action-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}
