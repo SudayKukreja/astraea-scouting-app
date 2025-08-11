@@ -214,6 +214,12 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
     return;
   }
   
+  // Show loading state
+  const teamElement = document.querySelector(`[data-team="${teamNumber}"]`);
+  if (teamElement) {
+    teamElement.classList.add('loading');
+  }
+  
   try {
     const response = await fetch('/api/admin/remove-individual-assignment', {
       method: 'POST',
@@ -226,35 +232,33 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
     const result = await response.json();
     
     if (response.ok) {
-      // Show success notification
-      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-        window.realtimeUpdates.showNotification(`Removed assignment for Team ${teamNumber} from ${scouterName}`, 'success');
-      } else {
-        alert(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
-      }
-      
-      // Refresh the matches display
+      // IMMEDIATE UPDATE
       await loadMatches();
+      showSuccessMessage(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
     } else {
-      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-        window.realtimeUpdates.showNotification(result.error || 'Error removing assignment', 'error');
-      } else {
-        alert(result.error || 'Error removing assignment');
-      }
+      showErrorMessage(result.error || 'Error removing assignment');
     }
   } catch (error) {
     console.error('Error removing individual assignment:', error);
-    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-      window.realtimeUpdates.showNotification('Error removing assignment', 'error');
-    } else {
-      alert('Error removing assignment');
+    showErrorMessage('Error removing assignment');
+  } finally {
+    // Remove loading state
+    if (teamElement) {
+      teamElement.classList.remove('loading');
     }
   }
 }
 
+
 async function clearMatchAssignments(matchNumber) {
   if (!confirm(`Clear ALL assignments for Match ${matchNumber}?`)) {
     return;
+  }
+  
+  // Show loading state for the entire match card
+  const matchCard = document.querySelector(`[data-match="${matchNumber}"]`);
+  if (matchCard) {
+    matchCard.classList.add('loading');
   }
   
   try {
@@ -270,26 +274,19 @@ async function clearMatchAssignments(matchNumber) {
     const result = await response.json();
     
     if (response.ok) {
-      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-        window.realtimeUpdates.showNotification(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`, 'success');
-      } else {
-        alert(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
-      }
-      
+      // IMMEDIATE UPDATE
       await loadMatches();
+      showSuccessMessage(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
     } else {
-      if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-        window.realtimeUpdates.showNotification(result.error || 'Error clearing assignments', 'error');
-      } else {
-        alert(result.error || 'Error clearing assignments');
-      }
+      showErrorMessage(result.error || 'Error clearing assignments');
     }
   } catch (error) {
     console.error('Error clearing match assignments:', error);
-    if (window.realtimeUpdates && window.realtimeUpdates.showNotification) {
-      window.realtimeUpdates.showNotification('Error clearing assignments', 'error');
-    } else {
-      alert('Error clearing assignments');
+    showErrorMessage('Error clearing assignments');
+  } finally {
+    // Remove loading state
+    if (matchCard) {
+      matchCard.classList.remove('loading');
     }
   }
 }
@@ -819,12 +816,14 @@ async function markHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadMatches();
+      // IMMEDIATE UPDATE
+      await loadMatches();
+      showSuccessMessage('Assignment marked as home game!');
     } else {
-      alert('Error marking as home game');
+      showErrorMessage('Error marking as home game');
     }
   } catch (error) {
-    alert('Error marking as home game');
+    showErrorMessage('Error marking as home game');
     console.error(error);
   }
 }
@@ -842,12 +841,14 @@ async function unmarkHomeGame(assignmentKey) {
     });
     
     if (response.ok) {
-      loadMatches();
+      // IMMEDIATE UPDATE
+      await loadMatches();
+      showSuccessMessage('Home game status removed!');
     } else {
-      alert('Error removing home game status');
+      showErrorMessage('Error removing home game status');
     }
   } catch (error) {
-    alert('Error removing home game status');
+    showErrorMessage('Error removing home game status');
     console.error(error);
   }
 }
@@ -921,7 +922,7 @@ function assignMatch(matchNumber) {
           </div>
           <div class="modal-actions">
             <button type="button" onclick="closeModal()">Cancel</button>
-            <button type="submit">Save Assignments</button>
+            <button type="submit" id="save-assignments-btn">Save Assignments</button>
           </div>
         </form>
       </div>
@@ -932,6 +933,12 @@ function assignMatch(matchNumber) {
   
   document.getElementById('assign-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    const saveBtn = document.getElementById('save-assignments-btn');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+    
     const formData = new FormData(e.target);
     const assignments = {};
     
@@ -955,13 +962,18 @@ function assignMatch(matchNumber) {
       
       if (response.ok) {
         closeModal();
-        loadMatches(); 
+        // IMMEDIATE UPDATE - this was missing!
+        await loadMatches();
+        showSuccessMessage('Assignments saved successfully!');
       } else {
-        alert('Error saving assignments');
+        throw new Error('Failed to save assignments');
       }
     } catch (error) {
-      alert('Error saving assignments');
+      showErrorMessage('Error saving assignments');
       console.error(error);
+    } finally {
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
     }
   });
 }
@@ -1115,7 +1127,7 @@ async function bulkAssignTeam() {
   const scouterUsername = document.getElementById('bulk-scouter').value;
   
   if (!teamNumber || !scouterUsername || !currentEvent) {
-    alert('Please select an event, team, and scouter');
+    showErrorMessage('Please select an event, team, and scouter');
     return;
   }
   
@@ -1137,18 +1149,21 @@ async function bulkAssignTeam() {
     const result = await response.json();
     
     if (response.ok) {
-      alert(result.message);
-      loadMatches(); 
+      showSuccessMessage(result.message);
+      // IMMEDIATE UPDATE
+      await loadMatches();
+      // Clear the form
       document.getElementById('bulk-team').value = '';
       document.getElementById('bulk-scouter').value = '';
     } else {
-      alert(result.error || 'Error making bulk assignment');
+      showErrorMessage(result.error || 'Error making bulk assignment');
     }
   } catch (error) {
-    alert('Error making bulk assignment');
+    showErrorMessage('Error making bulk assignment');
     console.error(error);
   }
 }
+
 
 async function removeTeamAssignments() {
   const teamNumber = document.getElementById('bulk-team').value;
@@ -1208,4 +1223,53 @@ document.addEventListener('click', (e) => {
     closeModal();
   }
 });
+
+function showSuccessMessage(message) {
+  showNotification(message, 'success');
+}
+
+function showErrorMessage(message) {
+  showNotification(message, 'error');
+}
+
+function showNotification(message, type = 'info') {
+  // Remove existing notifications
+  const existingNotifications = document.querySelectorAll('.notification');
+  existingNotifications.forEach(n => n.remove());
+  
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    max-width: 350px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  `;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  // Slide in
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 10);
+  
+  // Auto remove after 4 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.transform = 'translateX(400px)';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 4000);
+}
 
