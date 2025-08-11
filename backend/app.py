@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
 
-# Import our new modules
+# Import our new modules (relative imports since we're in backend folder)
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
 from database import (assign_scouter_to_team, get_scouter_assignments, get_match_assignments, 
                      mark_assignment_completed, bulk_assign_match, get_all_assignments,
@@ -16,7 +16,10 @@ from manual_matches import (create_manual_event, get_manual_event_matches, get_m
 from tba_api import TBAClient, get_sample_matches
 from team_names import TEAM_NAMES
 
-app = Flask(__name__)
+# Update template and static folder paths for new structure
+app = Flask(__name__, 
+           template_folder='../templates',
+           static_folder='../static')
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 CORS(app)
 
@@ -650,7 +653,7 @@ def submit():
 
 @app.route('/sw.js')
 def serve_sw():
-    return send_from_directory('.', 'sw.js', mimetype='application/javascript')
+    return send_from_directory('..', 'sw.js', mimetype='application/javascript')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
