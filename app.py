@@ -20,12 +20,12 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 CORS(app)
 
-# === CONFIGURATIONS AREA ===
+# === CONFIGURATIONS AREA ====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
 SHEET_NAME = 'ScoutingTest'
 SHEET_ID = 1244073716 
-# ===========================
+# =============================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
 creds = service_account.Credentials.from_service_account_info(credentials_info, scopes=SCOPES)
