@@ -1,14 +1,17 @@
-const CACHE_NAME = 'astraea-cache-20250812-200445'; // Keep your existing version
-const STATIC_CACHE = 'astraea-static-v20250812-200445';
-const DYNAMIC_CACHE = 'astraea-dynamic-v20250812-200445';
+const CACHE_NAME = 'astraea-cache-20250727-093300'; // Updated version
+const STATIC_CACHE = 'astraea-static-v20250727-093300';
+const DYNAMIC_CACHE = 'astraea-dynamic-v20250727-093300';
 
-// Keep your existing STATIC_ASSETS - they're perfect
+// Essential files for offline functionality
 const STATIC_ASSETS = [
+  // Core pages
   '/',
   '/login',
   '/dashboard',
   '/admin',
   '/scout',
+  
+  // Static assets
   '/static/style.css',
   '/static/dashboard.css',
   '/static/login.css',
@@ -17,10 +20,12 @@ const STATIC_ASSETS = [
   '/static/scouter_dashboard.js',
   '/static/logo.png',
   '/static/logo2.png',
+  
+  // Templates (cached as fallbacks)
   '/offline.html'
 ];
 
-// Keep your existing OFFLINE_CAPABLE_APIS
+// API endpoints that should work offline with cached data
 const OFFLINE_CAPABLE_APIS = [
   '/api/scouter/assignments',
   '/api/admin/matches',
@@ -29,7 +34,7 @@ const OFFLINE_CAPABLE_APIS = [
   '/api/admin/teams'
 ];
 
-// Keep your existing install and activate events - they're good!
+// Install event - cache static assets
 self.addEventListener('install', (evt) => {
   console.log('[ServiceWorker] Install');
   evt.waitUntil(
@@ -41,14 +46,13 @@ self.addEventListener('install', (evt) => {
       caches.open(DYNAMIC_CACHE).then(cache => {
         console.log('[ServiceWorker] Dynamic cache ready');
         return cache;
-      }),
-      // NEW: Initialize IndexedDB for offline submissions
-      initializeOfflineDB()
+      })
     ])
   );
   self.skipWaiting();
 });
 
+// Activate event - clean up old caches
 self.addEventListener('activate', (evt) => {
   console.log('[ServiceWorker] Activate');
   evt.waitUntil(
@@ -64,23 +68,17 @@ self.addEventListener('activate', (evt) => {
   self.clients.claim();
 });
 
-// ENHANCED: Improved fetch handler with better offline support
+// Fetch event - serve cached content when offline
 self.addEventListener('fetch', (evt) => {
   const { request } = evt;
   const url = new URL(request.url);
 
-  // Skip non-GET requests for chrome-extension
-  if (url.protocol === 'chrome-extension:') {
+  // Skip non-GET requests and chrome-extension requests
+  if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
     return;
   }
 
-  // NEW: Special handling for scout form submissions
-  if (request.method === 'POST' && url.pathname === '/submit') {
-    evt.respondWith(handleScoutSubmission(request));
-    return;
-  }
-
-  // Handle different types of requests (keep your existing logic but enhanced)
+  // Handle different types of requests
   if (isNavigationRequest(request)) {
     evt.respondWith(handleNavigationRequest(request));
   } else if (isAPIRequest(url.pathname)) {
@@ -92,16 +90,18 @@ self.addEventListener('fetch', (evt) => {
   }
 });
 
-// Keep your existing helper functions
+// Check if request is a navigation request
 function isNavigationRequest(request) {
   return request.mode === 'navigate' || 
          (request.method === 'GET' && request.headers.get('accept').includes('text/html'));
 }
 
+// Check if request is for an API endpoint
 function isAPIRequest(pathname) {
   return pathname.startsWith('/api/');
 }
 
+// Check if request is for a static asset
 function isStaticAsset(pathname) {
   return pathname.startsWith('/static/') || 
          pathname.endsWith('.css') || 
@@ -111,11 +111,13 @@ function isStaticAsset(pathname) {
          pathname.endsWith('.ico');
 }
 
-// Keep your existing navigation handler - it's great
+// Handle navigation requests (pages)
 async function handleNavigationRequest(request) {
   try {
+    // Try network first for navigation
     const networkResponse = await fetch(request);
     
+    // Cache successful responses
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
@@ -125,11 +127,13 @@ async function handleNavigationRequest(request) {
   } catch (error) {
     console.log('[ServiceWorker] Network failed for navigation, trying cache');
     
+    // Try to get from cache
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
     
+    // Fallback to appropriate offline page based on URL
     const url = new URL(request.url);
     if (url.pathname === '/login' || url.pathname.startsWith('/login')) {
       return await caches.match('/login') || createOfflineResponse('Login Offline', 'Login functionality requires internet connection.');
@@ -141,60 +145,51 @@ async function handleNavigationRequest(request) {
       return await caches.match('/scout') || createOfflineResponse('Scout Offline', 'Scouting forms work offline and will sync when online.');
     }
     
+    // Default fallback
     return await caches.match('/') || createOfflineResponse('Offline', 'You are currently offline.');
   }
 }
 
-// ENHANCED: Better API request handling with retry logic
+// Handle API requests
 async function handleAPIRequest(request) {
   const url = new URL(request.url);
   
-  // For POST requests, try network with better error handling
+  // For POST requests (like form submissions), try network first, then store for later sync
   if (request.method === 'POST') {
     try {
-      const response = await fetch(request, {
-        signal: AbortSignal.timeout(10000) // 10 second timeout
-      });
+      const response = await fetch(request);
       return response;
     } catch (error) {
-      console.log('[ServiceWorker] POST request failed:', error.message);
+      console.log('[ServiceWorker] POST request failed, storing for sync');
       
-      // Store for later sync if it's not a critical auth request
-      if (!url.pathname.includes('/login') && !url.pathname.includes('/logout')) {
-        await storeOfflineSubmission(request);
-        
-        return new Response(JSON.stringify({ 
-          success: true, 
-          offline: true,
-          message: 'Data saved offline and will sync when online' 
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+      // Store failed POST requests for background sync
+      await storeFailedRequest(request);
       
-      // For auth requests, return error
+      // Return a success response to prevent user confusion
       return new Response(JSON.stringify({ 
-        error: 'Authentication requires internet connection',
-        offline: true 
+        success: true, 
+        offline: true,
+        message: 'Data saved offline and will sync when online' 
       }), {
-        status: 503,
+        status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     }
   }
   
-  // Keep your existing GET request logic but with better timeout
+  // For GET requests, try cache first for offline-capable APIs
   if (OFFLINE_CAPABLE_APIS.some(api => url.pathname.startsWith(api))) {
     try {
+      // Try network first, but with a timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased to 5 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       const networkResponse = await fetch(request, { 
         signal: controller.signal 
       });
       clearTimeout(timeoutId);
       
+      // Cache successful API responses
       if (networkResponse && networkResponse.status === 200) {
         const cache = await caches.open(DYNAMIC_CACHE);
         cache.put(request, networkResponse.clone());
@@ -202,21 +197,24 @@ async function handleAPIRequest(request) {
       
       return networkResponse;
     } catch (error) {
-      console.log('[ServiceWorker] API network failed, trying cache for:', url.pathname);
+      console.log('[ServiceWorker] API network failed, trying cache');
       
+      // Return cached data if available
       const cachedResponse = await caches.match(request);
       if (cachedResponse) {
+        // Add offline indicator to cached API responses
         const data = await cachedResponse.json();
         return new Response(JSON.stringify({
           ...data,
           _offline: true,
-          _message: 'Showing cached data - may not be current'
+          _cachedAt: cachedResponse.headers.get('date')
         }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
       }
       
+      // Return empty data structure for failed API calls
       return new Response(JSON.stringify({ 
         error: 'Offline - no cached data available',
         offline: true 
@@ -227,11 +225,13 @@ async function handleAPIRequest(request) {
     }
   }
   
+  // For other API requests, just try network
   return fetch(request);
 }
 
-// Keep your existing static asset handler
+// Handle static assets (CSS, JS, images)
 async function handleStaticAsset(request) {
+  // Cache first strategy for static assets
   const cachedResponse = await caches.match(request);
   if (cachedResponse) {
     return cachedResponse;
@@ -240,6 +240,7 @@ async function handleStaticAsset(request) {
   try {
     const networkResponse = await fetch(request);
     
+    // Cache static assets
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
@@ -252,11 +253,12 @@ async function handleStaticAsset(request) {
   }
 }
 
-// Keep your existing generic request handler
+// Handle other requests
 async function handleGenericRequest(request) {
   try {
     const networkResponse = await fetch(request);
     
+    // Cache successful responses
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
@@ -269,7 +271,7 @@ async function handleGenericRequest(request) {
   }
 }
 
-// Keep your existing createOfflineResponse - it's perfect
+// Create offline response for pages
 function createOfflineResponse(title, message) {
   const html = `
     <!DOCTYPE html>
@@ -332,171 +334,36 @@ function createOfflineResponse(title, message) {
   });
 }
 
-// NEW: Handle scout form submissions with offline support
-async function handleScoutSubmission(request) {
+// Store failed requests for background sync
+async function storeFailedRequest(request) {
   try {
-    // Try network first with timeout
-    const response = await fetch(request.clone(), {
-      signal: AbortSignal.timeout(15000) // 15 seconds for form submission
-    });
-    
-    if (response.ok) {
-      return response;
-    }
-    
-    throw new Error(`Server responded with ${response.status}`);
-  } catch (error) {
-    console.log('[ServiceWorker] Scout submission failed, storing offline:', error.message);
-    
-    // Store the submission for later sync
-    await storeOfflineSubmission(request);
-    
-    // Return success response to prevent form errors
-    return new Response(JSON.stringify({ 
-      status: 'success',
-      offline: true,
-      message: 'Scout report saved offline. Will sync when connection is restored.'
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-// NEW: Initialize IndexedDB for offline storage
-async function initializeOfflineDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('AstraeaScoutingDB', 1);
-    
-    request.onerror = () => {
-      console.error('[ServiceWorker] IndexedDB failed to open');
-      resolve(); // Don't fail the service worker installation
-    };
-    
-    request.onsuccess = () => {
-      console.log('[ServiceWorker] IndexedDB initialized');
-      resolve();
-    };
-    
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      
-      if (!db.objectStoreNames.contains('submissions')) {
-        const store = db.createObjectStore('submissions', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-        store.createIndex('synced', 'synced', { unique: false });
-      }
-    };
-  });
-}
-
-// NEW: Store offline submissions
-async function storeOfflineSubmission(request) {
-  try {
-    const formData = await request.json();
-    
-    const db = await openDB();
-    const transaction = db.transaction(['submissions'], 'readwrite');
-    const store = transaction.objectStore('submissions');
-    
-    const submission = {
+    const requestData = {
       url: request.url,
       method: request.method,
       headers: Object.fromEntries(request.headers.entries()),
-      data: formData,
-      timestamp: Date.now(),
-      synced: false
+      body: await request.text(),
+      timestamp: Date.now()
     };
     
-    await store.add(submission);
+    // Store in IndexedDB or fallback to cache
+    const cache = await caches.open('failed-requests');
+    const response = new Response(JSON.stringify(requestData));
+    await cache.put(`failed-${Date.now()}`, response);
     
-    // Notify clients
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'OFFLINE_SUBMISSION_STORED',
-        timestamp: submission.timestamp
-      });
-    });
-    
-    console.log('[ServiceWorker] Stored offline submission');
+    console.log('[ServiceWorker] Stored failed request for sync');
   } catch (error) {
-    console.error('[ServiceWorker] Failed to store offline submission:', error);
+    console.error('[ServiceWorker] Failed to store request:', error);
   }
 }
 
-// NEW: Open IndexedDB helper
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('AstraeaScoutingDB', 1);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-  });
-}
-
-// ENHANCED: Better background sync
+// Background sync for failed requests
 self.addEventListener('sync', (event) => {
-  console.log('[ServiceWorker] Background sync triggered:', event.tag);
-  
-  if (event.tag === 'scout-submissions-sync') {
-    event.waitUntil(syncOfflineSubmissions());
-  } else if (event.tag === 'background-sync') {
-    // Keep your existing sync logic too
+  if (event.tag === 'background-sync') {
     event.waitUntil(syncFailedRequests());
   }
 });
 
-// NEW: Sync offline scout submissions
-async function syncOfflineSubmissions() {
-  try {
-    const db = await openDB();
-    const transaction = db.transaction(['submissions'], 'readwrite');
-    const store = transaction.objectStore('submissions');
-    
-    const unsyncedSubmissions = await store.index('synced').getAll(false);
-    let syncedCount = 0;
-    
-    for (const submission of unsyncedSubmissions) {
-      try {
-        const response = await fetch(submission.url, {
-          method: submission.method,
-          headers: submission.headers,
-          body: JSON.stringify(submission.data)
-        });
-        
-        if (response.ok) {
-          // Mark as synced
-          submission.synced = true;
-          submission.syncedAt = Date.now();
-          await store.put(submission);
-          syncedCount++;
-          
-          console.log('[ServiceWorker] Synced submission from:', new Date(submission.timestamp));
-        }
-      } catch (error) {
-        console.log('[ServiceWorker] Failed to sync submission:', error);
-        // Will try again on next sync
-      }
-    }
-    
-    if (syncedCount > 0) {
-      // Notify clients of successful sync
-      const clients = await self.clients.matchAll();
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'SUBMISSIONS_SYNCED',
-          count: syncedCount
-        });
-      });
-    }
-    
-    console.log(`[ServiceWorker] Sync complete: ${syncedCount}/${unsyncedSubmissions.length} submissions synced`);
-  } catch (error) {
-    console.error('[ServiceWorker] Sync failed:', error);
-  }
-}
-
-// Keep your existing syncFailedRequests function
+// Sync failed requests when online
 async function syncFailedRequests() {
   try {
     const cache = await caches.open('failed-requests');
@@ -507,6 +374,7 @@ async function syncFailedRequests() {
         const response = await cache.match(request);
         const requestData = await response.json();
         
+        // Retry the failed request
         const retryResponse = await fetch(requestData.url, {
           method: requestData.method,
           headers: requestData.headers,
@@ -514,6 +382,7 @@ async function syncFailedRequests() {
         });
         
         if (retryResponse.ok) {
+          // Remove from failed requests cache
           await cache.delete(request);
           console.log('[ServiceWorker] Synced failed request:', requestData.url);
         }
@@ -526,62 +395,24 @@ async function syncFailedRequests() {
   }
 }
 
-// ENHANCED: Better message handling
+// Handle messages from clients
 self.addEventListener('message', (event) => {
-  const { type, data } = event.data || {};
-  
-  switch (type) {
-    case 'SKIP_WAITING':
-      self.skipWaiting();
-      break;
-      
-    case 'GET_CACHE_STATUS':
-      getCacheStatus().then(status => {
-        event.ports[0]?.postMessage(status);
-      });
-      break;
-      
-    case 'CLEAR_CACHE':
-      clearAllCaches().then(() => {
-        event.ports[0]?.postMessage({ success: true });
-      });
-      break;
-      
-    case 'GET_OFFLINE_STATUS':
-      getOfflineStatus().then(status => {
-        event.ports[0]?.postMessage(status);
-      });
-      break;
-      
-    case 'FORCE_SYNC':
-      if ('sync' in self.registration) {
-        self.registration.sync.register('scout-submissions-sync');
-      }
-      break;
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  } else if (event.data && event.data.type === 'GET_CACHE_STATUS') {
+    // Send cache status to client
+    getCacheStatus().then(status => {
+      event.ports[0].postMessage(status);
+    });
+  } else if (event.data && event.data.type === 'CLEAR_CACHE') {
+    // Clear all caches
+    clearAllCaches().then(() => {
+      event.ports[0].postMessage({ success: true });
+    });
   }
 });
 
-// NEW: Get offline submission status
-async function getOfflineStatus() {
-  try {
-    const db = await openDB();
-    const transaction = db.transaction(['submissions'], 'readonly');
-    const store = transaction.objectStore('submissions');
-    
-    const allSubmissions = await store.getAll();
-    const pendingSubmissions = allSubmissions.filter(s => !s.synced);
-    
-    return {
-      totalOfflineSubmissions: allSubmissions.length,
-      pendingSync: pendingSubmissions.length,
-      lastSubmission: allSubmissions.length > 0 ? Math.max(...allSubmissions.map(s => s.timestamp)) : null
-    };
-  } catch (error) {
-    return { error: error.message };
-  }
-}
-
-// Keep your existing cache status function
+// Get cache status
 async function getCacheStatus() {
   try {
     const cacheNames = await caches.keys();
@@ -599,7 +430,7 @@ async function getCacheStatus() {
   }
 }
 
-// Keep your existing clear cache function
+// Clear all caches
 async function clearAllCaches() {
   const cacheNames = await caches.keys();
   await Promise.all(cacheNames.map(name => caches.delete(name)));

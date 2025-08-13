@@ -1,4 +1,3 @@
-// Enhanced script.js with better offline support
 document.addEventListener('DOMContentLoaded', () => {
   const tabs = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -9,9 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const endgameAction = document.getElementById('endgame_action');
   const climbDepthLabel = document.getElementById('climb_depth_label');
   const climbSuccessLabel = document.getElementById('climb_success_label');
-
-  // Initialize offline status manager
-  const offlineManager = new OfflineStatusManager();
 
   const backBtn = document.getElementById('back-btn');
   if (backBtn) {
@@ -62,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Keep your existing draft loading logic
   const savedDraft = localStorage.getItem('scoutDraft');
   if (savedDraft) {
     const draftObj = JSON.parse(savedDraft);
@@ -83,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Keep your existing draft saving logic
   form.addEventListener('input', () => {
     const draft = new FormData(form);
     const draftObj = {};
@@ -104,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('input', recordFirstInputTime, { once: true });
   });
 
-  // ENHANCED: Better offline queue management (keeping your existing logic as backup)
   function saveOffline(data) {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
     queue.push(data);
@@ -115,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
     if (!queue.length) return;
 
-    let syncedCount = 0;
     for (let i = 0; i < queue.length; i++) {
       try {
         const res = await fetch('/submit', {
@@ -126,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (res.ok) {
           queue.splice(i, 1);
           i--;
-          syncedCount++;
         } else {
           break;
         }
@@ -135,21 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     localStorage.setItem('offlineQueue', JSON.stringify(queue));
-    
-    if (syncedCount > 0) {
-      offlineManager.showStatus(`✅ ${syncedCount} old reports synced!`, 'success');
-    }
   }
 
-  // Enhanced online event handling
   window.addEventListener('load', sendQueuedSubmissions);
   window.addEventListener('online', () => {
-    offlineManager.showStatus('🟢 Back online! Syncing reports...', 'success');
+    alert('You are back online! Trying to submit any saved reports now.');
     sendQueuedSubmissions();
-    offlineManager.triggerSync(); // Also trigger service worker sync
   });
 
-  // ENHANCED: Better form submission with service worker integration
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
@@ -199,17 +183,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Show enhanced loading state
     spinner.style.display = 'block';
     formWarning.style.display = 'block';
     formWarning.style.color = '#2563eb';
-    
-    if (!navigator.onLine) {
-      formWarning.textContent = 'Offline - Saving report locally...';
-    } else {
-      formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
-    }
-    
+    formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
     submitBtn.disabled = true;
 
     const responseTimeField = document.getElementById('response_time');
@@ -263,25 +240,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     try {
-      // ENHANCED: Better timeout and retry logic
       const res = await fetch('/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-        signal: AbortSignal.timeout(15000) // 15 second timeout
+        body: JSON.stringify(data)
       });
 
-      const result = await res.json();
-
-      if (res.ok && result.status === 'success') {
-        // Handle both online and offline success
-        if (result.offline) {
-          offlineManager.showStatus('📝 Scout report saved offline - will sync when online!', 'warning', 5000);
-        } else {
-          offlineManager.showStatus('✅ Scout report submitted successfully!', 'success');
-        }
-        
-        // Clear form and redirect (keep your existing logic)
+      if (res.ok) {
+        alert('Scout report submitted successfully!');
         form.reset();
         localStorage.removeItem('scoutDraft');
 
@@ -296,31 +262,14 @@ document.addEventListener('DOMContentLoaded', () => {
         formWarning.style.display = 'none';
 
         window.location.href = '/dashboard?completed=true';
-        
       } else {
-        throw new Error(result.error || 'Server error');
+        formWarning.style.display = 'block';
+        formWarning.style.color = '#b33';
+        formWarning.textContent = 'Error submitting report. Please try again.';
       }
-      
     } catch (err) {
-      console.error('Submission error:', err);
-      
-      // ENHANCED: Better error handling based on error type
-      if (err.name === 'AbortError') {
-        // Timeout - probably saved by service worker
-        offlineManager.showStatus('⏱️ Connection slow - report saved offline', 'warning');
-      } else if (err.name === 'TypeError' || err.message.includes('fetch')) {
-        // Network error - definitely offline
-        offlineManager.showStatus('📡 No connection - report saved offline', 'warning');
-        
-        // Keep your existing localStorage backup as extra safety
-        saveOffline(data);
-      } else {
-        // Server error
-        offlineManager.showStatus('❌ Server error - report saved offline', 'error');
-        saveOffline(data);
-      }
-      
-      // Always clear form and redirect on any error (keep your existing behavior)
+      saveOffline(data);
+      alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online.');
       form.reset();
       localStorage.removeItem('scoutDraft');
 
@@ -335,14 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
       formWarning.style.display = 'none';
 
       window.location.href = '/dashboard?completed=true';
-      
     } finally {
       spinner.style.display = 'none';
       submitBtn.disabled = false;
     }
   });
 
-  // Keep your existing endgame action logic
   if (endgameAction) {
     endgameAction.addEventListener('change', () => {
       if (endgameAction.value === 'climb') {
@@ -371,188 +318,3 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-
-// ==========================================
-// OFFLINE STATUS MANAGER (ADD THIS CLASS)
-// ==========================================
-
-class OfflineStatusManager {
-  constructor() {
-    this.isOnline = navigator.onLine;
-    this.pendingSubmissions = 0;
-    this.init();
-  }
-
-  init() {
-    // Listen for online/offline events
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      this.showStatus('🟢 Back online! Syncing data...', 'success');
-      this.triggerSync();
-      this.updateIndicator();
-    });
-
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-      this.showStatus('🔴 You are offline. Data will be saved locally.', 'warning');
-      this.updateIndicator();
-    });
-
-    // Listen for service worker messages
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        const { type, count, timestamp } = event.data || {};
-        
-        switch (type) {
-          case 'OFFLINE_SUBMISSION_STORED':
-            this.showStatus('💾 Scout report saved offline', 'info');
-            this.getOfflineStatus(); // Update counter
-            break;
-            
-          case 'SUBMISSIONS_SYNCED':
-            this.showStatus(`✅ ${count} reports synced successfully!`, 'success');
-            this.getOfflineStatus(); // Update counter
-            break;
-        }
-      });
-    }
-
-    // Initial status check
-    this.updateIndicator();
-    this.getOfflineStatus();
-  }
-
-  async triggerSync() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        if ('sync' in registration) {
-          await registration.sync.register('scout-submissions-sync');
-        }
-      } catch (error) {
-        console.log('Sync registration failed:', error);
-      }
-    }
-  }
-
-  async getOfflineStatus() {
-    if (!('serviceWorker' in navigator)) return;
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const channel = new MessageChannel();
-      
-      channel.port1.onmessage = (event) => {
-        const status = event.data;
-        if (status && typeof status.pendingSync === 'number') {
-          this.pendingSubmissions = status.pendingSync;
-          this.updateIndicator();
-        }
-      };
-
-      registration.active?.postMessage(
-        { type: 'GET_OFFLINE_STATUS' },
-        [channel.port2]
-      );
-    } catch (error) {
-      console.log('Could not get offline status:', error);
-    }
-  }
-
-  updateIndicator() {
-    let indicator = document.getElementById('offline-indicator');
-    
-    // Remove indicator if online and no pending submissions
-    if (this.isOnline && this.pendingSubmissions === 0) {
-      if (indicator) {
-        indicator.remove();
-      }
-      return;
-    }
-
-    // Create indicator if it doesn't exist
-    if (!indicator) {
-      indicator = document.createElement('div');
-      indicator.id = 'offline-indicator';
-      indicator.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: #f59e0b;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        z-index: 1001;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer;
-        transition: all 0.3s ease;
-      `;
-      document.body.appendChild(indicator);
-      
-      // Click to force sync
-      indicator.addEventListener('click', () => {
-        this.triggerSync();
-        this.showStatus('🔄 Forcing sync...', 'info');
-      });
-    }
-
-    // Update indicator content and color
-    if (!this.isOnline) {
-      indicator.textContent = '📴 Offline Mode';
-      indicator.style.background = '#ef4444';
-    } else if (this.pendingSubmissions > 0) {
-      indicator.textContent = `🔄 ${this.pendingSubmissions} pending sync`;
-      indicator.style.background = '#f59e0b';
-    }
-  }
-
-  showStatus(message, type = 'info', duration = 4000) {
-    // Remove existing notifications
-    document.querySelectorAll('.offline-notification').forEach(n => n.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = 'offline-notification';
-    notification.textContent = message;
-    
-    const colors = {
-      success: '#10b981',
-      warning: '#f59e0b', 
-      info: '#3b82f6',
-      error: '#ef4444'
-    };
-    
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${colors[type]};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1002;
-      font-size: 0.9rem;
-      font-weight: 500;
-      max-width: 350px;
-      transform: translateX(400px);
-      transition: transform 0.3s ease;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Slide in
-    requestAnimationFrame(() => {
-      notification.style.transform = 'translateX(0)';
-    });
-    
-    // Auto remove
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, duration);
-  }
-}

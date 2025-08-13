@@ -4,190 +4,6 @@ let matches = [];
 let teams = [];
 let isUpdating = false;
 
-class OfflineStatusManager {
-  constructor() {
-    this.isOnline = navigator.onLine;
-    this.pendingSubmissions = 0;
-    this.init();
-  }
-
-  init() {
-    // Listen for online/offline events
-    window.addEventListener('online', () => {
-      this.isOnline = true;
-      this.showStatus('🟢 Back online! Syncing data...', 'success');
-      this.triggerSync();
-      this.updateIndicator();
-    });
-
-    window.addEventListener('offline', () => {
-      this.isOnline = false;
-      this.showStatus('🔴 You are offline. Data will be saved locally.', 'warning');
-      this.updateIndicator();
-    });
-
-    // Listen for service worker messages
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        const { type, count, timestamp } = event.data || {};
-        
-        switch (type) {
-          case 'OFFLINE_SUBMISSION_STORED':
-            this.showStatus('💾 Scout report saved offline', 'info');
-            this.getOfflineStatus(); // Update counter
-            break;
-            
-          case 'SUBMISSIONS_SYNCED':
-            this.showStatus(`✅ ${count} reports synced successfully!`, 'success');
-            this.getOfflineStatus(); // Update counter
-            break;
-        }
-      });
-    }
-
-    // Initial status check
-    this.updateIndicator();
-    this.getOfflineStatus();
-  }
-
-  async triggerSync() {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        if ('sync' in registration) {
-          await registration.sync.register('scout-submissions-sync');
-        }
-      } catch (error) {
-        console.log('Sync registration failed:', error);
-      }
-    }
-  }
-
-  async getOfflineStatus() {
-    if (!('serviceWorker' in navigator)) return;
-
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      const channel = new MessageChannel();
-      
-      channel.port1.onmessage = (event) => {
-        const status = event.data;
-        if (status && typeof status.pendingSync === 'number') {
-          this.pendingSubmissions = status.pendingSync;
-          this.updateIndicator();
-        }
-      };
-
-      registration.active?.postMessage(
-        { type: 'GET_OFFLINE_STATUS' },
-        [channel.port2]
-      );
-    } catch (error) {
-      console.log('Could not get offline status:', error);
-    }
-  }
-
-  updateIndicator() {
-    let indicator = document.getElementById('offline-indicator');
-    
-    // Remove indicator if online and no pending submissions
-    if (this.isOnline && this.pendingSubmissions === 0) {
-      if (indicator) {
-        indicator.remove();
-      }
-      return;
-    }
-
-    // Create indicator if it doesn't exist
-    if (!indicator) {
-      indicator = document.createElement('div');
-      indicator.id = 'offline-indicator';
-      indicator.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: #f59e0b;
-        color: white;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        z-index: 1001;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer;
-        transition: all 0.3s ease;
-      `;
-      document.body.appendChild(indicator);
-      
-      // Click to force sync
-      indicator.addEventListener('click', () => {
-        this.triggerSync();
-        this.showStatus('🔄 Forcing sync...', 'info');
-      });
-    }
-
-    // Update indicator content and color
-    if (!this.isOnline) {
-      indicator.textContent = '📴 Offline Mode';
-      indicator.style.background = '#ef4444';
-    } else if (this.pendingSubmissions > 0) {
-      indicator.textContent = `🔄 ${this.pendingSubmissions} pending sync`;
-      indicator.style.background = '#f59e0b';
-    }
-  }
-
-  showStatus(message, type = 'info', duration = 4000) {
-    // Remove existing notifications
-    document.querySelectorAll('.offline-notification').forEach(n => n.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = 'offline-notification';
-    notification.textContent = message;
-    
-    const colors = {
-      success: '#10b981',
-      warning: '#f59e0b', 
-      info: '#3b82f6',
-      error: '#ef4444'
-    };
-    
-    notification.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: ${colors[type]};
-      color: white;
-      padding: 12px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      z-index: 1002;
-      font-size: 0.9rem;
-      font-weight: 500;
-      max-width: 350px;
-      transform: translateX(400px);
-      transition: transform 0.3s ease;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Slide in
-    requestAnimationFrame(() => {
-      notification.style.transform = 'translateX(0)';
-    });
-    
-    // Auto remove
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.style.transform = 'translateX(400px)';
-        setTimeout(() => notification.remove(), 300);
-      }
-    }, duration);
-  }
-}
-
-// Initialize offline manager
-const offlineManager = new OfflineStatusManager();
-
 // Create a centralized update manager
 class UpdateManager {
   constructor() {
@@ -243,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('event-key-input').value = savedEvent;
     document.getElementById('current-event-display').textContent = savedEvent;
     document.getElementById('event-section').style.display = 'block';
-    loadMatchesEnhanced();
+    loadMatches();
   }
   
   // Set up auto-refresh every 10 seconds for matches
@@ -389,44 +205,6 @@ async function renderMatches() {
   }
 }
 
-async function fetchWithRetry(url, options = {}, maxRetries = 3) {
-  let lastError;
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: AbortSignal.timeout(8000)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data._offline) {
-          offlineManager.showStatus('📋 Showing cached data', 'info', 3000);
-        }
-        
-        return { response, data };
-      }
-      
-      if (response.status >= 500) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      return { response, data: await response.json() };
-      
-    } catch (error) {
-      lastError = error;
-      
-      if (i < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-      }
-    }
-  }
-  
-  throw lastError;
-}
-
 // Fixed loadScouters with proper state management
 async function loadScouters() {
   try {
@@ -509,7 +287,7 @@ async function refreshAllData() {
     await loadScouters();
     
     if (currentEvent) {
-      await loadMatchesEnhanced();
+      await loadMatches();
     }
     
     console.log('Complete data refresh finished');
@@ -712,7 +490,8 @@ async function forceReloadMatches() {
   }
 }
 
-async function loadMatchesEnhanced() {
+// Enhanced loadMatches function - SIMPLIFIED
+async function loadMatches() {
   if (!currentEvent) {
     alert('Please enter an event key first');
     return;
@@ -724,13 +503,11 @@ async function loadMatchesEnhanced() {
     const container = document.getElementById('matches-container');
     container.innerHTML = '<p>Loading matches...</p>';
     
-    const { response, data: matchesData } = await fetchWithRetry(`/api/admin/matches?event=${currentEvent}`);
-    
+    const response = await fetch(`/api/admin/matches?event=${currentEvent}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    matches = matchesData;
+    matches = await response.json();
     
     if (matches.length === 0) {
       container.innerHTML = '<p>No matches found for this event. Make sure the event key is correct.</p>';
@@ -738,18 +515,89 @@ async function loadMatchesEnhanced() {
     }
     
     if (teams.length === 0) {
-      await loadTeamsForEventEnhanced(currentEvent);
+      await loadTeamsForEvent(currentEvent);
     }
     
+    // Always render matches after loading
     await renderMatches();
     
   } catch (error) {
-    console.error('Error loading matches:', error);
     const container = document.getElementById('matches-container');
-    container.innerHTML = '<p>Connection issue - showing cached data if available. Check connection for latest updates.</p>';
+    container.innerHTML = '<p>Error loading matches. Please check the event key and try again.</p>';
+    console.error('Error loading matches:', error);
   } finally {
     isUpdating = false;
   }
+}
+
+// Tab switching with proper data loading
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const tabId = btn.getAttribute('data-tab');
+    
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    // Load data when switching to scouters tab
+    if (tabId === 'scouters') {
+      await loadScouters();
+    }
+  });
+});
+
+// Event handlers setup
+document.addEventListener('DOMContentLoaded', () => {
+  // Set up create scouter form
+  const createForm = document.getElementById('create-scouter-form');
+  if (createForm) {
+    createForm.addEventListener('submit', createScouterSubmit);
+  }
+});
+
+// Keep all other existing functions unchanged
+function getAssignmentStatusDisplay(assignment) {
+  if (assignment.is_home_game) {
+    return '<span class="status-badge home-game">🏠 Home Game</span>';
+  } else if (assignment.completed) {
+    return `<span class="status-badge completed">✅ ${assignment.scouter}</span>`;
+  } else {
+    return `<span class="status-badge pending">⏳ ${assignment.scouter}</span>`;
+  }
+}
+
+function getAssignmentActions(assignment) {
+  const actions = [];
+  
+  if (assignment.is_home_game) {
+    actions.push(`
+      <button onclick="unmarkHomeGame('${assignment.assignment_key}')" class="action-btn unmark-home" title="Remove home game status">
+        Remove Home
+      </button>
+    `);
+  } else if (!assignment.completed) {
+    actions.push(`
+      <button onclick="markHomeGame('${assignment.assignment_key}')" class="action-btn mark-home" title="Mark as home game">
+        Mark Home
+      </button>
+    `);
+  }
+  
+  if (!assignment.completed) {
+    actions.push(`
+      <button onclick="removeIndividualAssignment('${assignment.assignment_key}', '${assignment.team_number}', '${assignment.scouter}')" class="action-btn remove-individual" title="Remove this specific assignment">
+        Remove Assignment
+      </button>
+    `);
+  }
+  
+  if (actions.length > 0) {
+    return `<div class="assignment-actions">${actions.join('')}</div>`;
+  }
+  
+  return '';
 }
 
 async function assignMatch(matchNumber) {
@@ -1041,29 +889,34 @@ async function loadEventData() {
   
   localStorage.setItem('currentEvent', eventKey);
 
-  await loadMatchesEnhanced();
-  await loadTeamsForEventEnhanced(eventKey);  
+  await loadMatches();
+  await loadTeamsForEvent(eventKey);  
 }
 
-async function loadTeamsForEventEnhanced(eventKey) {
+async function loadTeamsForEvent(eventKey) {
   try {
-    const { response, data: teamsData } = await fetchWithRetry(`/api/admin/teams?event=${eventKey}`);
-    
+    const response = await fetch(`/api/admin/teams?event=${eventKey}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    teams = teamsData;
+    teams = await response.json();
     
     const bulkTeamSelect = document.getElementById('bulk-team');
     if (bulkTeamSelect) {
-      bulkTeamSelect.innerHTML = '<option value="">Connection issue - using cached teams</option>';
+      bulkTeamSelect.innerHTML = '<option value="">Select Team</option>';
+      teams.forEach(team => {
+        const option = document.createElement('option');
+        option.value = team;
+        option.textContent = `Team ${team}`;
+        bulkTeamSelect.appendChild(option);
+      });
+      console.log(`Loaded ${teams.length} teams for event ${eventKey}`);
     }
   } catch (error) {
-    console.error('Error loading teams for event:', error);
+    console.error('Error loading teams:', error);
     const bulkTeamSelect = document.getElementById('bulk-team');
     if (bulkTeamSelect) {
-      bulkTeamSelect.innerHTML = '<option value="">Error loading teams</option>';
+      bulkTeamSelect.innerHTML = '<option value="">No teams found</option>';
     }
   }
 }
@@ -1079,7 +932,7 @@ function hideCreateScouterModal() {
 
 function refreshMatches() {
   if (currentEvent) {
-    loadMatchesEnhanced();
+    loadMatches();
   } else {
     alert('Please enter an event key first');
   }
@@ -1503,8 +1356,8 @@ async function createManualEvent() {
       document.getElementById('manual-event-name').value = '';
       clearManualMatches();
       
-      await loadMatchesEnhanced();
-      await loadTeamsForEventEnhanced(currentEvent);
+      await loadMatches();
+      await loadTeamsForEvent(currentEvent);
       
       document.querySelector('.event-tab-btn[data-event-tab="tba"]').click();
     } else {
@@ -1576,8 +1429,8 @@ async function loadManualEvent() {
     document.getElementById('event-section').style.display = 'block';
     localStorage.setItem('currentEvent', currentEvent);
     
-    await loadMatchesEnhanced();
-    await loadTeamsForEventEnhanced(currentEvent);
+    await loadMatches();
+    await loadTeamsForEvent(currentEvent);
     
     alert('Manual event loaded successfully!');
   } catch (error) {
