@@ -3,66 +3,44 @@ let currentFilters = {
   event: '',
   team: '',
   matchMin: null,
-  matchMax: null
+  matchMax: null,
+  hidePartial: false
 };
 
-// Tab switching functionality
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.getAttribute('data-tab');
-    
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-
-    // Load specific data for each tab
     switch(tabId) {
-      case 'teams':
-        renderTeamAnalysis();
-        break;
-      case 'matches':
-        renderMatchDetails();
-        break;
-      case 'performance':
-        renderPerformanceTrends();
-        break;
+      case 'teams': renderTeamAnalysis(); break;
+      case 'matches': renderMatchDetails(); break;
+      case 'performance': renderPerformanceTrends(); break;
     }
   });
 });
 
-// Filter event listeners
 document.addEventListener('DOMContentLoaded', () => {
-  ['event-filter', 'team-filter', 'match-min', 'match-max'].forEach(id => {
+  ['event-filter', 'team-filter', 'match-min', 'match-max', 'hide-partial-filter'].forEach(id => {
     const element = document.getElementById(id);
-    if (element) {
-      element.addEventListener('change', applyFilters);
-    }
+    if (element) element.addEventListener('change', applyFilters);
   });
-
   loadAnalyticsData();
 });
 
 async function loadAnalyticsData() {
   try {
     const response = await fetch('/api/admin/analytics/data');
-    if (!response.ok) {
-      throw new Error('Failed to fetch analytics data');
-    }
-    
+    if (!response.ok) throw new Error('Failed to fetch analytics data');
     analyticsData = await response.json();
-    
-    if (analyticsData.error) {
-      throw new Error(analyticsData.error);
-    }
-    
+    if (analyticsData.error) throw new Error(analyticsData.error);
     updateFilters();
     renderOverview();
     renderTeamAnalysis();
     renderMatchDetails();
     renderPerformanceTrends();
-    
   } catch (error) {
     console.error('Error loading analytics data:', error);
     showError('Error loading analytics data: ' + error.message);
@@ -74,7 +52,7 @@ function applyFilters() {
   currentFilters.team = document.getElementById('team-filter').value;
   currentFilters.matchMin = document.getElementById('match-min').value ? parseInt(document.getElementById('match-min').value) : null;
   currentFilters.matchMax = document.getElementById('match-max').value ? parseInt(document.getElementById('match-max').value) : null;
-
+  currentFilters.hidePartial = document.getElementById('hide-partial-filter')?.checked || false;
   renderOverview();
   renderTeamAnalysis();
   renderMatchDetails();
@@ -87,33 +65,34 @@ function getFilteredData() {
     if (currentFilters.team && entry.team !== currentFilters.team) return false;
     if (currentFilters.matchMin && entry.match < currentFilters.matchMin) return false;
     if (currentFilters.matchMax && entry.match > currentFilters.matchMax) return false;
+    if (currentFilters.hidePartial && entry.partialMatch) return false;
     return true;
   });
 }
 
 function updateFilters() {
   const events = [...new Set(analyticsData.map(d => d.event))];
-  const teams = [...new Set(analyticsData.map(d => d.team))].sort((a, b) => parseInt(a) - parseInt(b));
-
-  // Update event filter
+  const teamsWithCounts = analyticsData.reduce((acc, d) => {
+    acc[d.team] = (acc[d.team] || 0) + 1;
+    return acc;
+  }, {});
+  const teams = Object.keys(teamsWithCounts).filter(team => teamsWithCounts[team] >= 1).sort((a, b) => parseInt(a) - parseInt(b));
   const eventSelect = document.getElementById('event-filter');
   eventSelect.innerHTML = '<option value="">All Events</option>';
-  events.forEach(event => {
-    eventSelect.innerHTML += `<option value="${event}">${event}</option>`;
-  });
-
-  // Update team filters
+  events.forEach(event => { eventSelect.innerHTML += `<option value="${event}">${event}</option>`; });
   ['team-filter', 'compare-team1', 'compare-team2'].forEach(selectId => {
     const select = document.getElementById(selectId);
     if (select) {
       const currentValue = select.value;
       select.innerHTML = '<option value="">Select Team</option>';
-      teams.forEach(team => {
-        select.innerHTML += `<option value="${team}">Team ${team}</option>`;
-      });
+      teams.forEach(team => { select.innerHTML += `<option value="${team}">Team ${team}</option>`; });
       select.value = currentValue;
     }
   });
+}
+
+function renderNoDataMessage(container, message = 'No data available') {
+  container.innerHTML = `<div class="no-data">${message}</div>`;
 }
 
 function renderOverview() {
@@ -356,9 +335,13 @@ function renderMatchDetails() {
           else if (entry.totalScore >= 40) performanceClass = 'performance-medium';
 
           const submissionDate = new Date(entry.submissionTime);
-          const endgameDisplay = entry.endgame.action === 'climb' ? 
-            (entry.endgame.climbSuccessful ? '✅ Climb' : '❌ Failed Climb') : 
-            entry.endgame.action;
+          let endgameDisplay;
+        if (entry.endgame.action === 'climb') {
+        endgameDisplay = entry.endgame.climbSuccessful ? '✅ Climb' : '❌ Climb';
+        } else {
+        endgameDisplay = entry.endgame.action;
+        }
+
 
           return `
             <tr>
@@ -586,9 +569,11 @@ function compareTeams() {
     return;
   }
 
-  const data = getFilteredData();
-  const team1Data = data.filter(d => d.team === team1);
-  const team2Data = data.filter(d => d.team === team2);
+  const filtered = getFilteredData();
+  const team1Data = filtered.filter(d => String(d.team) === String(team1));
+  const team2Data = filtered.filter(d => String(d.team) === String(team2));
+
+
 
   if (team1Data.length === 0 || team2Data.length === 0) {
     container.innerHTML = '<p class="error">No data available for one or both selected teams</p>';
