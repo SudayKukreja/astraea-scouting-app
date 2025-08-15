@@ -248,22 +248,7 @@ body {
   overflow: hidden;
 }
 
-.tab-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, var(--primary-blue-ultra-light) 0%, var(--secondary-blue) 100%);
-  opacity: 0;
-  transition: var(--transition-normal);
-}
-
 .tab-btn:hover::before,
-.tab-btn.active::before {
-  opacity: 1;
-}
 
 .tab-btn:hover {
   color: var(--primary-blue);
@@ -275,11 +260,6 @@ body {
   font-weight: 700;
   box-shadow: var(--shadow-sm);
   position: relative;
-}
-
-.tab-btn > * {
-  position: relative;
-  z-index: 1;
 }
 
 .tab-content {
@@ -551,11 +531,6 @@ body {
   gap: var(--spacing-sm);
 }
 
-.home-indicator::before {
-  content: '🏠';
-  font-size: 0.9rem;
-}
-
 .match-actions {
   display: flex;
   gap: var(--spacing-lg);
@@ -630,18 +605,8 @@ body {
   color: var(--accent-red);
 }
 
-.alliance.red h5::before {
-  content: '🔴';
-  font-size: 1rem;
-}
-
 .alliance.blue h5 {
   color: var(--primary-blue);
-}
-
-.alliance.blue h5::before {
-  content: '🔵';
-  font-size: 1rem;
 }
 
 /* ===== ENHANCED TEAM ASSIGNMENTS ===== */
@@ -743,19 +708,10 @@ body {
   box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
 }
 
-.status-badge.completed::before {
-  content: '✓';
-  font-weight: 900;
-}
-
 .status-badge.pending {
   background: linear-gradient(135deg, var(--warning-orange) 0%, var(--warning-orange-light) 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
-}
-
-.status-badge.pending::before {
-  content: '⏳';
 }
 
 .status-badge.home-game {
@@ -764,18 +720,10 @@ body {
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
-.status-badge.home-game::before {
-  content: '🏠';
-}
-
 .status-badge.unassigned {
   background: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-light) 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
-}
-
-.status-badge.unassigned::before {
-  content: '⚠️';
 }
 
 /* ===== ENHANCED ACTION BUTTONS ===== */
@@ -817,10 +765,6 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.action-btn.mark-home::before {
-  content: '🏠';
-}
-
 .action-btn.unmark-home {
   background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-600) 100%);
   color: white;
@@ -834,10 +778,6 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-.action-btn.unmark-home::before {
-  content: '❌';
-}
-
 .action-btn.remove-individual {
   background: linear-gradient(135deg, var(--accent-red) 0%, var(--accent-red-light) 100%);
   color: white;
@@ -849,10 +789,6 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
   border-color: rgba(255, 255, 255, 0.3);
-}
-
-.action-btn.remove-individual::before {
-  content: '🗑️';
 }
 
 .clear-match-btn {
@@ -1202,11 +1138,6 @@ body {
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
-.delete-btn::before {
-  content: '🗑️';
-  font-size: 0.8rem;
-}
-
 .event-card h4 {
   color: var(--gray-800);
   margin-bottom: var(--spacing-lg);
@@ -1248,11 +1179,6 @@ body {
   margin-bottom: var(--spacing-lg);
 }
 
-.loading::before {
-  content: '⏳';
-  animation: pulse 2s infinite;
-}
-
 .error {
   text-align: center;
   padding: var(--spacing-2xl);
@@ -1264,13 +1190,6 @@ body {
   font-weight: 600;
   font-size: 1.1rem;
   box-shadow: var(--shadow-md);
-}
-
-.error::before {
-  content: '⚠️';
-  display: block;
-  font-size: 1.5rem;
-  margin-bottom: var(--spacing-md);
 }
 
 /* ===== ENHANCED WELCOME SECTION ===== */
@@ -1482,10 +1401,6 @@ body {
   color: var(--success-green);
   font-size: 1.5rem;
   font-weight: bold;
-}
-
-.completed-check::before {
-  content: '✅';
 }
 
 /* ===== ENHANCED MATCH SUMMARY ===== */
@@ -2158,11 +2073,6 @@ button:focus-visible,
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
-.delete-manual-event::before {
-  content: '🗑️';
-  font-size: 0.8rem;
-}
-
 /* ===== AUTO ASSIGNMENT ENHANCEMENTS ===== */
 .auto-assign-success {
   background: linear-gradient(135deg, var(--success-green-bg) 0%, #f0fdf4 100%);
@@ -2173,16 +2083,6 @@ button:focus-visible,
   position: relative;
   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.15);
   margin-bottom: var(--spacing-lg);
-}
-
-.auto-assign-success::before {
-  content: "✅";
-  position: absolute;
-  left: var(--spacing-xl);
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.5rem;
-  font-weight: bold;
 }
 
 .auto-assign-success {
@@ -2199,16 +2099,6 @@ button:focus-visible,
   position: relative;
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
   margin-bottom: var(--spacing-lg);
-}
-
-.auto-assign-error::before {
-  content: "⚠️";
-  position: absolute;
-  left: var(--spacing-xl);
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 1.5rem;
-  font-weight: bold;
 }
 
 .auto-assign-error {
@@ -3378,3 +3268,31 @@ button:disabled:hover{
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
+/* === Simplified visible tab styles (patch) === */
+.tab-btn {
+  background: none;
+  border: none;
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  cursor: pointer;
+  color: var(--gray-600);
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: var(--radius-lg);
+  transition: var(--transition-normal);
+  letter-spacing: 0.025em;
+}
+
+.tab-btn:hover {
+  color: var(--primary-blue);
+  background: var(--primary-blue-ultra-light);
+  transform: translateY(-1px);
+}
+
+.tab-btn.active {
+  color: var(--primary-blue);
+  background: var(--primary-blue-ultra-light);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
