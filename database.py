@@ -250,3 +250,18 @@ def clear_match_assignments_db(event_key, match_number):
     
     save_assignments(assignments)
     return len(keys_to_remove)
+
+def clear_event_assignments(event_key):
+    """Clear all assignments for an event"""
+    assignments = load_assignments()
+    
+    keys_to_remove = []
+    for assignment_key, assignment in assignments.items():
+        if assignment.get('event_key') == event_key:
+            keys_to_remove.append(assignment_key)
+    
+    for key in keys_to_remove:
+        del assignments[key]
+    
+    save_assignments(assignments)
+    return len(keys_to_remove)

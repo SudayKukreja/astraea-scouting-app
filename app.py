@@ -149,12 +149,16 @@ def auto_assign_teams():
     data = request.json
     event_key = data.get('event_key')
     
+    print(f"Auto-assign called with event_key: {event_key}")  # Debug log
+    
     if not event_key:
         return jsonify({'error': 'Event key required'}), 400
     
     from auth import get_all_scouters
     scouters_data = get_all_scouters()
     scouter_usernames = list(scouters_data.keys())
+    
+    print(f"Found {len(scouter_usernames)} scouters: {scouter_usernames}")  # Debug log
     
     if not scouter_usernames:
         return jsonify({'error': 'No scouters found'}), 400
@@ -172,8 +176,11 @@ def auto_assign_teams():
             for match in matches:
                 teams_set.update(match['all_teams'])
             teams = sorted(list(teams_set), key=int)
+        
+        print(f"Found {len(teams)} teams: {teams}")  # Debug log
             
     except Exception as e:
+        print(f"Error loading teams: {str(e)}")  # Debug log
         return jsonify({'error': f'Could not load teams: {str(e)}'}), 500
     
     if not teams:
@@ -183,6 +190,7 @@ def auto_assign_teams():
     home_team = '6897'
     if home_team in teams:
         teams.remove(home_team)
+        print(f"Removed home team {home_team}, remaining teams: {len(teams)}")  # Debug log
     
     if len(teams) == 0:
         return jsonify({'error': 'No teams available for assignment (excluding home team)'}), 400
@@ -194,6 +202,8 @@ def auto_assign_teams():
         scouter_username = scouter_usernames[i % len(scouter_usernames)]
         scouter_name = scouters_data[scouter_username].get('name', scouter_username)
         
+        print(f"Assigning team {team} to {scouter_username}")  # Debug log
+        
         success, message = bulk_assign_team_to_scouter(scouter_username, event_key, str(team))
         
         if success:
@@ -202,6 +212,10 @@ def auto_assign_teams():
                 'scouter_username': scouter_username,
                 'scouter_name': scouter_name
             })
+        else:
+            print(f"Failed to assign team {team}: {message}")  # Debug log
+    
+    print(f"Successfully made {len(assignments_made)} assignments")  # Debug log
     
     return jsonify({
         'success': True,
@@ -220,13 +234,18 @@ def clear_all_assignments():
         return jsonify({'error': 'Event key required'}), 400
     
     try:
-        success = clear_event_assignments(event_key)
-        if success:
-            return jsonify({'success': True, 'message': 'All assignments cleared'})
-        else:
-            return jsonify({'error': 'Failed to clear assignments'}), 500
+        from database import clear_event_assignments
+        removed_count = clear_event_assignments(event_key)
+        return jsonify({
+            'success': True, 
+            'message': f'Cleared {removed_count} assignments',
+            'removed_count': removed_count
+        })
     except Exception as e:
+        print(f"Error clearing assignments: {str(e)}")  # Add logging
         return jsonify({'error': str(e)}), 500
+    
+
 
 @app.route('/api/admin/bulk-assign-team', methods=['POST'])
 @admin_required

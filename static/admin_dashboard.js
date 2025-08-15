@@ -1474,12 +1474,16 @@ async function deleteManualEventConfirm(eventKey, eventName) {
 }
 
 async function autoAssignTeams() {
+  console.log('autoAssignTeams called, currentEvent:', currentEvent);
+  
   if (!currentEvent) {
+    console.error('No current event selected');
     showErrorMessage('Please select an event first');
     return;
   }
   
   if (!confirm('Auto-assign teams to scouters? This will assign each scouter to scout one specific team across all their matches.')) {
+    console.log('Auto-assign cancelled by user');
     return;
   }
   
@@ -1490,15 +1494,30 @@ async function autoAssignTeams() {
   }
   
   try {
+    console.log('Making fetch request to /api/admin/auto-assign');
+    
     const response = await fetch('/api/admin/auto-assign', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ event_key: currentEvent })
     });
     
-    const result = await response.json();
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
     
-    if (response.ok) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Response not ok:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('Auto-assign result:', result);
+    
+    if (result.success) {
       // Show formatted results
       let resultsHTML = `
         <div class="auto-assign-success">
@@ -1525,62 +1544,89 @@ async function autoAssignTeams() {
       }
       
       // Refresh matches to show new assignments
+      console.log('Refreshing matches after auto-assign');
       updateManager.clearCache();
       await forceReloadMatches();
       
       showSuccessMessage(`Auto-assigned ${result.total_assignments} teams successfully!`);
       
     } else {
+      console.error('Auto-assign returned success=false:', result);
+      const errorMsg = result.error || 'Unknown error during auto-assignment';
+      
       if (resultsDiv) {
-        resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: ${result.error}</div>`;
+        resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: ${errorMsg}</div>`;
       }
-      showErrorMessage(result.error || 'Error during auto-assignment');
+      showErrorMessage(errorMsg);
     }
   } catch (error) {
     console.error('Auto-assign error:', error);
+    console.error('Error stack:', error.stack);
+    
     if (resultsDiv) {
-      resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: Failed to auto-assign teams</div>`;
+      resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: ${error.message}</div>`;
     }
-    showErrorMessage('Error during auto-assignment');
+    showErrorMessage(`Error during auto-assignment: ${error.message}`);
   }
 }
 
 async function clearAllAssignments() {
+  console.log('clearAllAssignments called, currentEvent:', currentEvent);
+  
   if (!currentEvent) {
+    console.error('No current event selected');
     showErrorMessage('Please select an event first');
     return;
   }
   
   if (!confirm('Clear ALL assignments for this event? This action cannot be undone.')) {
+    console.log('Clear assignments cancelled by user');
     return;
   }
   
   try {
+    console.log('Making fetch request to /api/admin/clear-all-assignments');
+    
     const response = await fetch('/api/admin/clear-all-assignments', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({ event_key: currentEvent })
     });
     
-    const result = await response.json();
+    console.log('Clear assignments response status:', response.status);
     
-    if (response.ok) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Clear assignments response not ok:', errorText);
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    }
+    
+    const result = await response.json();
+    console.log('Clear assignments result:', result);
+    
+    if (result.success) {
       const resultsDiv = document.getElementById('auto-assign-results');
       if (resultsDiv) {
         resultsDiv.style.display = 'block';
-        resultsDiv.innerHTML = '<div class="auto-assign-success">✅ All assignments cleared!</div>';
+        resultsDiv.innerHTML = `<div class="auto-assign-success">✅ ${result.message}</div>`;
       }
       
       // Clear matches display
+      console.log('Refreshing matches after clear assignments');
       updateManager.clearCache();
       await forceReloadMatches();
       
-      showSuccessMessage('All assignments cleared successfully!');
+      showSuccessMessage(result.message || 'All assignments cleared successfully!');
     } else {
+      console.error('Clear assignments returned success=false:', result);
       showErrorMessage(result.error || 'Error clearing assignments');
     }
   } catch (error) {
     console.error('Clear assignments error:', error);
-    showErrorMessage('Error clearing assignments');
+    console.error('Error stack:', error.stack);
+    showErrorMessage(`Error clearing assignments: ${error.message}`);
   }
 }
