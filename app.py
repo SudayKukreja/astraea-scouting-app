@@ -5,6 +5,8 @@ from googleapiclient.discovery import build
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 import os, json
+import re
+from datetime import datetime
 
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
@@ -67,6 +69,260 @@ def api_login():
 def api_logout():
     session.clear()
     return jsonify({'success': True})
+
+@app.route('/analytics')
+@admin_required
+def analytics_dashboard():
+    """Serve the analytics dashboard page"""
+    return render_template('analytics_dashboard.html')
+
+@app.route('/api/admin/analytics/data')
+@admin_required
+def get_analytics_data():
+    """Get all scouting data for analytics"""
+    try:
+        # Read all data from the Google Sheet
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID, 
+            range=f'{SHEET_NAME}!A1:Z1000'
+        ).execute()
+        
+        all_values = result.get('values', [])
+        analytics_data = []
+        
+        current_team = None
+        
+        for row in all_values:
+            if not row:  # Skip empty rows
+                continue
+                
+            # Check if this is a team header row
+            if len(row) > 0 and row[0].startswith('Team '):
+                team_match = re.match(r'Team (\d+):', row[0])
+                if team_match:
+                    current_team = team_match.group(1)
+                continue
+            
+            # Check if this is the column header row
+            if len(row) > 0 and row[0] == 'Scouter Name':
+                continue
+                
+            # Skip rows that don't have enough data
+            if len(row) < 10:
+                continue
+                
+            # Parse the data row
+            try:
+                scouter_name = row[0] if len(row) > 0 else ''
+                team_number = row[1] if len(row) > 1 else current_team or ''
+                match_number = row[2] if len(row) > 2 else ''
+                submission_time = row[3] if len(row) > 3 else ''
+                auto_summary = row[4] if len(row) > 4 else ''
+                teleop_summary = row[5] if len(row) > 5 else ''
+                offense_rating = row[6] if len(row) > 6 else '0'
+                defense_rating = row[7] if len(row) > 7 else '0'
+                endgame_summary = row[8] if len(row) > 8 else ''
+                partial_match = row[9] if len(row) > 9 else 'No'
+                notes = row[10] if len(row) > 10 else ''
+                
+                # Skip if essential data is missing
+                if not scouter_name or not team_number or not match_number:
+                    continue
+                    
+                # Parse auto data from summary
+                auto_data = parse_auto_summary(auto_summary)
+                
+                # Parse teleop data from summary
+                teleop_data = parse_teleop_summary(teleop_summary)
+                
+                # Parse endgame data
+                endgame_data = parse_endgame_summary(endgame_summary)
+                
+                # Calculate scores (simplified scoring system)
+                auto_score = calculate_auto_score(auto_data)
+                teleop_score = calculate_teleop_score(teleop_data)
+                endgame_score = calculate_endgame_score(endgame_data)
+                total_score = auto_score + teleop_score + endgame_score
+                
+                # Parse submission time
+                try:
+                    submission_datetime = datetime.strptime(submission_time, "%m/%d/%Y %I:%M:%S %p")
+                except:
+                    submission_datetime = datetime.now()
+                
+                # Create analytics entry
+                analytics_entry = {
+                    'team': team_number,
+                    'match': int(match_number) if match_number.isdigit() else 0,
+                    'scouterName': scouter_name,
+                    'submissionTime': submission_datetime.isoformat(),
+                    'event': 'current_event',  # You might want to track this differently
+                    'auto': {
+                        'score': auto_score,
+                        **auto_data
+                    },
+                    'teleop': {
+                        'score': teleop_score,
+                        'offenseRating': safe_int(offense_rating),
+                        'defenseRating': safe_int(defense_rating),
+                        **teleop_data
+                    },
+                    'endgame': {
+                        'score': endgame_score,
+                        **endgame_data
+                    },
+                    'totalScore': total_score,
+                    'notes': notes,
+                    'partialMatch': partial_match.lower() == 'yes'
+                }
+                
+                analytics_data.append(analytics_entry)
+                
+            except Exception as e:
+                print(f"Error parsing row {row}: {str(e)}")
+                continue
+        
+        return jsonify(analytics_data)
+        
+    except Exception as e:
+        print(f"Error fetching analytics data: {str(e)}")
+        return jsonify({'error': 'Failed to fetch analytics data'}), 500
+
+def safe_int(value, default=0):
+    """Safely convert value to int"""
+    try:
+        if value == '-' or value == '':
+            return default
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+def parse_auto_summary(summary):
+    """Parse auto summary string into structured data"""
+    if not summary:
+        return {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    
+    data = {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    
+    if "Didn't move in auto" in summary:
+        return data
+    elif "Only moved forward" in summary:
+        # Extract dropped pieces if present
+        dropped_match = re.search(r'Dropped:(\d+)', summary)
+        if dropped_match:
+            data['droppedPieces'] = int(dropped_match.group(1))
+        return data
+    
+    # Parse scoring data: "L1:2, L2:1, L3:0, L4:1, P:1, B:0, Dropped:1"
+    patterns = {
+        'll1': r'L1:(\d+)',
+        'l2': r'L2:(\d+)',
+        'l3': r'L3:(\d+)',
+        'l4': r'L4:(\d+)',
+        'processor': r'P:(\d+)',
+        'barge': r'B:(\d+)',
+        'droppedPieces': r'Dropped:(\d+)'
+    }
+    
+    for key, pattern in patterns.items():
+        match = re.search(pattern, summary)
+        if match:
+            data[key] = int(match.group(1))
+    
+    return data
+
+def parse_teleop_summary(summary):
+    """Parse teleop summary string into structured data"""
+    if not summary:
+        return {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    
+    data = {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    
+    if "Didn't move in teleop" in summary:
+        return data
+    
+    # Parse scoring data: "L1:5, L2:3, L3:1, L4:0, P:2, B:1, Dropped:2"
+    patterns = {
+        'll1': r'L1:(\d+)',
+        'l2': r'L2:(\d+)',
+        'l3': r'L3:(\d+)',
+        'l4': r'L4:(\d+)',
+        'processor': r'P:(\d+)',
+        'barge': r'B:(\d+)',
+        'droppedPieces': r'Dropped:(\d+)'
+    }
+    
+    for key, pattern in patterns.items():
+        match = re.search(pattern, summary)
+        if match:
+            data[key] = int(match.group(1))
+    
+    return data
+
+def parse_endgame_summary(summary):
+    """Parse endgame summary string into structured data"""
+    if not summary:
+        return {'action': 'did not park/climb', 'climbDepth': '', 'climbSuccessful': False}
+    
+    summary_lower = summary.lower()
+    
+    if 'climb' in summary_lower:
+        action = 'climb'
+        climb_depth = 'shallow' if 'shallow' in summary_lower else 'deep' if 'deep' in summary_lower else 'unknown'
+        climb_successful = 'success' in summary_lower
+        return {
+            'action': action,
+            'climbDepth': climb_depth,
+            'climbSuccessful': climb_successful
+        }
+    elif 'park' in summary_lower:
+        return {
+            'action': 'park',
+            'climbDepth': '',
+            'climbSuccessful': False
+        }
+    else:
+        return {
+            'action': 'did not park/climb',
+            'climbDepth': '',
+            'climbSuccessful': False
+        }
+
+def calculate_auto_score(auto_data):
+    """Calculate auto score based on game pieces scored"""
+    # Simplified scoring system - adjust based on your game
+    score = 0
+    score += auto_data.get('ll1', 0) * 2  # L1 pieces worth 2 points in auto
+    score += auto_data.get('l2', 0) * 4   # L2 pieces worth 4 points in auto
+    score += auto_data.get('l3', 0) * 6   # L3 pieces worth 6 points in auto
+    score += auto_data.get('l4', 0) * 8   # L4 pieces worth 8 points in auto
+    score += auto_data.get('processor', 0) * 3  # Processor pieces worth 3 points
+    score += auto_data.get('barge', 0) * 4      # Barge pieces worth 4 points
+    return score
+
+def calculate_teleop_score(teleop_data):
+    """Calculate teleop score based on game pieces scored"""
+    # Simplified scoring system - adjust based on your game
+    score = 0
+    score += teleop_data.get('ll1', 0) * 1  # L1 pieces worth 1 point in teleop
+    score += teleop_data.get('l2', 0) * 2   # L2 pieces worth 2 points in teleop
+    score += teleop_data.get('l3', 0) * 3   # L3 pieces worth 3 points in teleop
+    score += teleop_data.get('l4', 0) * 4   # L4 pieces worth 4 points in teleop
+    score += teleop_data.get('processor', 0) * 2  # Processor pieces worth 2 points
+    score += teleop_data.get('barge', 0) * 3      # Barge pieces worth 3 points
+    return score
+
+def calculate_endgame_score(endgame_data):
+    """Calculate endgame score based on climb performance"""
+    # Simplified scoring system - adjust based on your game
+    if endgame_data.get('action') == 'climb' and endgame_data.get('climbSuccessful'):
+        if endgame_data.get('climbDepth') == 'deep':
+            return 15  # Deep climb worth 15 points
+        else:
+            return 10  # Shallow climb worth 10 points
+    elif endgame_data.get('action') == 'park':
+        return 3  # Park worth 3 points
+    return 0
 
 # =============================================================================
 # MANUAL MATCHES ROUTES
