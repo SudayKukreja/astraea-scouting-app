@@ -289,40 +289,75 @@ def parse_endgame_summary(summary):
         }
 
 def calculate_auto_score(auto_data):
-    """Calculate auto score based on game pieces scored"""
-    # Simplified scoring system - adjust based on your game
+    """Calculate auto score based on REEFSCAPE official scoring"""
     score = 0
-    score += auto_data.get('ll1', 0) * 2  # L1 pieces worth 2 points in auto
-    score += auto_data.get('l2', 0) * 4   # L2 pieces worth 4 points in auto
-    score += auto_data.get('l3', 0) * 6   # L3 pieces worth 6 points in auto
-    score += auto_data.get('l4', 0) * 8   # L4 pieces worth 8 points in auto
-    score += auto_data.get('processor', 0) * 3  # Processor pieces worth 3 points
-    score += auto_data.get('barge', 0) * 4      # Barge pieces worth 4 points
+    
+    # CORAL scoring in AUTO (from Table 6-2)
+    score += auto_data.get('ll1', 0) * 3   # L1 (trough) = 3 points
+    score += auto_data.get('l2', 0) * 4    # L2 BRANCH = 4 points  
+    score += auto_data.get('l3', 0) * 6    # L3 BRANCH = 6 points
+    score += auto_data.get('l4', 0) * 7    # L4 BRANCH = 7 points
+    
+    # ALGAE scoring in AUTO (from Table 6-2)
+    score += auto_data.get('processor', 0) * 6  # PROCESSOR = 6 points
+    score += auto_data.get('barge', 0) * 4      # NET = 4 points (assuming barge refers to NET)
+    
+    # Note: LEAVE points (3 points) are not included here as they're tracked separately
+    # Note: Dropped pieces don't score negatively in official rules
+    
     return score
 
 def calculate_teleop_score(teleop_data):
-    """Calculate teleop score based on game pieces scored"""
-    # Simplified scoring system - adjust based on your game
+    """Calculate teleop score based on REEFSCAPE official scoring"""
     score = 0
-    score += teleop_data.get('ll1', 0) * 1  # L1 pieces worth 1 point in teleop
-    score += teleop_data.get('l2', 0) * 2   # L2 pieces worth 2 points in teleop
-    score += teleop_data.get('l3', 0) * 3   # L3 pieces worth 3 points in teleop
-    score += teleop_data.get('l4', 0) * 4   # L4 pieces worth 4 points in teleop
-    score += teleop_data.get('processor', 0) * 2  # Processor pieces worth 2 points
-    score += teleop_data.get('barge', 0) * 3      # Barge pieces worth 3 points
+    
+    # CORAL scoring in TELEOP (from Table 6-2)
+    score += teleop_data.get('ll1', 0) * 2   # L1 (trough) = 2 points
+    score += teleop_data.get('l2', 0) * 3    # L2 BRANCH = 3 points
+    score += teleop_data.get('l3', 0) * 4    # L3 BRANCH = 4 points  
+    score += teleop_data.get('l4', 0) * 5    # L4 BRANCH = 5 points
+    
+    # ALGAE scoring in TELEOP (from Table 6-2)
+    score += teleop_data.get('processor', 0) * 6  # PROCESSOR = 6 points
+    score += teleop_data.get('barge', 0) * 4      # NET = 4 points (assuming barge refers to NET)
+    
+    # Note: Dropped pieces don't score negatively in official rules
+    # Note: Offense/Defense ratings are subjective and don't contribute to match points
+    
     return score
 
 def calculate_endgame_score(endgame_data):
-    """Calculate endgame score based on climb performance"""
-    # Simplified scoring system - adjust based on your game
-    if endgame_data.get('action') == 'climb' and endgame_data.get('climbSuccessful'):
-        if endgame_data.get('climbDepth') == 'deep':
-            return 15  # Deep climb worth 15 points
+    """Calculate endgame score based on REEFSCAPE official scoring"""
+    action = endgame_data.get('action', '').lower()
+    
+    if action == 'climb' and endgame_data.get('climbSuccessful', False):
+        climb_depth = endgame_data.get('climbDepth', '').lower()
+        if climb_depth == 'deep':
+            return 12  # Deep CAGE = 12 points (from Table 6-2)
+        elif climb_depth == 'shallow':
+            return 6   # Shallow CAGE = 6 points (from Table 6-2)
         else:
-            return 10  # Shallow climb worth 10 points
-    elif endgame_data.get('action') == 'park':
-        return 3  # Park worth 3 points
-    return 0
+            # If depth is unknown but climb was successful, assume shallow
+            return 6
+    elif action == 'park':
+        return 2  # PARK in BARGE ZONE = 2 points (from Table 6-2)
+    
+    return 0  # No endgame action = 0 points
+
+# Additional function to calculate other potential scores
+def calculate_additional_scores(auto_data, teleop_data, endgame_data):
+    """Calculate additional scores that might be tracked"""
+    additional_score = 0
+    
+    # LEAVE points (only in auto, 3 points if robot left starting line)
+    # This would need to be tracked separately in your scouting form
+    # For now, we'll assume if any auto scoring happened, robot left starting line
+    if (auto_data.get('ll1', 0) + auto_data.get('l2', 0) + 
+        auto_data.get('l3', 0) + auto_data.get('l4', 0) + 
+        auto_data.get('processor', 0) + auto_data.get('barge', 0)) > 0:
+        additional_score += 3  # LEAVE points
+    
+    return additional_score
 
 # =============================================================================
 # MANUAL MATCHES ROUTES
