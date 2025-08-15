@@ -137,6 +137,22 @@
           </div>
         </div>
 
+        <!-- Auto Assignment Section -->
+        <div class="auto-assignment">
+          <h3>Auto Assignment</h3>
+          <p>Automatically assign each scouter to scout ONE specific team for all their matches.</p>
+          
+          <div class="auto-form">
+            <div class="auto-actions">
+              <button onclick="autoAssignTeams()" class="assign-btn">Auto Assign All</button>
+              <button onclick="clearAllAssignments()" class="clear-btn">Clear All Assignments</button>
+            </div>
+            <div id="auto-assign-results" class="auto-results" style="display: none;">
+              <!-- Results will appear here -->
+            </div>
+          </div>
+        </div>
+
         <!-- Matches List -->
         <div id="matches-container" class="matches-container">
           <p class="info-text">Enter an event key above to load matches from The Blue Alliance</p>
