@@ -77,11 +77,6 @@ async function loadAssignments() {
                 }).join('')}
               </div>
             </div>
-            <div class="match-actions">
-              <div class="match-progress">
-                ${getMatchProgressText(matchAssignments)}
-              </div>
-            </div>
           </div>
         `;
       }).join('');
@@ -92,18 +87,18 @@ async function loadAssignments() {
   }
 }
 
-function getMatchProgressText(assignments) {
-  const completed = assignments.filter(a => a.completed).length;
-  const homeGames = assignments.filter(a => a.is_home_game).length;
-  const total = assignments.length;
-  const remaining = total - completed - homeGames;
+// function getMatchProgressText(assignments) {
+//   const completed = assignments.filter(a => a.completed).length;
+//   const homeGames = assignments.filter(a => a.is_home_game).length;
+//   const total = assignments.length;
+//   const remaining = total - completed - homeGames;
   
-  if (homeGames > 0) {
-    return `${completed}/${total} completed, ${homeGames} home games, ${remaining} remaining`;
-  } else {
-    return `${completed}/${total} teams completed`;
-  }
-}
+//   if (homeGames > 0) {
+//     return `${completed}/${total} completed, ${homeGames} home games, ${remaining} remaining`;
+//   } else {
+//     return `${completed}/${total} teams completed`;
+//   }
+// }
 
 async function markHomeGame(assignmentKey) {
   if (!confirm('Mark this assignment as a home game? You will not need to scout this match.')) {
