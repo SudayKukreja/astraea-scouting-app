@@ -3048,3 +3048,58 @@ button:disabled:hover {
     font-size: 0.8rem;
   }
 }
+
+.auto-assignment {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px solid #e9ecef;
+}
+
+.auto-assignment h3 {
+  margin-top: 0;
+  color: #495057;
+}
+
+.auto-form {
+  margin-top: 15px;
+}
+
+.auto-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auto-results {
+  margin-top: 15px;
+}
+
+.auto-assign-success {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.auto-assign-error {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.assignment-list {
+  margin-top: 10px;
+}
+
+.assignment-item {
+  background: white;
+  padding: 8px 12px;
+  margin: 5px 0;
+  border-radius: 4px;
+  border-left: 3px solid #28a745;
+}

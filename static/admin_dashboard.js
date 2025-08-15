@@ -1472,3 +1472,115 @@ async function deleteManualEventConfirm(eventKey, eventName) {
     console.error(error);
   }
 }
+
+async function autoAssignTeams() {
+  if (!currentEvent) {
+    showErrorMessage('Please select an event first');
+    return;
+  }
+  
+  if (!confirm('Auto-assign teams to scouters? This will assign each scouter to scout one specific team across all their matches.')) {
+    return;
+  }
+  
+  const resultsDiv = document.getElementById('auto-assign-results');
+  if (resultsDiv) {
+    resultsDiv.style.display = 'block';
+    resultsDiv.innerHTML = '<p>Assigning teams...</p>';
+  }
+  
+  try {
+    const response = await fetch('/api/admin/auto-assign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_key: currentEvent })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      // Show formatted results
+      let resultsHTML = `
+        <div class="auto-assign-success">
+          <h4>✅ Auto Assignment Complete!</h4>
+          <p>Successfully assigned ${result.total_assignments} teams:</p>
+          <div class="assignment-list">
+      `;
+      
+      result.assignments.forEach(assignment => {
+        resultsHTML += `
+          <div class="assignment-item">
+            <strong>Team ${assignment.team}</strong> → <em>${assignment.scouter_name}</em> (${assignment.scouter_username})
+          </div>
+        `;
+      });
+      
+      resultsHTML += `
+          </div>
+        </div>
+      `;
+      
+      if (resultsDiv) {
+        resultsDiv.innerHTML = resultsHTML;
+      }
+      
+      // Refresh matches to show new assignments
+      updateManager.clearCache();
+      await forceReloadMatches();
+      
+      showSuccessMessage(`Auto-assigned ${result.total_assignments} teams successfully!`);
+      
+    } else {
+      if (resultsDiv) {
+        resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: ${result.error}</div>`;
+      }
+      showErrorMessage(result.error || 'Error during auto-assignment');
+    }
+  } catch (error) {
+    console.error('Auto-assign error:', error);
+    if (resultsDiv) {
+      resultsDiv.innerHTML = `<div class="auto-assign-error">❌ Error: Failed to auto-assign teams</div>`;
+    }
+    showErrorMessage('Error during auto-assignment');
+  }
+}
+
+async function clearAllAssignments() {
+  if (!currentEvent) {
+    showErrorMessage('Please select an event first');
+    return;
+  }
+  
+  if (!confirm('Clear ALL assignments for this event? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/clear-all-assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event_key: currentEvent })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      const resultsDiv = document.getElementById('auto-assign-results');
+      if (resultsDiv) {
+        resultsDiv.style.display = 'block';
+        resultsDiv.innerHTML = '<div class="auto-assign-success">✅ All assignments cleared!</div>';
+      }
+      
+      // Clear matches display
+      updateManager.clearCache();
+      await forceReloadMatches();
+      
+      showSuccessMessage('All assignments cleared successfully!');
+    } else {
+      showErrorMessage(result.error || 'Error clearing assignments');
+    }
+  } catch (error) {
+    console.error('Clear assignments error:', error);
+    showErrorMessage('Error clearing assignments');
+  }
+}

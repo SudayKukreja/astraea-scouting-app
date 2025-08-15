@@ -142,6 +142,92 @@ def scouter_dashboard():
 # ADMIN API ROUTES
 # =============================================================================
 
+@app.route('/api/admin/auto-assign', methods=['POST'])
+@admin_required
+def auto_assign_teams():
+    """Automatically assign each scouter to one team across all matches"""
+    data = request.json
+    event_key = data.get('event_key')
+    
+    if not event_key:
+        return jsonify({'error': 'Event key required'}), 400
+    
+    from auth import get_all_scouters
+    scouters_data = get_all_scouters()
+    scouter_usernames = list(scouters_data.keys())
+    
+    if not scouter_usernames:
+        return jsonify({'error': 'No scouters found'}), 400
+    
+    # Get teams for this event
+    try:
+        if is_manual_event(event_key):
+            teams = get_manual_event_teams(event_key)
+        else:
+            matches = tba_client.get_event_matches(event_key)
+            if not matches:
+                matches = get_sample_matches()
+            
+            teams_set = set()
+            for match in matches:
+                teams_set.update(match['all_teams'])
+            teams = sorted(list(teams_set), key=int)
+            
+    except Exception as e:
+        return jsonify({'error': f'Could not load teams: {str(e)}'}), 500
+    
+    if not teams:
+        return jsonify({'error': 'No teams found for this event'}), 400
+    
+    # Remove home team if present
+    home_team = '6897'
+    if home_team in teams:
+        teams.remove(home_team)
+    
+    if len(teams) == 0:
+        return jsonify({'error': 'No teams available for assignment (excluding home team)'}), 400
+    
+    # Assign teams to scouters in round-robin fashion
+    assignments_made = []
+    
+    for i, team in enumerate(teams):
+        scouter_username = scouter_usernames[i % len(scouter_usernames)]
+        scouter_name = scouters_data[scouter_username].get('name', scouter_username)
+        
+        success, message = bulk_assign_team_to_scouter(scouter_username, event_key, str(team))
+        
+        if success:
+            assignments_made.append({
+                'team': team,
+                'scouter_username': scouter_username,
+                'scouter_name': scouter_name
+            })
+    
+    return jsonify({
+        'success': True,
+        'assignments': assignments_made,
+        'total_assignments': len(assignments_made)
+    })
+
+@app.route('/api/admin/clear-all-assignments', methods=['POST'])
+@admin_required  
+def clear_all_assignments():
+    """Clear all assignments for an event"""
+    data = request.json
+    event_key = data.get('event_key')
+    
+    if not event_key:
+        return jsonify({'error': 'Event key required'}), 400
+    
+    try:
+        success = clear_event_assignments(event_key)
+        if success:
+            return jsonify({'success': True, 'message': 'All assignments cleared'})
+        else:
+            return jsonify({'error': 'Failed to clear assignments'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/bulk-assign-team', methods=['POST'])
 @admin_required
 def bulk_assign_team():
