@@ -17,7 +17,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     switch(tabId) {
       case 'teams': renderTeamAnalysis(); break;
       case 'matches': renderMatchDetails(); break;
-      case 'performance': renderPerformanceTrends(); break;
+      case 'insights': renderTeamInsights(); break;
     }
   });
 });
@@ -40,7 +40,7 @@ async function loadAnalyticsData() {
     renderOverview();
     renderTeamAnalysis();
     renderMatchDetails();
-    renderPerformanceTrends();
+    renderTeamInsights();
   } catch (error) {
     console.error('Error loading analytics data:', error);
     showError('Error loading analytics data: ' + error.message);
@@ -56,7 +56,7 @@ function applyFilters() {
   renderOverview();
   renderTeamAnalysis();
   renderMatchDetails();
-  renderPerformanceTrends();
+  renderTeamInsights();
 }
 
 function getFilteredData() {
@@ -336,12 +336,17 @@ function renderMatchDetails() {
 
           const submissionDate = new Date(entry.submissionTime);
           let endgameDisplay;
-        if (entry.endgame.action === 'climb') {
-        endgameDisplay = entry.endgame.climbSuccessful ? '✅ Climb' : '❌ Climb';
-        } else {
-        endgameDisplay = entry.endgame.action;
-        }
-
+          
+          // Fixed endgame display logic
+          if (entry.endgame.action === 'climb') {
+            endgameDisplay = entry.endgame.climbSuccessful ? '✅ Climb' : '❌ Climb';
+          } else if (entry.endgame.action === 'park') {
+            endgameDisplay = '🚗 Park';
+          } else if (entry.endgame.action === 'did not park/climb') {
+            endgameDisplay = '⚪ No Action';
+          } else {
+            endgameDisplay = entry.endgame.action || 'Unknown';
+          }
 
           return `
             <tr>
@@ -368,190 +373,140 @@ function renderMatchDetails() {
   `;
 }
 
-function renderPerformanceTrends() {
+function renderTeamInsights() {
   const data = getFilteredData();
-  
-  // Performance over time chart
-  renderPerformanceOverTimeChart(data);
-  
-  // Endgame performance chart
-  renderEndgameChart(data);
-}
-
-function renderPerformanceOverTimeChart(data) {
-  const canvas = document.getElementById('performance-chart');
-  const ctx = canvas.getContext('2d');
-  
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const container = document.getElementById('team-insights-container');
   
   if (data.length === 0) {
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
+    container.innerHTML = '<p class="loading">No data available for insights</p>';
     return;
   }
 
-  // Group data by match number and calculate averages
-  const matchGroups = {};
+  // Group by team for analysis
+  const teamData = {};
   data.forEach(entry => {
-    const matchKey = entry.match;
-    if (!matchGroups[matchKey]) {
-      matchGroups[matchKey] = [];
+    if (!teamData[entry.team]) {
+      teamData[entry.team] = [];
     }
-    matchGroups[matchKey].push(entry.totalScore);
+    teamData[entry.team].push(entry);
   });
 
-  const matches = Object.keys(matchGroups).map(Number).sort((a, b) => a - b).slice(0, 20);
-  const averages = matches.map(match => {
-    const scores = matchGroups[match];
-    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
-  });
+  const insights = Object.keys(teamData)
+    .filter(team => teamData[team].length >= 2) // At least 2 matches for meaningful insights
+    .sort((a, b) => parseInt(a) - parseInt(b))
+    .slice(0, 10) // Top 10 teams by number
+    .map(team => generateTeamInsights(team, teamData[team]));
 
-  if (matches.length === 0) return;
-
-  const maxScore = Math.max(...averages);
-  const minScore = Math.min(...averages);
-  const range = maxScore - minScore || 1;
-  
-  const chartWidth = canvas.width - 80;
-  const chartHeight = canvas.height - 80;
-  const stepX = chartWidth / (matches.length - 1 || 1);
-
-  // Draw grid lines
-  ctx.strokeStyle = '#e5e7eb';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 5; i++) {
-    const y = 40 + (i * chartHeight / 5);
-    ctx.beginPath();
-    ctx.moveTo(60, y);
-    ctx.lineTo(canvas.width - 20, y);
-    ctx.stroke();
-  }
-
-  // Draw line
-  ctx.strokeStyle = '#3b82f6';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  
-  averages.forEach((avg, index) => {
-    const x = 60 + (index * stepX);
-    const y = 40 + chartHeight - ((avg - minScore) / range * chartHeight);
-    
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-    
-    // Draw points
-    ctx.save();
-    ctx.fillStyle = '#1e3a8a';
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.restore();
-  });
-  
-  ctx.stroke();
-
-  // Draw labels
-  ctx.fillStyle = '#374151';
-  ctx.font = '12px sans-serif';
-  ctx.textAlign = 'center';
-  
-  matches.forEach((match, index) => {
-    const x = 60 + (index * stepX);
-    ctx.fillText(`M${match}`, x, canvas.height - 10);
-  });
-
-  // Y-axis labels
-  ctx.textAlign = 'right';
-  for (let i = 0; i <= 5; i++) {
-    const y = 40 + (i * chartHeight / 5);
-    const value = (maxScore - (i * range / 5)).toFixed(0);
-    ctx.fillText(value, 55, y + 4);
-  }
+  container.innerHTML = `
+    <div class="insights-grid">
+      ${insights.map(insight => `
+        <div class="insight-card">
+          <div class="insight-header">
+            <h4>Team ${insight.team}</h4>
+            <span class="match-count">${insight.matchCount} matches</span>
+          </div>
+          <div class="insight-content">
+            <p class="insight-summary">${insight.summary}</p>
+            <div class="insight-stats">
+              <div class="insight-stat">
+                <span class="stat-label">Consistency:</span>
+                <span class="stat-value ${insight.consistency.class}">${insight.consistency.rating}</span>
+              </div>
+              <div class="insight-stat">
+                <span class="stat-label">Strength:</span>
+                <span class="stat-value">${insight.strength}</span>
+              </div>
+              <div class="insight-stat">
+                <span class="stat-label">Trend:</span>
+                <span class="stat-value ${insight.trend.class}">${insight.trend.direction}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
-function renderEndgameChart(data) {
-  const canvas = document.getElementById('endgame-chart');
-  const ctx = canvas.getContext('2d');
+function generateTeamInsights(team, matches) {
+  const matchCount = matches.length;
+  const avgTotal = matches.reduce((sum, m) => sum + m.totalScore, 0) / matchCount;
+  const avgAuto = matches.reduce((sum, m) => sum + m.auto.score, 0) / matchCount;
+  const avgTeleop = matches.reduce((sum, m) => sum + m.teleop.score, 0) / matchCount;
   
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (data.length === 0) {
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '16px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('No data available', canvas.width / 2, canvas.height / 2);
-    return;
+  // Calculate consistency (standard deviation)
+  const scores = matches.map(m => m.totalScore);
+  const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / matchCount;
+  const stdDev = Math.sqrt(variance);
+  
+  let consistencyRating, consistencyClass;
+  if (stdDev < 10) {
+    consistencyRating = 'Very Consistent';
+    consistencyClass = 'good';
+  } else if (stdDev < 20) {
+    consistencyRating = 'Consistent';
+    consistencyClass = 'medium';
+  } else {
+    consistencyRating = 'Inconsistent';
+    consistencyClass = 'poor';
   }
 
-  // Count endgame actions
-  const endgameCounts = {
-    'climb_success': 0,
-    'climb_fail': 0,
-    'park': 0,
-    'none': 0
+  // Determine strength
+  let strength;
+  if (avgAuto > avgTeleop * 0.6) {
+    strength = 'Auto Specialist';
+  } else if (avgTeleop > avgAuto * 2) {
+    strength = 'Teleop Focused';
+  } else {
+    strength = 'Balanced Scorer';
+  }
+
+  // Check for climbing ability
+  const climbAttempts = matches.filter(m => m.endgame.action === 'climb');
+  const climbSuccess = climbAttempts.filter(m => m.endgame.climbSuccessful);
+  
+  if (climbAttempts.length >= 2) {
+    const climbRate = (climbSuccess.length / climbAttempts.length) * 100;
+    if (climbRate >= 80) {
+      strength += ' & Reliable Climber';
+    } else if (climbRate >= 50) {
+      strength += ' & Decent Climber';
+    }
+  }
+
+  // Calculate trend (if enough matches)
+  let trend = { direction: 'Stable', class: 'medium' };
+  if (matchCount >= 4) {
+    const firstHalf = matches.slice(0, Math.floor(matchCount / 2));
+    const secondHalf = matches.slice(Math.floor(matchCount / 2));
+    const firstAvg = firstHalf.reduce((sum, m) => sum + m.totalScore, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, m) => sum + m.totalScore, 0) / secondHalf.length;
+    
+    if (secondAvg > firstAvg + 5) {
+      trend = { direction: 'Improving', class: 'good' };
+    } else if (firstAvg > secondAvg + 5) {
+      trend = { direction: 'Declining', class: 'poor' };
+    }
+  }
+
+  // Generate summary
+  let summary;
+  if (avgTotal >= 60) {
+    summary = `Strong performer averaging ${avgTotal.toFixed(1)} points per match. ${consistencyRating.toLowerCase()} across ${matchCount} matches.`;
+  } else if (avgTotal >= 40) {
+    summary = `Solid mid-tier team with ${avgTotal.toFixed(1)} average points. Shows ${strength.toLowerCase()} capabilities.`;
+  } else {
+    summary = `Developing team averaging ${avgTotal.toFixed(1)} points. Focus on ${avgAuto > avgTeleop ? 'teleop' : 'auto'} improvement needed.`;
+  }
+
+  return {
+    team,
+    matchCount,
+    summary,
+    consistency: { rating: consistencyRating, class: consistencyClass },
+    strength,
+    trend
   };
-
-  data.forEach(entry => {
-    const action = entry.endgame.action;
-    if (action === 'climb') {
-      if (entry.endgame.climbSuccessful) {
-        endgameCounts.climb_success++;
-      } else {
-        endgameCounts.climb_fail++;
-      }
-    } else if (action === 'park') {
-      endgameCounts.park++;
-    } else {
-      endgameCounts.none++;
-    }
-  });
-
-  // Create pie chart
-  const total = data.length;
-  const sections = [
-    { label: 'Successful Climb', value: endgameCounts.climb_success, color: '#10b981' },
-    { label: 'Failed Climb', value: endgameCounts.climb_fail, color: '#ef4444' },
-    { label: 'Park', value: endgameCounts.park, color: '#3b82f6' },
-    { label: 'No Action', value: endgameCounts.none, color: '#6b7280' }
-  ];
-
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = Math.min(centerX, centerY) - 60;
-
-  let currentAngle = -Math.PI / 2;
-
-  sections.forEach((section, index) => {
-    if (section.value > 0) {
-      const sliceAngle = (section.value / total) * 2 * Math.PI;
-      
-      // Draw slice
-      ctx.fillStyle = section.color;
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Draw label
-      const labelAngle = currentAngle + sliceAngle / 2;
-      const labelX = centerX + Math.cos(labelAngle) * (radius + 30);
-      const labelY = centerY + Math.sin(labelAngle) * (radius + 30);
-      
-      ctx.fillStyle = '#374151';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(section.label, labelX, labelY);
-      ctx.fillText(`${section.value} (${((section.value / total) * 100).toFixed(1)}%)`, labelX, labelY + 15);
-      
-      currentAngle += sliceAngle;
-    }
-  });
 }
 
 function compareTeams() {
@@ -570,13 +525,20 @@ function compareTeams() {
   }
 
   const filtered = getFilteredData();
+  // Fixed comparison: convert to string for proper comparison
   const team1Data = filtered.filter(d => String(d.team) === String(team1));
   const team2Data = filtered.filter(d => String(d.team) === String(team2));
 
+  console.log(`Team ${team1} data:`, team1Data.length, 'matches');
+  console.log(`Team ${team2} data:`, team2Data.length, 'matches');
 
+  if (team1Data.length === 0) {
+    container.innerHTML = `<p class="error">No data available for Team ${team1} with current filters</p>`;
+    return;
+  }
 
-  if (team1Data.length === 0 || team2Data.length === 0) {
-    container.innerHTML = '<p class="error">No data available for one or both selected teams</p>';
+  if (team2Data.length === 0) {
+    container.innerHTML = `<p class="error">No data available for Team ${team2} with current filters</p>`;
     return;
   }
 

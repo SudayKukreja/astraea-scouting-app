@@ -51,7 +51,7 @@
       <button class="tab-btn active" data-tab="overview">📈 Overview</button>
       <button class="tab-btn" data-tab="teams">🤖 Team Analysis</button>
       <button class="tab-btn" data-tab="matches">🏟 Match Details</button>
-      <button class="tab-btn" data-tab="performance">⚡ Performance Trends</button>
+      <button class="tab-btn" data-tab="insights">🧠 Team Insights</button>
       <button class="tab-btn" data-tab="comparison">⚖️ Team Comparison</button>
     </div>
 
@@ -115,16 +115,16 @@
       </div>
     </div>
 
-    <!-- Performance Trends Tab -->
-    <div id="performance" class="tab-content">
+    <!-- Team Insights Tab -->
+    <div id="insights" class="tab-content">
       <div class="chart-container">
-        <h3 class="chart-title">📊 Performance Over Time</h3>
-        <canvas id="performance-chart" width="400" height="200"></canvas>
-      </div>
-
-      <div class="chart-container">
-        <h3 class="chart-title">⚡ Endgame Performance</h3>
-        <canvas id="endgame-chart" width="400" height="200"></canvas>
+        <h3 class="chart-title">🧠 AI-Generated Team Insights</h3>
+        <p style="color: #6b7280; margin-bottom: 20px; font-style: italic;">
+          Algorithmic analysis of team performance patterns, consistency, and strategic focus based on match data.
+        </p>
+        <div id="team-insights-container">
+          <div class="loading">Analyzing team data...</div>
+        </div>
       </div>
     </div>
 
