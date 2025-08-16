@@ -266,7 +266,20 @@ def parse_endgame_summary(summary):
     
     summary_lower = summary.lower()
     
-    if 'climb' in summary_lower:
+    # Check for "did not park/climb" first to avoid false positives
+    if 'did not park/climb' in summary_lower or 'did not park' in summary_lower:
+        return {
+            'action': 'did not park/climb',
+            'climbDepth': '',
+            'climbSuccessful': False
+        }
+    elif 'park' in summary_lower:
+        return {
+            'action': 'park',
+            'climbDepth': '',
+            'climbSuccessful': False
+        }
+    elif 'climb' in summary_lower:
         action = 'climb'
         climb_depth = 'shallow' if 'shallow' in summary_lower else 'deep' if 'deep' in summary_lower else 'unknown'
         climb_successful = 'success' in summary_lower
@@ -274,12 +287,6 @@ def parse_endgame_summary(summary):
             'action': action,
             'climbDepth': climb_depth,
             'climbSuccessful': climb_successful
-        }
-    elif 'park' in summary_lower:
-        return {
-            'action': 'park',
-            'climbDepth': '',
-            'climbSuccessful': False
         }
     else:
         return {
