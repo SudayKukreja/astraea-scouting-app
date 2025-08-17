@@ -458,6 +458,57 @@ body {
   background: rgba(239, 68, 68, 0.1);
 }
 
+/* NEW: Extra Insights Styles */
+.extra-insights {
+  margin-top: 20px;
+  padding: 18px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(16, 185, 129, 0.08));
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  backdrop-filter: blur(5px);
+}
+
+.extra-insights p {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.extra-insights strong {
+  color: #1e3a8a;
+  font-weight: 600;
+  min-width: 100px;
+  display: inline-block;
+}
+
+.extra-insights p:nth-child(1) strong {
+  color: #059669; /* Best Match - Green */
+}
+
+.extra-insights p:nth-child(2) strong {
+  color: #dc2626; /* Worst Match - Red */
+}
+
+.extra-insights p:nth-child(3) strong {
+  color: #d97706; /* Weakness - Orange */
+}
+
+.extra-insights p:nth-child(4) strong {
+  color: #7c3aed; /* Suggestion - Purple */
+}
+
+.extra-insights p:nth-child(4) {
+  background: rgba(124, 58, 237, 0.1);
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 3px solid #7c3aed;
+  margin-top: 12px;
+  font-style: italic;
+}
+
 .no-data {
   text-align: center;
   color: rgba(255, 255, 255, 0.7);
@@ -549,5 +600,28 @@ body {
   .insight-summary {
     padding: 12px;
     font-size: 0.9rem;
+  }
+
+  /* Mobile extra insights */
+  .extra-insights {
+    padding: 14px;
+    margin-top: 16px;
+  }
+
+  .extra-insights p {
+    font-size: 0.85rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .extra-insights strong {
+    min-width: auto;
+    margin-bottom: 2px;
+  }
+
+  .extra-insights p:nth-child(4) {
+    padding: 10px;
+    margin-top: 10px;
   }
 }

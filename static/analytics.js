@@ -392,9 +392,9 @@ function renderTeamInsights() {
   });
 
   const insights = Object.keys(teamData)
-    .filter(team => teamData[team].length >= 2) // At least 2 matches for meaningful insights
+    .filter(team => teamData[team].length >= 2)
     .sort((a, b) => parseInt(a) - parseInt(b))
-    .slice(0, 10) // Top 10 teams by number
+    .slice(0, 10)
     .map(team => generateTeamInsights(team, teamData[team]));
 
   container.innerHTML = `
@@ -421,6 +421,12 @@ function renderTeamInsights() {
                 <span class="stat-value ${insight.trend.class}">${insight.trend.direction}</span>
               </div>
             </div>
+            <div class="extra-insights">
+              <p><strong>Best Match:</strong> Match ${insight.bestMatch.match} (${insight.bestMatch.score} pts)</p>
+              <p><strong>Worst Match:</strong> Match ${insight.worstMatch.match} (${insight.worstMatch.score} pts)</p>
+              <p><strong>Weakness:</strong> ${insight.weakness || 'None detected'}</p>
+              <p><strong>Suggestion:</strong> ${insight.suggestion}</p>
+            </div>
           </div>
         </div>
       `).join('')}
@@ -433,12 +439,12 @@ function generateTeamInsights(team, matches) {
   const avgTotal = matches.reduce((sum, m) => sum + m.totalScore, 0) / matchCount;
   const avgAuto = matches.reduce((sum, m) => sum + m.auto.score, 0) / matchCount;
   const avgTeleop = matches.reduce((sum, m) => sum + m.teleop.score, 0) / matchCount;
-  
+
   // Calculate consistency (standard deviation)
   const scores = matches.map(m => m.totalScore);
   const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / matchCount;
   const stdDev = Math.sqrt(variance);
-  
+
   let consistencyRating, consistencyClass;
   if (stdDev < 10) {
     consistencyRating = 'Very Consistent';
@@ -464,7 +470,7 @@ function generateTeamInsights(team, matches) {
   // Check for climbing ability
   const climbAttempts = matches.filter(m => m.endgame.action === 'climb');
   const climbSuccess = climbAttempts.filter(m => m.endgame.climbSuccessful);
-  
+
   if (climbAttempts.length >= 2) {
     const climbRate = (climbSuccess.length / climbAttempts.length) * 100;
     if (climbRate >= 80) {
@@ -474,14 +480,60 @@ function generateTeamInsights(team, matches) {
     }
   }
 
-  // Calculate trend (if enough matches)
+  // Best and worst matches
+  const bestMatch = matches.reduce((best, m) => m.totalScore > best.totalScore ? m : best, matches[0]);
+  const worstMatch = matches.reduce((worst, m) => m.totalScore < worst.totalScore ? m : worst, matches[0]);
+
+  // Weakness detection
+  let weakness = '';
+  const avgDrops = matches.reduce((sum, m) => sum + (m.teleop.dropped || 0), 0) / matchCount;
+  if (avgDrops >= 3) weakness = 'Often drops game pieces';
+  else if (climbAttempts.length > 0 && climbSuccess.length === 0) weakness = 'Struggles to climb';
+  else if (avgAuto < 5) weakness = 'Weak auto performance';
+
+  // Dynamic suggestion generator
+  const suggestionPool = {
+    drops: [
+      'Focus on intake stability and driver control.',
+      'Try adjusting roller speed to reduce dropped pieces.',
+      'Cleaner handoff between intake and shooter would help.'
+    ],
+    climb: [
+      'Practice endgame climbing sequences under time pressure.',
+      'Reinforce climbing mechanism for reliability.',
+      'Assign more driver practice time to climbing.'
+    ],
+    auto: [
+      'Program more reliable auto routines.',
+      'Add backup trajectories in auto to handle misses.',
+      'Tune PID and pathing for smoother auto runs.'
+    ],
+    none: [
+      'Maintain consistency to stay competitive.',
+      'Keep refining cycle times to gain an edge.',
+      'Expand strategies to adapt against tougher defenses.'
+    ]
+  };
+
+  let suggestion;
+  if (weakness.includes('drops')) {
+    suggestion = suggestionPool.drops[Math.floor(Math.random() * suggestionPool.drops.length)];
+  } else if (weakness.includes('climb')) {
+    suggestion = suggestionPool.climb[Math.floor(Math.random() * suggestionPool.climb.length)];
+  } else if (weakness.includes('auto')) {
+    suggestion = suggestionPool.auto[Math.floor(Math.random() * suggestionPool.auto.length)];
+  } else {
+    suggestion = suggestionPool.none[Math.floor(Math.random() * suggestionPool.none.length)];
+  }
+
+  // Trend
   let trend = { direction: 'Stable', class: 'medium' };
   if (matchCount >= 4) {
     const firstHalf = matches.slice(0, Math.floor(matchCount / 2));
     const secondHalf = matches.slice(Math.floor(matchCount / 2));
     const firstAvg = firstHalf.reduce((sum, m) => sum + m.totalScore, 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, m) => sum + m.totalScore, 0) / secondHalf.length;
-    
+
     if (secondAvg > firstAvg + 5) {
       trend = { direction: 'Improving', class: 'good' };
     } else if (firstAvg > secondAvg + 5) {
@@ -489,7 +541,7 @@ function generateTeamInsights(team, matches) {
     }
   }
 
-  // Generate summary
+  // Summary
   let summary;
   if (avgTotal >= 60) {
     summary = `Strong performer averaging ${avgTotal.toFixed(1)} points per match. ${consistencyRating.toLowerCase()} across ${matchCount} matches.`;
@@ -505,7 +557,11 @@ function generateTeamInsights(team, matches) {
     summary,
     consistency: { rating: consistencyRating, class: consistencyClass },
     strength,
-    trend
+    trend,
+    bestMatch: { score: bestMatch.totalScore, match: bestMatch.match },
+    worstMatch: { score: worstMatch.totalScore, match: worstMatch.match },
+    weakness,
+    suggestion
   };
 }
 
