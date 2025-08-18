@@ -21,30 +21,30 @@
     </div>
 
     <div class="controls">
-    <div class="control-group">
-        <label for="event-filter">Event:</label>
-        <select id="event-filter">
-        <option value="">All Events</option>
-        </select>
-    </div>
-    <div class="control-group">
-        <label for="team-filter">Team:</label>
-        <select id="team-filter">
-        <option value="">All Teams</option>
-        </select>
-    </div>
-    <div class="control-group">
-        <label for="match-filter">Match Range:</label>
-        <input type="number" id="match-min" placeholder="Min" min="1" style="width: 80px;">
-        <span style="color: rgba(255, 255, 255, 0.9);">-</span>
-        <input type="number" id="match-max" placeholder="Max" min="1" style="width: 80px;">
-    </div>
-    <div class="control-group">
-        <label>
-        <input type="checkbox" id="hide-partial-filter">
-        Hide Partial Matches
-        </label>
-    </div>
+      <div class="control-group">
+          <label for="event-filter">Event:</label>
+          <select id="event-filter">
+            <option value="">All Events</option>
+          </select>
+      </div>
+      <div class="control-group">
+          <label for="team-filter">Team:</label>
+          <select id="team-filter">
+            <option value="">All Teams</option>
+          </select>
+      </div>
+      <div class="control-group">
+          <label for="match-filter">Match Range:</label>
+          <input type="number" id="match-min" placeholder="Min" min="1" style="width: 80px;">
+          <span style="color: rgba(255, 255, 255, 0.9);">-</span>
+          <input type="number" id="match-max" placeholder="Max" min="1" style="width: 80px;">
+      </div>
+      <div class="control-group">
+          <label>
+            <input type="checkbox" id="hide-partial-filter">
+            Hide Partial Matches
+          </label>
+      </div>
     </div>
 
     <div class="analytics-tabs">
@@ -120,10 +120,38 @@
       <div class="chart-container">
         <h3 class="chart-title">🧠 AI-Generated Team Insights</h3>
         <p style="color: #6b7280; margin-bottom: 20px; font-style: italic;">
-          Algorithmic analysis of team performance patterns, consistency, and strategic focus based on match data.
+          Advanced AI analysis of team performance patterns, consistency, strategic focus, and competitive insights based on match data.
         </p>
+        
+        <!-- Updated AI Controls -->
+        <div class="ai-controls" style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e2e8f0;">
+          <h4 style="margin: 0 0 12px 0; color: #1e40af;">🤖 AI-Powered Team Analysis</h4>
+          <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.95rem;">
+            Select a team to generate comprehensive AI insights including strengths, weaknesses, trends, and strategic recommendations.
+          </p>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <select id="ai-team-select" style="flex: 1; min-width: 200px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+              <option value="">Select Team for AI Analysis</option>
+            </select>
+            <button 
+              class="ai-generate-btn" 
+              onclick="const team = document.getElementById('ai-team-select').value; if(team) generateGeminiInsight(team); else alert('Please select a team first');"
+              style="padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; white-space: nowrap; transition: all 0.2s ease;">
+              🔮 Generate AI Insight
+            </button>
+          </div>
+          <div style="margin-top: 12px; padding: 8px; background: #fef3c7; border-radius: 4px; font-size: 0.85rem; color: #92400e;">
+            ⚠️ <strong>Usage Note:</strong> AI insights consume API credits. Use thoughtfully for strategic analysis.
+          </div>
+        </div>
+
+        <!-- Results Container -->
         <div id="team-insights-container">
-          <div class="loading">Analyzing team data...</div>
+          <div style="text-align: center; padding: 40px; color: #9ca3af;">
+            <div style="font-size: 3rem; margin-bottom: 16px;">🤖</div>
+            <p style="margin: 0; font-size: 1.1rem; color: #374151;">Select a team above to generate AI-powered insights</p>
+            <p style="margin: 8px 0 0 0; font-size: 0.9rem;">Advanced analysis includes performance trends, strategic recommendations, and competitive insights</p>
+          </div>
         </div>
       </div>
     </div>

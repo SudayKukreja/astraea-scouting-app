@@ -7,6 +7,145 @@ let currentFilters = {
   hidePartial: false
 };
 
+// AI Insight generation - only when user clicks button
+async function generateGeminiInsight(team) {
+  if (!team) {
+    alert('Please select a team first');
+    return;
+  }
+
+  // Show loading state
+  const container = document.getElementById('team-insights-container');
+  const loadingDiv = document.createElement('div');
+  loadingDiv.className = 'ai-loading';
+  loadingDiv.innerHTML = `
+    <div style="text-align: center; padding: 20px; background: #f0f9ff; border-radius: 8px; margin-bottom: 16px;">
+      <div class="loading-spinner"></div>
+      <p style="margin: 10px 0 0 0; color: #1e40af;">🤖 Analyzing Team ${team} performance data...</p>
+      <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 0.9rem;">This may take 10-15 seconds</p>
+    </div>
+  `;
+  container.prepend(loadingDiv);
+
+  // Disable button to prevent multiple requests
+  const generateButton = document.querySelector('button[onclick*="generateGeminiInsight"]');
+  if (generateButton) {
+    generateButton.disabled = true;
+    generateButton.textContent = '🔄 Generating...';
+  }
+
+  try {
+    // Get filtered team data
+    const teamData = analyticsData.filter(d => String(d.team) === String(team));
+    
+    if (teamData.length === 0) {
+      throw new Error(`No match data found for Team ${team} with current filters`);
+    }
+
+    console.log(`Sending ${teamData.length} matches for Team ${team} to AI analysis`);
+
+    const response = await fetch('/api/admin/gemini-insight', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        team: team, 
+        matches: teamData 
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.insight) {
+      throw new Error('No insight generated');
+    }
+
+    // Remove loading indicator
+    if (loadingDiv.parentNode) {
+      loadingDiv.parentNode.removeChild(loadingDiv);
+    }
+
+    // Create and display AI insight
+    const insightDiv = document.createElement('div');
+    insightDiv.className = 'ai-insight-card';
+    insightDiv.innerHTML = `
+      <div class="ai-insight-header">
+        <h4>🤖 AI Analysis: Team ${team}</h4>
+        <div class="ai-insight-meta">
+          <span>📊 ${data.matches_analyzed} matches analyzed</span>
+          <span>⏰ ${new Date(data.generated_at).toLocaleTimeString()}</span>
+        </div>
+      </div>
+      <div class="ai-insight-content">
+        ${formatAIInsight(data.insight)}
+      </div>
+      <button class="remove-insight-btn" onclick="this.parentElement.remove()">✕ Remove</button>
+    `;
+    
+    container.prepend(insightDiv);
+
+    // Scroll to show the new insight
+    insightDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (error) {
+    console.error('AI insight generation failed:', error);
+    
+    // Remove loading indicator
+    if (loadingDiv.parentNode) {
+      loadingDiv.parentNode.removeChild(loadingDiv);
+    }
+    
+    // Show error message
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'ai-error';
+    errorDiv.innerHTML = `
+      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+        <h4 style="color: #dc2626; margin: 0 0 8px 0;">❌ AI Analysis Failed</h4>
+        <p style="color: #7f1d1d; margin: 0;">${error.message}</p>
+        <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 8px; background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Dismiss</button>
+      </div>
+    `;
+    container.prepend(errorDiv);
+    
+    // Auto-remove error after 10 seconds
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.parentNode.removeChild(errorDiv);
+      }
+    }, 10000);
+    
+  } finally {
+    // Re-enable button
+    if (generateButton) {
+      generateButton.disabled = false;
+      generateButton.textContent = '🔮 Generate AI Insight';
+    }
+  }
+}
+
+function formatAIInsight(insightText) {
+  // Format the AI-generated text for better readability
+  let formatted = insightText
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic text
+    .replace(/(\d+\.\s|\-\s)/g, '<br>$1')              // Line breaks for lists
+    .replace(/\n\n/g, '</p><p>')                       // Paragraphs
+    .replace(/\n/g, '<br>');                           // Line breaks
+
+  // Wrap in paragraphs if not already formatted
+  if (!formatted.includes('<p>')) {
+    formatted = '<p>' + formatted + '</p>';
+  }
+
+  return formatted;
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tabId = btn.getAttribute('data-tab');
@@ -80,7 +219,9 @@ function updateFilters() {
   const eventSelect = document.getElementById('event-filter');
   eventSelect.innerHTML = '<option value="">All Events</option>';
   events.forEach(event => { eventSelect.innerHTML += `<option value="${event}">${event}</option>`; });
-  ['team-filter', 'compare-team1', 'compare-team2'].forEach(selectId => {
+  
+  // Update all team selectors
+  ['team-filter', 'compare-team1', 'compare-team2', 'ai-team-select'].forEach(selectId => {
     const select = document.getElementById(selectId);
     if (select) {
       const currentValue = select.value;
@@ -382,187 +523,58 @@ function renderTeamInsights() {
     return;
   }
 
-  // Group by team for analysis
-  const teamData = {};
-  data.forEach(entry => {
-    if (!teamData[entry.team]) {
-      teamData[entry.team] = [];
-    }
-    teamData[entry.team].push(entry);
-  });
-
-  const insights = Object.keys(teamData)
-    .filter(team => teamData[team].length >= 2)
-    .sort((a, b) => parseInt(a) - parseInt(b))
-    .slice(0, 10)
-    .map(team => generateTeamInsights(team, teamData[team]));
-
+  // Show AI insight generation controls
   container.innerHTML = `
-    <div class="insights-grid">
-      ${insights.map(insight => `
-        <div class="insight-card">
-          <div class="insight-header">
-            <h4>Team ${insight.team}</h4>
-            <span class="match-count">${insight.matchCount} matches</span>
-          </div>
-          <div class="insight-content">
-            <p class="insight-summary">${insight.summary}</p>
-            <div class="insight-stats">
-              <div class="insight-stat">
-                <span class="stat-label">Consistency:</span>
-                <span class="stat-value ${insight.consistency.class}">${insight.consistency.rating}</span>
-              </div>
-              <div class="insight-stat">
-                <span class="stat-label">Strength:</span>
-                <span class="stat-value">${insight.strength}</span>
-              </div>
-              <div class="insight-stat">
-                <span class="stat-label">Trend:</span>
-                <span class="stat-value ${insight.trend.class}">${insight.trend.direction}</span>
-              </div>
-            </div>
-            <div class="extra-insights">
-              <p><strong>Best Match:</strong> Match ${insight.bestMatch.match} (${insight.bestMatch.score} pts)</p>
-              <p><strong>Worst Match:</strong> Match ${insight.worstMatch.match} (${insight.worstMatch.score} pts)</p>
-              <p><strong>Weakness:</strong> ${insight.weakness || 'None detected'}</p>
-              <p><strong>Suggestion:</strong> ${insight.suggestion}</p>
-            </div>
-          </div>
-        </div>
-      `).join('')}
+    <div class="ai-controls" style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e2e8f0;">
+      <h4 style="margin: 0 0 12px 0; color: #1e40af;">🤖 AI-Powered Team Analysis</h4>
+      <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.95rem;">
+        Select a team to generate detailed AI insights based on their match performance data.
+      </p>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <select id="ai-team-select" style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+          <option value="">Select Team for AI Analysis</option>
+        </select>
+        <button 
+          class="ai-generate-btn" 
+          onclick="const team = document.getElementById('ai-team-select').value; if(team) generateGeminiInsight(team);"
+          style="padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; white-space: nowrap;">
+          🔮 Generate AI Insight
+        </button>
+      </div>
+    </div>
+
+    <div id="ai-insights-results">
+      <div style="text-align: center; padding: 40px; color: #9ca3af;">
+        <div style="font-size: 3rem; margin-bottom: 16px;">🤖</div>
+        <p style="margin: 0; font-size: 1.1rem;">Select a team above to generate AI-powered insights</p>
+        <p style="margin: 8px 0 0 0; font-size: 0.9rem;">Advanced analysis includes performance trends, strategic recommendations, and competitive insights</p>
+      </div>
     </div>
   `;
+
+  // Update team selector with current filtered data
+  updateTeamSelector();
 }
 
-function generateTeamInsights(team, matches) {
-  const matchCount = matches.length;
-  const avgTotal = matches.reduce((sum, m) => sum + m.totalScore, 0) / matchCount;
-  const avgAuto = matches.reduce((sum, m) => sum + m.auto.score, 0) / matchCount;
-  const avgTeleop = matches.reduce((sum, m) => sum + m.teleop.score, 0) / matchCount;
+function updateTeamSelector() {
+  const data = getFilteredData();
+  const teamCounts = {};
+  
+  data.forEach(entry => {
+    teamCounts[entry.team] = (teamCounts[entry.team] || 0) + 1;
+  });
 
-  // Calculate consistency (standard deviation)
-  const scores = matches.map(m => m.totalScore);
-  const variance = scores.reduce((sum, score) => sum + Math.pow(score - avgTotal, 2), 0) / matchCount;
-  const stdDev = Math.sqrt(variance);
+  const teams = Object.keys(teamCounts)
+    .filter(team => teamCounts[team] >= 1) // At least 1 match
+    .sort((a, b) => parseInt(a) - parseInt(b));
 
-  let consistencyRating, consistencyClass;
-  if (stdDev < 10) {
-    consistencyRating = 'Very Consistent';
-    consistencyClass = 'good';
-  } else if (stdDev < 20) {
-    consistencyRating = 'Consistent';
-    consistencyClass = 'medium';
-  } else {
-    consistencyRating = 'Inconsistent';
-    consistencyClass = 'poor';
+  const select = document.getElementById('ai-team-select');
+  if (select) {
+    select.innerHTML = '<option value="">Select Team for AI Analysis</option>';
+    teams.forEach(team => {
+      select.innerHTML += `<option value="${team}">Team ${team} (${teamCounts[team]} matches)</option>`;
+    });
   }
-
-  // Determine strength
-  let strength;
-  if (avgAuto > avgTeleop * 0.6) {
-    strength = 'Auto Specialist';
-  } else if (avgTeleop > avgAuto * 2) {
-    strength = 'Teleop Focused';
-  } else {
-    strength = 'Balanced Scorer';
-  }
-
-  // Check for climbing ability
-  const climbAttempts = matches.filter(m => m.endgame.action === 'climb');
-  const climbSuccess = climbAttempts.filter(m => m.endgame.climbSuccessful);
-
-  if (climbAttempts.length >= 2) {
-    const climbRate = (climbSuccess.length / climbAttempts.length) * 100;
-    if (climbRate >= 80) {
-      strength += ' & Reliable Climber';
-    } else if (climbRate >= 50) {
-      strength += ' & Decent Climber';
-    }
-  }
-
-  // Best and worst matches
-  const bestMatch = matches.reduce((best, m) => m.totalScore > best.totalScore ? m : best, matches[0]);
-  const worstMatch = matches.reduce((worst, m) => m.totalScore < worst.totalScore ? m : worst, matches[0]);
-
-  // Weakness detection
-  let weakness = '';
-  const avgDrops = matches.reduce((sum, m) => sum + (m.teleop.dropped || 0), 0) / matchCount;
-  if (avgDrops >= 3) weakness = 'Often drops game pieces';
-  else if (climbAttempts.length > 0 && climbSuccess.length === 0) weakness = 'Struggles to climb';
-  else if (avgAuto < 5) weakness = 'Weak auto performance';
-
-  // Dynamic suggestion generator
-  const suggestionPool = {
-    drops: [
-      'Focus on intake stability and driver control.',
-      'Try adjusting roller speed to reduce dropped pieces.',
-      'Cleaner handoff between intake and shooter would help.'
-    ],
-    climb: [
-      'Practice endgame climbing sequences under time pressure.',
-      'Reinforce climbing mechanism for reliability.',
-      'Assign more driver practice time to climbing.'
-    ],
-    auto: [
-      'Program more reliable auto routines.',
-      'Add backup trajectories in auto to handle misses.',
-      'Tune PID and pathing for smoother auto runs.'
-    ],
-    none: [
-      'Maintain consistency to stay competitive.',
-      'Keep refining cycle times to gain an edge.',
-      'Expand strategies to adapt against tougher defenses.'
-    ]
-  };
-
-  let suggestion;
-  if (weakness.includes('drops')) {
-    suggestion = suggestionPool.drops[Math.floor(Math.random() * suggestionPool.drops.length)];
-  } else if (weakness.includes('climb')) {
-    suggestion = suggestionPool.climb[Math.floor(Math.random() * suggestionPool.climb.length)];
-  } else if (weakness.includes('auto')) {
-    suggestion = suggestionPool.auto[Math.floor(Math.random() * suggestionPool.auto.length)];
-  } else {
-    suggestion = suggestionPool.none[Math.floor(Math.random() * suggestionPool.none.length)];
-  }
-
-  // Trend
-  let trend = { direction: 'Stable', class: 'medium' };
-  if (matchCount >= 4) {
-    const firstHalf = matches.slice(0, Math.floor(matchCount / 2));
-    const secondHalf = matches.slice(Math.floor(matchCount / 2));
-    const firstAvg = firstHalf.reduce((sum, m) => sum + m.totalScore, 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, m) => sum + m.totalScore, 0) / secondHalf.length;
-
-    if (secondAvg > firstAvg + 5) {
-      trend = { direction: 'Improving', class: 'good' };
-    } else if (firstAvg > secondAvg + 5) {
-      trend = { direction: 'Declining', class: 'poor' };
-    }
-  }
-
-  // Summary
-  let summary;
-  if (avgTotal >= 60) {
-    summary = `Strong performer averaging ${avgTotal.toFixed(1)} points per match. ${consistencyRating.toLowerCase()} across ${matchCount} matches.`;
-  } else if (avgTotal >= 40) {
-    summary = `Solid mid-tier team with ${avgTotal.toFixed(1)} average points. Shows ${strength.toLowerCase()} capabilities.`;
-  } else {
-    summary = `Developing team averaging ${avgTotal.toFixed(1)} points. Focus on ${avgAuto > avgTeleop ? 'teleop' : 'auto'} improvement needed.`;
-  }
-
-  return {
-    team,
-    matchCount,
-    summary,
-    consistency: { rating: consistencyRating, class: consistencyClass },
-    strength,
-    trend,
-    bestMatch: { score: bestMatch.totalScore, match: bestMatch.match },
-    worstMatch: { score: worstMatch.totalScore, match: worstMatch.match },
-    weakness,
-    suggestion
-  };
 }
 
 function compareTeams() {
