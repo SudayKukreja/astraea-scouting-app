@@ -744,15 +744,13 @@ body {
 
 /* AI Insight Card - Main Result */
 .ai-insight-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
-  backdrop-filter: blur(15px);
-  border: 2px solid transparent;
-  border-radius: 20px;
-  padding: 28px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
   animation: ai-card-appear 0.6s ease-out;
@@ -791,47 +789,33 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 2px solid rgba(59, 130, 246, 0.1);
 }
 
 .ai-insight-header h4 {
-  color: #1e40af;
+  color: #1e3a8a;
   margin: 0;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.ai-insight-header h4::before {
-  content: '🤖';
-  font-size: 1.6rem;
-  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: ai-icon-glow 2s ease-in-out infinite;
-}
-
-@keyframes ai-icon-glow {
-  0%, 100% { filter: drop-shadow(0 0 5px rgba(59, 130, 246, 0.3)); }
-  50% { filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5)); }
+  gap: 8px;
 }
 
 .ai-insight-meta {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   font-size: 0.85rem;
   color: #6b7280;
+  flex-wrap: wrap;
 }
 
 .ai-insight-meta span {
   background: rgba(59, 130, 246, 0.1);
   padding: 4px 12px;
-  border-radius: 20px;
+  border-radius: 12px;
   font-weight: 500;
   border: 1px solid rgba(59, 130, 246, 0.2);
 }
@@ -839,32 +823,26 @@ body {
 /* AI Insight Content */
 .ai-insight-content {
   font-size: 1rem;
-  line-height: 1.7;
+  line-height: 1.6;
   color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 .ai-insight-content p {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .ai-insight-content strong {
-  color: #1e40af;
+  color: #1e3a8a;
   font-weight: 600;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));
-  padding: 2px 6px;
-  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
 }
 
 .ai-insight-content em {
   font-style: italic;
   color: #6b7280;
-  background: rgba(107, 114, 128, 0.1);
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
-.ai-insight-content br + * {
-  margin-top: 8px;
 }
 
 /* Remove Insight Button */
