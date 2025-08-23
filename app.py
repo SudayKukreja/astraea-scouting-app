@@ -53,48 +53,54 @@ def gemini_insight():
     if not api_key:
         return jsonify({"error": "Gemini API key not configured"}), 500
 
-    # Create a comprehensive analysis prompt with structured data
+    # Create enhanced analysis prompt focused on alliance selection
     team_stats = analyze_team_performance(matches)
     
     prompt = f"""
-    Analyze the performance of FIRST Robotics Competition Team {team} based on their match data from the REEFSCAPE game.
+    You are analyzing FIRST Robotics Team {team} for ALLIANCE SELECTION purposes. Focus on practical, actionable insights that alliance captains need to make quick decisions.
 
-    TEAM PERFORMANCE DATA:
+    PERFORMANCE DATA:
     - Total Matches: {team_stats['total_matches']}
-    - Average Total Score: {team_stats['avg_total_score']:.1f} points
-    - Average Auto Score: {team_stats['avg_auto_score']:.1f} points  
-    - Average Teleop Score: {team_stats['avg_teleop_score']:.1f} points
-    - Score Consistency: {team_stats['consistency_rating']}
-    - Best Match Score: {team_stats['best_score']} points (Match {team_stats['best_match']})
-    - Worst Match Score: {team_stats['worst_score']} points (Match {team_stats['worst_match']})
+    - Average Score: {team_stats['avg_total_score']:.1f} points (Best: {team_stats['best_score']}, Worst: {team_stats['worst_score']})
+    - Consistency: {team_stats['consistency_rating']} (score variation pattern)
+    - Performance Trend: {team_stats['performance_trend']}
     
-    GAME PIECE PERFORMANCE:
-    - Auto Scoring Breakdown: {team_stats['auto_breakdown']}
-    - Teleop Scoring Breakdown: {team_stats['teleop_breakdown']}
-    - Average Pieces Dropped: {team_stats['avg_dropped_pieces']:.1f} per match
+    SCORING BREAKDOWN:
+    - Auto Average: {team_stats['avg_auto_score']:.1f} points | {team_stats['auto_breakdown']}
+    - Teleop Average: {team_stats['avg_teleop_score']:.1f} points | {team_stats['teleop_breakdown']}
+    - Avg Pieces Dropped: {team_stats['avg_dropped_pieces']:.1f} per match
     
     RATINGS & ENDGAME:
-    - Average Offense Rating: {team_stats['avg_offense_rating']:.1f}/5
-    - Average Defense Rating: {team_stats['avg_defense_rating']:.1f}/5
-    - Climb Success Rate: {team_stats['climb_success_rate']}% ({team_stats['successful_climbs']}/{team_stats['climb_attempts']} attempts)
+    - Offense Rating: {team_stats['avg_offense_rating']:.1f}/5 | Defense Rating: {team_stats['avg_defense_rating']:.1f}/5
+    - Climb Success: {team_stats['climb_success_rate']}% ({team_stats['successful_climbs']}/{team_stats['climb_attempts']} attempts)
     - Endgame Strategy: {team_stats['endgame_preference']}
-    
-    MATCH TRENDS:
-    - Performance Trend: {team_stats['performance_trend']}
-    - Partial Matches: {team_stats['partial_matches']} out of {team_stats['total_matches']}
 
-    Please provide a comprehensive analysis that includes:
-    1. **Overall Assessment** - Team's competitive level and ranking potential
-    2. **Key Strengths** - What this team does best (specific game elements)
-    3. **Areas for Improvement** - Specific weaknesses with actionable suggestions
-    4. **Strategic Insights** - How they should approach matches and alliance selection
-    5. **Consistency Analysis** - Performance reliability and any concerning patterns
-    
-    Focus on actionable insights for strategy, alliance selection, and team development. Be specific about REEFSCAPE game elements (CORAL scoring, ALGAE processing, climbing strategies).
+    RELIABILITY:
+    - Partial Matches: {team_stats['partial_matches']}/{team_stats['total_matches']} (breakdown/issue rate)
+
+    Provide a concise analysis in this EXACT format:
+
+    ## ALLIANCE VALUE: [HIGH/MEDIUM/LOW]
+
+    **Quick Summary:** [One sentence describing this team's role/value]
+
+    ### STRENGTHS:
+    • [3-4 specific bullet points about what they do well]
+
+    ### WEAKNESSES:  
+    • [2-3 specific bullet points about concerns/limitations]
+
+    ### ALLIANCE SELECTION NOTES:
+    • **Best Role:** [What position/role they excel at]
+    • **Avoid If:** [Specific situations where they might struggle]
+    • **Pair With:** [Types of teams that complement them well]
+
+    ### RELIABILITY SCORE: [EXCELLENT/GOOD/CONCERNING] - [Brief explanation]
+
+    Keep it concise, factual, and focused on alliance selection decisions. Use specific numbers from the data.
     """
 
     try:
-        # Use the correct Gemini API endpoint
         response = requests.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}",
             headers={"Content-Type": "application/json"},
@@ -103,10 +109,10 @@ def gemini_insight():
                     "parts": [{"text": prompt}]
                 }],
                 "generationConfig": {
-                    "temperature": 0.7,
+                    "temperature": 0.3,  # Lower temperature for more consistent formatting
                     "topK": 40,
                     "topP": 0.8,
-                    "maxOutputTokens": 1024,
+                    "maxOutputTokens": 800,  # Shorter, more focused responses
                 }
             },
             timeout=30
@@ -117,7 +123,6 @@ def gemini_insight():
             
         result = response.json()
         
-        # Extract the generated text
         if "candidates" in result and len(result["candidates"]) > 0:
             candidate = result["candidates"][0]
             if "content" in candidate and "parts" in candidate["content"]:
@@ -127,10 +132,10 @@ def gemini_insight():
                         "team": team,
                         "insight": insight_text,
                         "matches_analyzed": len(matches),
-                        "generated_at": datetime.now().isoformat()
+                        "generated_at": datetime.now().isoformat(),
+                        "team_stats": team_stats  # Include raw stats for additional display
                     })
         
-        # If we couldn't extract text, return error
         return jsonify({"error": "Failed to generate insight - no content returned"}), 500
         
     except requests.exceptions.Timeout:
@@ -138,7 +143,7 @@ def gemini_insight():
     except requests.exceptions.RequestException as e:
         return jsonify({"error": f"Network error: {str(e)}"}), 500
     except Exception as e:
-        print(f"Gemini API error: {str(e)}")  # Log for debugging
+        print(f"Gemini API error: {str(e)}")
         return jsonify({"error": f"Failed to generate insight: {str(e)}"}), 500
 
 

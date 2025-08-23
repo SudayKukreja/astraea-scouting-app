@@ -7,52 +7,47 @@ let currentFilters = {
   hidePartial: false
 };
 
-// AI Insight generation - only when user clicks button
 async function generateGeminiInsight(team) {
   if (!team) {
     alert('Please select a team first');
     return;
   }
 
-  // Show loading state
+  // Show enhanced loading state
   const container = document.getElementById('team-insights-container');
   const loadingDiv = document.createElement('div');
   loadingDiv.className = 'ai-loading';
   loadingDiv.innerHTML = `
-    <div style="text-align: center; padding: 20px; background: #f0f9ff; border-radius: 8px; margin-bottom: 16px;">
+    <div class="ai-loading-content">
       <div class="loading-spinner"></div>
-      <p style="margin: 10px 0 0 0; color: #1e40af;">🤖 Analyzing Team ${team} performance data...</p>
-      <p style="margin: 5px 0 0 0; color: #6b7280; font-size: 0.9rem;">This may take 10-15 seconds</p>
+      <h4>🤖 Analyzing Team ${team}</h4>
+      <p>Generating alliance selection insights...</p>
+      <div class="loading-progress">
+        <div class="progress-bar"></div>
+      </div>
     </div>
   `;
   container.prepend(loadingDiv);
 
-  // Disable button to prevent multiple requests
+  // Disable button
   const generateButton = document.querySelector('button[onclick*="generateGeminiInsight"]');
   if (generateButton) {
     generateButton.disabled = true;
-    generateButton.textContent = '🔄 Generating...';
+    generateButton.innerHTML = '🔄 Analyzing...';
+    generateButton.classList.add('loading');
   }
 
   try {
-    // Get filtered team data
     const teamData = analyticsData.filter(d => String(d.team) === String(team));
     
     if (teamData.length === 0) {
       throw new Error(`No match data found for Team ${team} with current filters`);
     }
 
-    console.log(`Sending ${teamData.length} matches for Team ${team} to AI analysis`);
-
     const response = await fetch('/api/admin/gemini-insight', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ 
-        team: team, 
-        matches: teamData 
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ team: team, matches: teamData })
     });
 
     if (!response.ok) {
@@ -66,84 +61,136 @@ async function generateGeminiInsight(team) {
       throw new Error('No insight generated');
     }
 
-    // Remove loading indicator
+    // Remove loading
     if (loadingDiv.parentNode) {
-      loadingDiv.parentNode.removeChild(loadingDiv);
+      loadingDiv.remove();
     }
 
-    // Create and display AI insight
+    // Create enhanced AI insight card
     const insightDiv = document.createElement('div');
-    insightDiv.className = 'ai-insight-card';
-    insightDiv.innerHTML = `
-      <div class="ai-insight-header">
-        <h4>🤖 AI Analysis: Team ${team}</h4>
-        <div class="ai-insight-meta">
-          <span>📊 ${data.matches_analyzed} matches analyzed</span>
-          <span>⏰ ${new Date(data.generated_at).toLocaleTimeString()}</span>
-        </div>
-      </div>
-      <div class="ai-insight-content">
-        ${formatAIInsight(data.insight)}
-      </div>
-      <button class="remove-insight-btn" onclick="this.parentElement.remove()">✕ Remove</button>
-    `;
+    insightDiv.className = 'ai-insight-card enhanced';
+    insightDiv.innerHTML = createEnhancedInsightHTML(data);
     
     container.prepend(insightDiv);
-
-    // Scroll to show the new insight
     insightDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   } catch (error) {
     console.error('AI insight generation failed:', error);
     
-    // Remove loading indicator
     if (loadingDiv.parentNode) {
-      loadingDiv.parentNode.removeChild(loadingDiv);
+      loadingDiv.remove();
     }
     
-    // Show error message
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'ai-error';
-    errorDiv.innerHTML = `
-      <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-        <h4 style="color: #dc2626; margin: 0 0 8px 0;">❌ AI Analysis Failed</h4>
-        <p style="color: #7f1d1d; margin: 0;">${error.message}</p>
-        <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 8px; background: #dc2626; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer;">Dismiss</button>
-      </div>
-    `;
-    container.prepend(errorDiv);
-    
-    // Auto-remove error after 10 seconds
-    setTimeout(() => {
-      if (errorDiv.parentNode) {
-        errorDiv.parentNode.removeChild(errorDiv);
-      }
-    }, 10000);
+    showEnhancedError(container, error.message);
     
   } finally {
     // Re-enable button
     if (generateButton) {
       generateButton.disabled = false;
-      generateButton.textContent = '🔮 Generate AI Insight';
+      generateButton.innerHTML = '🔮 Generate AI Insight';
+      generateButton.classList.remove('loading');
     }
   }
 }
 
-function formatAIInsight(insightText) {
-  // Format the AI-generated text for better readability
-  let formatted = insightText
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // Bold text
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')              // Italic text
-    .replace(/(\d+\.\s|\-\s)/g, '<br>$1')              // Line breaks for lists
-    .replace(/\n\n/g, '</p><p>')                       // Paragraphs
-    .replace(/\n/g, '<br>');                           // Line breaks
+function createEnhancedInsightHTML(data) {
+  const formattedInsight = formatEnhancedAIInsight(data.insight);
+  const stats = data.team_stats || {};
+  
+  return `
+    <div class="ai-insight-header">
+      <div class="header-left">
+        <h4>🤖 Team ${data.team} Alliance Analysis</h4>
+        <div class="team-quick-stats">
+          <span class="quick-stat">📊 ${data.matches_analyzed} matches</span>
+          <span class="quick-stat">⚡ ${stats.avg_total_score ? stats.avg_total_score.toFixed(1) : 'N/A'} avg</span>
+          <span class="quick-stat">🎯 ${stats.consistency_rating || 'Unknown'}</span>
+        </div>
+      </div>
+      <button class="remove-insight-btn" onclick="this.closest('.ai-insight-card').remove()">✕</button>
+    </div>
+    
+    <div class="ai-insight-body">
+      ${formattedInsight}
+    </div>
+    
+    <div class="ai-insight-footer">
+      <div class="analysis-meta">
+        <span>⏰ ${new Date(data.generated_at).toLocaleTimeString()}</span>
+        <span>🎯 Alliance Selection Focus</span>
+      </div>
+    </div>
+  `;
+}
 
-  // Wrap in paragraphs if not already formatted
-  if (!formatted.includes('<p>')) {
-    formatted = '<p>' + formatted + '</p>';
-  }
+function formatEnhancedAIInsight(insightText) {
+  let formatted = insightText;
+  
+  // Replace markdown-style headers with styled HTML
+  formatted = formatted.replace(/## ALLIANCE VALUE: (HIGH|MEDIUM|LOW)/gi, (match, value) => {
+    const colorClass = value.toLowerCase() === 'high' ? 'value-high' : 
+                       value.toLowerCase() === 'medium' ? 'value-medium' : 'value-low';
+    return `<div class="alliance-value ${colorClass}">
+      <span class="value-label">ALLIANCE VALUE</span>
+      <span class="value-rating">${value}</span>
+    </div>`;
+  });
 
+  // Format sections with enhanced styling
+  formatted = formatted.replace(/### (STRENGTHS|WEAKNESSES|ALLIANCE SELECTION NOTES|RELIABILITY SCORE):/g, 
+    '<div class="insight-section"><h5 class="section-title">$1</h5>');
+  
+  // Close sections
+  formatted = formatted.replace(/### /g, '</div><div class="insight-section"><h5 class="section-title">');
+  formatted += '</div>'; // Close the last section
+
+  // Format bullet points with icons
+  formatted = formatted.replace(/• (.*?)(\n|$)/g, '<div class="insight-bullet">✓ $1</div>');
+  
+  // Format bold text in bullets and regular text
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  
+  // Format the quick summary
+  formatted = formatted.replace(/\*\*Quick Summary:\*\* (.*?)(\n|<)/g, 
+    '<div class="quick-summary">$1</div>$2');
+
+  // Format reliability score specially
+  formatted = formatted.replace(/RELIABILITY SCORE: (EXCELLENT|GOOD|CONCERNING)/gi, (match, score) => {
+    const colorClass = score.toLowerCase() === 'excellent' ? 'reliability-excellent' : 
+                       score.toLowerCase() === 'good' ? 'reliability-good' : 'reliability-concerning';
+    return `<div class="reliability-score ${colorClass}">
+      <span class="reliability-label">RELIABILITY</span>
+      <span class="reliability-rating">${score}</span>
+    </div>`;
+  });
+
+  // Clean up extra divs and formatting
+  formatted = formatted.replace(/<div class="insight-section"><h5 class="section-title"><\/h5>/g, '');
+  
   return formatted;
+}
+
+function showEnhancedError(container, message) {
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'ai-error enhanced';
+  errorDiv.innerHTML = `
+    <div class="error-content">
+      <div class="error-icon">❌</div>
+      <div class="error-text">
+        <h4>AI Analysis Failed</h4>
+        <p>${message}</p>
+      </div>
+      <button onclick="this.closest('.ai-error').remove()" class="error-dismiss">Dismiss</button>
+    </div>
+  `;
+  container.prepend(errorDiv);
+  
+  // Auto-remove after 8 seconds
+  setTimeout(() => {
+    if (errorDiv.parentNode) {
+      errorDiv.remove();
+    }
+  }, 8000);
 }
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
