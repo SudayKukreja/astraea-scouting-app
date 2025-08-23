@@ -1456,28 +1456,7 @@ body {
 
 /* Reliability explanation text that appears after the score */
 .reliability-score + br + * {
-  color: #374151 !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-top: 8px;
-  display: inline-block;
-  border-left: 3px solid #6b7280;
-}
-
-/* Reliability explanation text */
-.reliability-explanation {
-  color: #1f2937 !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  padding: 12px 16px !important;
-  border-radius: 8px !important;
-  margin: 12px 0 !important;
-  font-size: 0.95rem !important;
-  line-height: 1.5 !important;
-  border-left: 4px solid #6b7280 !important;
-  font-weight: 600 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  display: none; /* Hide any loose explanation text */
 }
 
 /* Enhanced Footer */
@@ -1751,14 +1730,6 @@ body {
   
   .analysis-meta {
     color: #94a3b8;
-  }
-  
-  .reliability-explanation {
-    color: #f1f5f9 !important;
-    background: rgba(15, 23, 42, 0.95) !important;
-    border-left-color: #60a5fa !important;
-    border: 1px solid rgba(59, 130, 246, 0.3) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
   }
 }
 
