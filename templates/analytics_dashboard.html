@@ -3,186 +3,401 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Analytics Dashboard - Astraea Scouting</title>
+  <title>Team Analytics - Astraea Scouting</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
-  <link rel="stylesheet" href="/static/analytics.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .dashboard-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+      color: white;
+      padding: 24px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.3s;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .main-content {
+      padding: 32px;
+    }
+
+    .controls-bar {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-weight: 600;
+      color: #475569;
+    }
+
+    select, input[type="number"] {
+      padding: 8px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      min-width: 150px;
+    }
+
+    select:focus, input:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+
+    .analyze-btn {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+      margin-left: auto;
+    }
+
+    .analyze-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .analyze-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .team-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .stat-card.highlight {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-color: #fbbf24;
+    }
+
+    .stat-card.warning {
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border-color: #f87171;
+    }
+
+    .stat-card.success {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border-color: #34d399;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .detail-sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 32px;
+    }
+
+    @media (max-width: 968px) {
+      .detail-sections {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section-card {
+      background: white;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .match-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .match-item {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: #f8fafc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .match-item:hover {
+      background: #f1f5f9;
+    }
+
+    .match-number {
+      font-weight: 600;
+      color: #3730a3;
+    }
+
+    .match-score {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .match-details {
+      display: flex;
+      gap: 16px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .breakdown-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .breakdown-item {
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .breakdown-label {
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .breakdown-value {
+      font-weight: 700;
+      font-size: 18px;
+      color: #1e293b;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 60px;
+      color: #94a3b8;
+    }
+
+    .no-data h3 {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    .warning-message {
+      background: #fef3c7;
+      border: 2px solid #fbbf24;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      border: 2px solid #f87171;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      color: #991b1b;
+    }
+
+    .performance-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 8px;
+    }
+
+    .badge-high {
+      background: #10b981;
+      color: white;
+    }
+
+    .badge-medium {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .badge-low {
+      background: #ef4444;
+      color: white;
+    }
+
+    .badge-shutdown {
+      background: #991b1b;
+      color: white;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #64748b;
+    }
+
+    .spinner {
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .quick-facts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .fact-item {
+      background: #f1f5f9;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .fact-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .fact-label {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+  </style>
 </head>
 <body>
   <div class="dashboard-container">
     <div class="header">
-      <div class="header-left">
-        <h1>📊 Scouting Analytics Dashboard</h1>
-        <p class="header-subtitle">Comprehensive analysis of team performance and match data</p>
-      </div>
-      <div class="header-right">
-        <a href="/admin" class="back-btn">← Back to Admin</a>
-        <button class="refresh-btn" onclick="loadAnalyticsData()">🔄 Refresh Data</button>
-      </div>
+      <h1>📊 Team Analytics</h1>
+      <a href="/admin" class="back-btn">← Back to Admin</a>
     </div>
 
-    <div class="controls">
-      <div class="control-group">
-          <label for="event-filter">Event:</label>
+    <div class="main-content">
+      <div class="controls-bar">
+        <div class="control-group">
+          <label>Event:</label>
           <select id="event-filter">
             <option value="">All Events</option>
           </select>
-      </div>
-      <div class="control-group">
-          <label for="team-filter">Team:</label>
-          <select id="team-filter">
-            <option value="">All Teams</option>
+        </div>
+        <div class="control-group">
+          <label>Team:</label>
+          <select id="team-select">
+            <option value="">Select Team</option>
           </select>
-      </div>
-      <div class="control-group">
-          <label for="match-filter">Match Range:</label>
-          <input type="number" id="match-min" placeholder="Min" min="1" style="width: 80px;">
-          <span style="color: rgba(255, 255, 255, 0.9);">-</span>
-          <input type="number" id="match-max" placeholder="Max" min="1" style="width: 80px;">
-      </div>
-      <div class="control-group">
+        </div>
+        <div class="control-group">
           <label>
-            <input type="checkbox" id="hide-partial-filter">
-            Hide Partial Matches
+            <input type="checkbox" id="hide-partial">
+            Hide Shutdowns
           </label>
-      </div>
-    </div>
-
-    <div class="analytics-tabs">
-      <button class="tab-btn active" data-tab="overview">📈 Overview</button>
-      <button class="tab-btn" data-tab="teams">🤖 Team Analysis</button>
-      <button class="tab-btn" data-tab="matches">🏟 Match Details</button>
-      <button class="tab-btn" data-tab="insights">🧠 Team Insights</button>
-      <button class="tab-btn" data-tab="comparison">⚖️ Team Comparison</button>
-    </div>
-
-    <!-- Overview Tab -->
-    <div id="overview" class="tab-content active">
-      <div class="stats-grid" id="overview-stats">
-        <div class="stat-card">
-          <span class="stat-number" id="total-reports">-</span>
-          <span class="stat-label">Total Reports</span>
         </div>
-        <div class="stat-card">
-          <span class="stat-number" id="total-teams">-</span>
-          <span class="stat-label">Teams Scouted</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number" id="avg-auto-score">-</span>
-          <span class="stat-label">Avg Auto Score</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number" id="avg-teleop-score">-</span>
-          <span class="stat-label">Avg Teleop Score</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number" id="climb-success-rate">-</span>
-          <span class="stat-label">Climb Success Rate</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-number" id="avg-offense-rating">-</span>
-          <span class="stat-label">Avg Offense Rating</span>
-        </div>
+        <button class="analyze-btn" onclick="analyzeTeam()">Analyze Team →</button>
       </div>
 
-      <div class="chart-container">
-        <h3 class="chart-title">🎯 Scoring Distribution</h3>
-        <canvas id="scoring-chart" width="400" height="200"></canvas>
-      </div>
-
-      <div class="chart-container">
-        <h3 class="chart-title">🏆 Top Performing Teams</h3>
-        <div id="top-teams-chart"></div>
-      </div>
-    </div>
-
-    <!-- Team Analysis Tab -->
-    <div id="teams" class="tab-content">
-      <div class="chart-container">
-        <h3 class="chart-title">🤖 Team Performance Analysis</h3>
-        <div id="team-analysis-container">
-          <div class="loading">Loading team data...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Match Details Tab -->
-    <div id="matches" class="tab-content">
-      <div class="chart-container">
-        <h3 class="chart-title">🏟 Recent Match Details</h3>
-        <div id="match-details-container">
-          <div class="loading">Loading match data...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Team Insights Tab -->
-    <div id="insights" class="tab-content">
-      <div class="chart-container">
-        <h3 class="chart-title">🧠 AI-Generated Team Insights</h3>
-        <p style="color: #6b7280; margin-bottom: 20px; font-style: italic;">
-          Advanced AI analysis of team performance patterns, consistency, strategic focus, and competitive insights based on match data.
-        </p>
-        
-        <!-- Updated AI Controls -->
-        <div class="ai-controls" style="background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #e2e8f0;">
-          <h4 style="margin: 0 0 12px 0; color: #1e40af;">🤖 AI-Powered Team Analysis</h4>
-          <p style="margin: 0 0 16px 0; color: #64748b; font-size: 0.95rem;">
-            Select a team to generate comprehensive AI insights including strengths, weaknesses, trends, and strategic recommendations.
-          </p>
-          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-            <select id="ai-team-select" style="flex: 1; min-width: 200px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
-              <option value="">Select Team for AI Analysis</option>
-            </select>
-            <button 
-              class="ai-generate-btn" 
-              onclick="const team = document.getElementById('ai-team-select').value; if(team) generateGeminiInsight(team); else alert('Please select a team first');"
-              style="padding: 8px 16px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; white-space: nowrap; transition: all 0.2s ease;">
-              🔮 Generate AI Insight
-            </button>
-          </div>
-          <div style="margin-top: 12px; padding: 8px; background: #fef3c7; border-radius: 4px; font-size: 0.85rem; color: #92400e;">
-            ⚠️ <strong>Usage Note:</strong> AI insights consume API credits. Use thoughtfully for strategic analysis.
-          </div>
-        </div>
-
-        <!-- Results Container -->
-        <div id="team-insights-container">
-          <div style="text-align: center; padding: 40px; color: #9ca3af;">
-            <div style="font-size: 3rem; margin-bottom: 16px;">🤖</div>
-            <p style="margin: 0; font-size: 1.1rem; color: #374151;">Select a team above to generate AI-powered insights</p>
-            <p style="margin: 8px 0 0 0; font-size: 0.9rem;">Advanced analysis includes performance trends, strategic recommendations, and competitive insights</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Team Comparison Tab -->
-    <div id="comparison" class="tab-content">
-      <div class="controls">
-        <div class="control-group">
-          <label for="compare-team1">Team 1:</label>
-          <select id="compare-team1">
-            <option value="">Select Team</option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="compare-team2">Team 2:</label>
-          <select id="compare-team2">
-            <option value="">Select Team</option>
-          </select>
-        </div>
-        <button class="refresh-btn" onclick="compareTeams()">🔍 Compare</button>
-      </div>
-
-      <div class="chart-container">
-        <h3 class="chart-title">⚖️ Head-to-Head Comparison</h3>
-        <div id="comparison-container">
-          <p class="loading">Select two teams to compare their performance</p>
+      <div id="analysis-container">
+        <div class="no-data">
+          <h3>👆 Select a team to view analysis</h3>
+          <p>Choose an event and team from the dropdowns above to see detailed performance metrics</p>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="/static/analytics.js"></script>
+  <script src="/static/analytics-simple.js"></script>
 </body>
 </html>
