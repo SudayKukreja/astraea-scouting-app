@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const endgameAction = document.getElementById('endgame_action');
   const climbDepthLabel = document.getElementById('climb_depth_label');
   const climbSuccessLabel = document.getElementById('climb_success_label');
+  const climbParkedLabel = document.getElementById('climb_parked_label');
 
   const backBtn = document.getElementById('back-btn');
   if (backBtn) {
@@ -75,6 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endgameAction && endgameAction.value === 'climb') {
       climbDepthLabel.classList.remove('hidden');
       climbSuccessLabel.classList.remove('hidden');
+      climbParkedLabel.classList.remove('hidden');
     }
   }
 
@@ -231,7 +233,8 @@ document.addEventListener('DOMContentLoaded', () => {
       endgame: {
         action: getValue('endgame_action') || '',
         climb_depth: getValue('climb_depth') || '',
-        climb_successful: getCheckbox('climb_successful')
+        climb_successful: getCheckbox('climb_successful'),
+        climb_parked: getCheckbox('climb_parked')
       },
       notes: getValue('notes') || '',
       response_time: responseTimeField.value,
@@ -258,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         climbDepthLabel.classList.add('hidden');
         climbSuccessLabel.classList.add('hidden');
+        climbParkedLabel.classList.add('hidden');
 
         formWarning.style.display = 'none';
 
@@ -280,6 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       climbDepthLabel.classList.add('hidden');
       climbSuccessLabel.classList.add('hidden');
+      climbParkedLabel.classList.add('hidden');
 
       formWarning.style.display = 'none';
 
@@ -295,13 +300,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (endgameAction.value === 'climb') {
         climbDepthLabel.classList.remove('hidden');
         climbSuccessLabel.classList.remove('hidden');
+        climbParkedLabel.classList.remove('hidden');
       } else {
         climbDepthLabel.classList.add('hidden');
         climbSuccessLabel.classList.add('hidden');
+        climbParkedLabel.classList.add('hidden');
         const climbDepthInput = document.getElementById('climb_depth');
         const climbSuccessfulInput = document.getElementById('climb_successful');
+        const climbParkedInput = document.getElementById('climb_parked');
         climbDepthInput.value = '';
         climbSuccessfulInput.checked = false;
+        climbParkedInput.checked = false;
 
         const savedDraft = localStorage.getItem('scoutDraft');
         if (savedDraft) {
@@ -311,6 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           if ('climb_successful' in draftObj) {
             delete draftObj.climb_successful;
+          }
+          if ('climb_parked' in draftObj) {
+            delete draftObj.climb_parked;
           }
           localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
         }

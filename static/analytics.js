@@ -161,17 +161,21 @@ function calculateTeamStats(teamData) {
   const defenseRatings = teamData.map(d => d.teleop.defenseRating || 0);
   const avgDefense = (defenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
-  // Climb analysis
+  // Enhanced climb analysis with parking
   const climbAttempts = teamData.filter(d => d.endgame.action === 'climb').length;
   const successfulClimbs = teamData.filter(d => 
     d.endgame.action === 'climb' && d.endgame.climbSuccessful
   ).length;
-  const failedClimbs = climbAttempts - successfulClimbs;
+  const failedClimbsWithPark = teamData.filter(d => 
+    d.endgame.action === 'climb' && !d.endgame.climbSuccessful && d.endgame.climbParked
+  ).length;
+  const failedClimbs = climbAttempts - successfulClimbs - failedClimbsWithPark;
   const climbRate = climbAttempts > 0 ? 
     ((successfulClimbs / climbAttempts) * 100).toFixed(0) : 0;
   
-  // Park analysis
-  const parkCount = teamData.filter(d => d.endgame.action === 'park').length;
+  // Park analysis (including failed climbs with park)
+  const directParkCount = teamData.filter(d => d.endgame.action === 'park').length;
+  const totalParkCount = directParkCount + failedClimbsWithPark;
   const noEndgameCount = teamData.filter(d => 
     d.endgame.action === 'did not park/climb' || !d.endgame.action
   ).length;
@@ -218,9 +222,11 @@ function calculateTeamStats(teamData) {
     avgDefense,
     climbAttempts,
     successfulClimbs,
+    failedClimbsWithPark,
     failedClimbs,
     climbRate,
-    parkCount,
+    directParkCount,
+    totalParkCount,
     noEndgameCount,
     totalL1,
     totalL2,
@@ -319,12 +325,16 @@ function renderTeamAnalysis(team, teamData, stats) {
             <div class="fact-label">Successful Climbs</div>
           </div>
           <div class="fact-item">
+            <div class="fact-value">${stats.failedClimbsWithPark}</div>
+            <div class="fact-label">Failed Climb + Park</div>
+          </div>
+          <div class="fact-item">
             <div class="fact-value">${stats.failedClimbs}</div>
             <div class="fact-label">Failed Climbs</div>
           </div>
           <div class="fact-item">
-            <div class="fact-value">${stats.parkCount}</div>
-            <div class="fact-label">Parks</div>
+            <div class="fact-value">${stats.directParkCount}</div>
+            <div class="fact-label">Direct Parks</div>
           </div>
           <div class="fact-item">
             <div class="fact-value">${stats.noEndgameCount}</div>
@@ -371,9 +381,18 @@ function renderTeamAnalysis(team, teamData, stats) {
         <h3 class="section-title">📋 Match History</h3>
         <div class="match-list">
           ${sortedMatches.map(match => {
-            const endgameText = match.endgame.action === 'climb' ? 
-              (match.endgame.climbSuccessful ? '✅ Climb' : '❌ Failed Climb') :
-              match.endgame.action === 'park' ? '🚗 Park' : '⚪ None';
+            let endgameText = '⚪ None';
+            if (match.endgame.action === 'climb') {
+              if (match.endgame.climbSuccessful) {
+                endgameText = '✅ Climb';
+              } else if (match.endgame.climbParked) {
+                endgameText = '🔶 Failed Climb + Park';
+              } else {
+                endgameText = '❌ Failed Climb';
+              }
+            } else if (match.endgame.action === 'park') {
+              endgameText = '🚗 Park';
+            }
             
             return `
               <div class="match-item">
@@ -400,7 +419,7 @@ function renderTeamAnalysis(team, teamData, stats) {
         <strong>Team ${team}</strong> averages <strong>${stats.avgScore} points</strong> per match with 
         ${stats.consistency < 10 ? 'very consistent' : stats.consistency < 20 ? 'moderate' : 'inconsistent'} performance 
         (σ = ${stats.consistency}). 
-        They ${stats.climbRate >= 50 ? `successfully climb ${stats.climbRate}% of the time` : 'struggle with climbing'} 
+        They ${stats.climbRate >= 50 ? `successfully climb ${stats.climbRate}% of the time` : 'struggle with climbing'}${stats.failedClimbsWithPark > 0 ? ` but often recover with parking (${stats.failedClimbsWithPark} failed climbs saved)` : ''} 
         and ${stats.avgOffense >= 3.5 ? 'have strong offensive capabilities' : stats.avgOffense >= 2.5 ? 'have moderate offensive capabilities' : 'focus more on defense'}.
         ${stats.partialMatches > 0 ? ` ⚠️ Reliability concern: ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''}.` : ''}
       </p>

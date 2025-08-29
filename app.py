@@ -507,7 +507,7 @@ def parse_teleop_summary(summary):
 def parse_endgame_summary(summary):
     """Parse endgame summary string into structured data"""
     if not summary:
-        return {'action': 'did not park/climb', 'climbDepth': '', 'climbSuccessful': False}
+        return {'action': 'did not park/climb', 'climbDepth': '', 'climbSuccessful': False, 'climbParked': False}
     
     summary_lower = summary.lower()
     
@@ -516,29 +516,57 @@ def parse_endgame_summary(summary):
         return {
             'action': 'did not park/climb',
             'climbDepth': '',
-            'climbSuccessful': False
+            'climbSuccessful': False,
+            'climbParked': False
         }
-    elif 'park' in summary_lower:
+    elif 'park' in summary_lower and 'climb' not in summary_lower:
         return {
             'action': 'park',
             'climbDepth': '',
-            'climbSuccessful': False
+            'climbSuccessful': False,
+            'climbParked': False
         }
     elif 'climb' in summary_lower:
         action = 'climb'
         climb_depth = 'shallow' if 'shallow' in summary_lower else 'deep' if 'deep' in summary_lower else 'unknown'
         climb_successful = 'success' in summary_lower
+        climb_parked = 'failed but parked' in summary_lower or 'parked' in summary_lower
         return {
             'action': action,
             'climbDepth': climb_depth,
-            'climbSuccessful': climb_successful
+            'climbSuccessful': climb_successful,
+            'climbParked': climb_parked
         }
     else:
         return {
             'action': 'did not park/climb',
             'climbDepth': '',
-            'climbSuccessful': False
+            'climbSuccessful': False,
+            'climbParked': False
         }
+
+# Updated calculate_endgame_score function
+def calculate_endgame_score(endgame_data):
+    """Calculate endgame score based on REEFSCAPE official scoring"""
+    action = endgame_data.get('action', '').lower()
+    
+    if action == 'climb':
+        if endgame_data.get('climbSuccessful', False):
+            climb_depth = endgame_data.get('climbDepth', '').lower()
+            if climb_depth == 'deep':
+                return 12  # Deep CAGE = 12 points
+            elif climb_depth == 'shallow':
+                return 6   # Shallow CAGE = 6 points
+            else:
+                return 6   # Default to shallow if depth unknown
+        elif endgame_data.get('climbParked', False):
+            return 2   # Failed climb but parked = 2 points
+        else:
+            return 0   # Failed climb, no park = 0 points
+    elif action == 'park':
+        return 2  # PARK in BARGE ZONE = 2 points
+    
+    return 0  # No endgame action = 0 points
 
 def calculate_auto_score(auto_data):
     """Calculate auto score based on REEFSCAPE official scoring"""
@@ -1197,18 +1225,22 @@ def submit():
     if endgame_action == 'climb':
         climb_depth = endgame.get('climb_depth', '').strip().lower()
         climb_successful = endgame.get('climb_successful', False)
+        climb_parked = endgame.get('climb_parked', False)
 
-        if climb_depth == 'shallow':
+        if climb_depth = 'shallow':
             climb_type = "Shallow climb"
         elif climb_depth == 'deep':
             climb_type = "Deep climb"
         else:
             climb_type = "Climb"
-            
+
         if climb_successful:
             endgame_summary = f"{climb_type} - Success"
+        elif climb_parked:
+            endgame_summary = f"{climb_type} - Failed but Parked"
         else:
             endgame_summary = f"{climb_type} - Failed"
+    
     elif endgame_action == 'park':
         endgame_summary = "Park"
     elif endgame_action == 'did not park/climb':
