@@ -1227,7 +1227,7 @@ def submit():
         climb_successful = endgame.get('climb_successful', False)
         climb_parked = endgame.get('climb_parked', False)
 
-        if climb_depth = 'shallow':
+        if climb_depth == 'shallow':
             climb_type = "Shallow climb"
         elif climb_depth == 'deep':
             climb_type = "Deep climb"
