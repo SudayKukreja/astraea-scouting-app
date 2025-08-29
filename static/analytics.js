@@ -19,13 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadAnalyticsData() {
   try {
+    console.log('Loading analytics data...');
     const response = await fetch('/api/admin/analytics/data');
+    console.log('Response status:', response.status);
+    
     if (!response.ok) throw new Error('Failed to fetch analytics data');
     
     analyticsData = await response.json();
+    console.log('Data loaded, entries:', analyticsData.length);
     
     if (analyticsData.error) {
       throw new Error(analyticsData.error);
+    }
+    
+    // Log first few entries to see structure
+    if (analyticsData.length > 0) {
+      console.log('First entry:', analyticsData[0]);
     }
     
     populateFilters();
@@ -38,6 +47,11 @@ async function loadAnalyticsData() {
 function populateFilters() {
   // Populate events
   const events = [...new Set(analyticsData.map(d => d.event))];
+
+  if (events.length === 0 || (events.length === 1 && events[0] === 'current_event')) {
+    events.push('current_event'); // Ensure it exists
+  }
+
   const eventSelect = document.getElementById('event-filter');
   eventSelect.innerHTML = '<option value="">All Events</option>';
   events.forEach(event => {
@@ -72,6 +86,10 @@ function updateTeamsList() {
 }
 
 function analyzeTeam() {
+  console.log('analyzeTeam called');
+  console.log('analyticsData length:', analyticsData.length);
+  console.log('Selected team:', team);
+
   const team = document.getElementById('team-select').value;
   const event = document.getElementById('event-filter').value;
   const hidePartial = document.getElementById('hide-partial').checked;

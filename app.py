@@ -37,6 +37,250 @@ sheet = service.spreadsheets()
 
 tba_client = TBAClient(api_key=os.environ.get('TBA_API_KEY'))
 
+@app.route('/api/admin/gemini-insight', methods=['POST'])
+def gemini_insight():
+    data = request.json
+    team = data.get("team")
+    matches = data.get("matches", [])
+
+    if not team:
+        return jsonify({"error": "Team number required"}), 400
+
+    if not matches:
+        return jsonify({"error": "No match data available for this team"}), 400
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        return jsonify({"error": "Gemini API key not configured"}), 500
+
+    # Create enhanced analysis prompt focused on alliance selection
+    team_stats = analyze_team_performance(matches)
+    
+    prompt = f"""
+    You are analyzing FIRST Robotics Team {team} for ALLIANCE SELECTION purposes. Focus on practical, actionable insights that alliance captains need to make quick decisions.
+
+    PERFORMANCE DATA:
+    - Total Matches: {team_stats['total_matches']}
+    - Average Score: {team_stats['avg_total_score']:.1f} points (Best: {team_stats['best_score']}, Worst: {team_stats['worst_score']})
+    - Consistency: {team_stats['consistency_rating']} (score variation pattern)
+    - Performance Trend: {team_stats['performance_trend']}
+    
+    SCORING BREAKDOWN:
+    - Auto Average: {team_stats['avg_auto_score']:.1f} points | {team_stats['auto_breakdown']}
+    - Teleop Average: {team_stats['avg_teleop_score']:.1f} points | {team_stats['teleop_breakdown']}
+    - Avg Pieces Dropped: {team_stats['avg_dropped_pieces']:.1f} per match
+    
+    RATINGS & ENDGAME:
+    - Offense Rating: {team_stats['avg_offense_rating']:.1f}/5 | Defense Rating: {team_stats['avg_defense_rating']:.1f}/5
+    - Climb Success: {team_stats['climb_success_rate']}% ({team_stats['successful_climbs']}/{team_stats['climb_attempts']} attempts)
+    - Endgame Strategy: {team_stats['endgame_preference']}
+
+    RELIABILITY:
+    - Partial Matches: {team_stats['partial_matches']}/{team_stats['total_matches']} (breakdown/issue rate)
+
+    Provide a concise analysis in this EXACT format:
+
+    ## ALLIANCE VALUE: [HIGH/MEDIUM/LOW]
+
+    **Quick Summary:** [One sentence describing this team's role/value]
+
+    ### STRENGTHS:
+    • [3-4 specific bullet points about what they do well]
+
+    ### WEAKNESSES:  
+    • [2-3 specific bullet points about concerns/limitations]
+
+    ### ALLIANCE SELECTION NOTES:
+    • **Best Role:** [What position/role they excel at]
+    • **Avoid If:** [Specific situations where they might struggle]
+    • **Pair With:** [Types of teams that complement them well]
+
+    ### RELIABILITY SCORE: [EXCELLENT/GOOD/CONCERNING] - [Brief explanation]
+
+    Keep it concise, factual, and focused on alliance selection decisions. Use specific numbers from the data.
+    """
+
+    try:
+        response = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }],
+                "generationConfig": {
+                    "temperature": 0.3,  # Lower temperature for more consistent formatting
+                    "topK": 40,
+                    "topP": 0.8,
+                    "maxOutputTokens": 800,  # Shorter, more focused responses
+                }
+            },
+            timeout=30
+        )
+        
+        if response.status_code != 200:
+            return jsonify({"error": f"API request failed: {response.status_code}"}), 500
+            
+        result = response.json()
+        
+        if "candidates" in result and len(result["candidates"]) > 0:
+            candidate = result["candidates"][0]
+            if "content" in candidate and "parts" in candidate["content"]:
+                insight_text = candidate["content"]["parts"][0].get("text", "")
+                if insight_text:
+                    return jsonify({
+                        "team": team,
+                        "insight": insight_text,
+                        "matches_analyzed": len(matches),
+                        "generated_at": datetime.now().isoformat(),
+                        "team_stats": team_stats  # Include raw stats for additional display
+                    })
+        
+        return jsonify({"error": "Failed to generate insight - no content returned"}), 500
+        
+    except requests.exceptions.Timeout:
+        return jsonify({"error": "Request timed out - please try again"}), 500
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Network error: {str(e)}"}), 500
+    except Exception as e:
+        print(f"Gemini API error: {str(e)}")
+        return jsonify({"error": f"Failed to generate insight: {str(e)}"}), 500
+
+
+def analyze_team_performance(matches):
+    """Analyze team performance data to create structured insights for AI"""
+    if not matches:
+        return {}
+    
+    total_matches = len(matches)
+    
+    # Basic scoring stats
+    total_scores = [match.get('totalScore', 0) for match in matches]
+    auto_scores = [match.get('auto', {}).get('score', 0) for match in matches]
+    teleop_scores = [match.get('teleop', {}).get('score', 0) for match in matches]
+    
+    avg_total_score = sum(total_scores) / total_matches if total_matches > 0 else 0
+    avg_auto_score = sum(auto_scores) / total_matches if total_matches > 0 else 0
+    avg_teleop_score = sum(teleop_scores) / total_matches if total_matches > 0 else 0
+    
+    best_score = max(total_scores) if total_scores else 0
+    worst_score = min(total_scores) if total_scores else 0
+    best_match = matches[total_scores.index(best_score)].get('match', 'Unknown') if total_scores else 'Unknown'
+    worst_match = matches[total_scores.index(worst_score)].get('match', 'Unknown') if total_scores else 'Unknown'
+    
+    # Consistency calculation
+    if len(total_scores) > 1:
+        variance = sum((score - avg_total_score) ** 2 for score in total_scores) / len(total_scores)
+        std_dev = variance ** 0.5
+        if std_dev < 10:
+            consistency_rating = "Very Consistent"
+        elif std_dev < 20:
+            consistency_rating = "Moderately Consistent"
+        else:
+            consistency_rating = "Inconsistent"
+    else:
+        consistency_rating = "Insufficient Data"
+    
+    # Game piece analysis
+    auto_breakdown = analyze_scoring_breakdown(matches, 'auto')
+    teleop_breakdown = analyze_scoring_breakdown(matches, 'teleop')
+    
+    # Dropped pieces
+    dropped_pieces = []
+    for match in matches:
+        auto_dropped = match.get('auto', {}).get('droppedPieces', 0)
+        teleop_dropped = match.get('teleop', {}).get('droppedPieces', 0)
+        dropped_pieces.append(auto_dropped + teleop_dropped)
+    
+    avg_dropped_pieces = sum(dropped_pieces) / len(dropped_pieces) if dropped_pieces else 0
+    
+    # Ratings
+    offense_ratings = [match.get('teleop', {}).get('offenseRating', 0) for match in matches]
+    defense_ratings = [match.get('teleop', {}).get('defenseRating', 0) for match in matches]
+    avg_offense_rating = sum(offense_ratings) / len(offense_ratings) if offense_ratings else 0
+    avg_defense_rating = sum(defense_ratings) / len(defense_ratings) if defense_ratings else 0
+    
+    # Endgame analysis
+    climb_attempts = sum(1 for match in matches if match.get('endgame', {}).get('action') == 'climb')
+    successful_climbs = sum(1 for match in matches 
+                          if match.get('endgame', {}).get('action') == 'climb' 
+                          and match.get('endgame', {}).get('climbSuccessful', False))
+    
+    climb_success_rate = (successful_climbs / climb_attempts * 100) if climb_attempts > 0 else 0
+    
+    # Endgame preference
+    endgame_actions = [match.get('endgame', {}).get('action', 'none') for match in matches]
+    endgame_counts = {}
+    for action in endgame_actions:
+        endgame_counts[action] = endgame_counts.get(action, 0) + 1
+    
+    endgame_preference = max(endgame_counts, key=endgame_counts.get) if endgame_counts else 'Unknown'
+    
+    # Performance trend
+    if total_matches >= 4:
+        first_half_avg = sum(total_scores[:len(total_scores)//2]) / (len(total_scores)//2)
+        second_half_avg = sum(total_scores[len(total_scores)//2:]) / (len(total_scores) - len(total_scores)//2)
+        
+        if second_half_avg > first_half_avg + 5:
+            performance_trend = "Improving"
+        elif first_half_avg > second_half_avg + 5:
+            performance_trend = "Declining"
+        else:
+            performance_trend = "Stable"
+    else:
+        performance_trend = "Insufficient Data"
+    
+    # Partial matches
+    partial_matches = sum(1 for match in matches if match.get('partialMatch', False))
+    
+    return {
+        'total_matches': total_matches,
+        'avg_total_score': avg_total_score,
+        'avg_auto_score': avg_auto_score,
+        'avg_teleop_score': avg_teleop_score,
+        'best_score': best_score,
+        'worst_score': worst_score,
+        'best_match': best_match,
+        'worst_match': worst_match,
+        'consistency_rating': consistency_rating,
+        'auto_breakdown': auto_breakdown,
+        'teleop_breakdown': teleop_breakdown,
+        'avg_dropped_pieces': avg_dropped_pieces,
+        'avg_offense_rating': avg_offense_rating,
+        'avg_defense_rating': avg_defense_rating,
+        'climb_attempts': climb_attempts,
+        'successful_climbs': successful_climbs,
+        'climb_success_rate': climb_success_rate,
+        'endgame_preference': endgame_preference,
+        'performance_trend': performance_trend,
+        'partial_matches': partial_matches
+    }
+
+
+def analyze_scoring_breakdown(matches, phase):
+    """Analyze scoring breakdown for auto or teleop phase"""
+    breakdown = {
+        'll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 
+        'processor': 0, 'barge': 0
+    }
+    
+    total_matches = len(matches)
+    if total_matches == 0:
+        return "No data available"
+    
+    for match in matches:
+        phase_data = match.get(phase, {})
+        for key in breakdown.keys():
+            breakdown[key] += phase_data.get(key, 0)
+    
+    # Calculate averages
+    avg_breakdown = {key: value / total_matches for key, value in breakdown.items()}
+    
+    # Format as readable string
+    breakdown_str = f"L1:{avg_breakdown['ll1']:.1f}, L2:{avg_breakdown['l2']:.1f}, L3:{avg_breakdown['l3']:.1f}, L4:{avg_breakdown['l4']:.1f}, Processor:{avg_breakdown['processor']:.1f}, Barge:{avg_breakdown['barge']:.1f}"
+    
+    return breakdown_str
+
 @app.route('/login')
 def login_page():
     if 'user_id' in session:
