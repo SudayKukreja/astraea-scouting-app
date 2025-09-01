@@ -5,6 +5,11 @@ let currentFilters = {
   hidePartial: false
 };
 
+// Add Chart.js via CDN in your HTML template
+let performanceChart = null;
+let scoringChart = null;
+let endgameChart = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   loadAnalyticsData();
   
@@ -35,7 +40,6 @@ async function loadAnalyticsData() {
       throw new Error(analyticsData.error);
     }
     
-    // Log first few entries to see structure
     if (analyticsData.length > 0) {
       console.log('First entry:', analyticsData[0]);
     } else {
@@ -50,10 +54,8 @@ async function loadAnalyticsData() {
 }
 
 function populateFilters() {
-  // Populate events
   const events = [...new Set(analyticsData.map(d => d.event))];
 
-  // If no events, ensure current_event exists but don't duplicate
   if (events.length === 0) {
     events.push('current_event');
   }
@@ -70,13 +72,11 @@ function populateFilters() {
 function updateTeamsList() {
   const eventFilter = document.getElementById('event-filter').value;
   
-  // Filter data by event if selected
   let filteredData = analyticsData;
   if (eventFilter) {
     filteredData = analyticsData.filter(d => d.event === eventFilter);
   }
   
-  // Get unique teams with match counts
   const teamCounts = {};
   filteredData.forEach(d => {
     teamCounts[d.team] = (teamCounts[d.team] || 0) + 1;
@@ -95,11 +95,6 @@ function analyzeTeam() {
   const team = document.getElementById('team-select').value;
   const event = document.getElementById('event-filter').value;
   const hidePartial = document.getElementById('hide-partial').checked;
-  
-  console.log('analyzeTeam called');
-  console.log('analyticsData length:', analyticsData.length);
-  console.log('Selected team:', team);
-  console.log('Selected event:', event);
   
   if (!team) {
     alert('Please select a team');
@@ -129,10 +124,7 @@ function analyzeTeam() {
     return;
   }
   
-  // Calculate all statistics
   const stats = calculateTeamStats(teamData);
-  
-  // Render the analysis
   renderTeamAnalysis(team, teamData, stats);
 }
 
@@ -146,11 +138,23 @@ function calculateTeamStats(teamData) {
   const maxScore = Math.max(...scores);
   const minScore = Math.min(...scores);
   
-  // Auto stats
+  // Trend calculation - compare recent vs earlier performance
+  let trend = 'stable';
+  if (totalMatches >= 4) {
+    const recentMatches = teamData.slice(-Math.ceil(totalMatches / 2));
+    const earlierMatches = teamData.slice(0, Math.floor(totalMatches / 2));
+    
+    const recentAvg = recentMatches.reduce((sum, d) => sum + d.totalScore, 0) / recentMatches.length;
+    const earlierAvg = earlierMatches.reduce((sum, d) => sum + d.totalScore, 0) / earlierMatches.length;
+    
+    if (recentAvg > earlierAvg + 5) trend = 'improving';
+    else if (earlierAvg > recentAvg + 5) trend = 'declining';
+  }
+  
+  // Auto/Teleop stats
   const autoScores = teamData.map(d => d.auto.score);
   const avgAuto = (autoScores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
-  // Teleop stats
   const teleopScores = teamData.map(d => d.teleop.score);
   const avgTeleop = (teleopScores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
@@ -161,7 +165,7 @@ function calculateTeamStats(teamData) {
   const defenseRatings = teamData.map(d => d.teleop.defenseRating || 0);
   const avgDefense = (defenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
-  // Enhanced climb analysis with parking
+  // Enhanced climb analysis
   const climbAttempts = teamData.filter(d => d.endgame.action === 'climb').length;
   const successfulClimbs = teamData.filter(d => 
     d.endgame.action === 'climb' && d.endgame.climbSuccessful
@@ -169,43 +173,24 @@ function calculateTeamStats(teamData) {
   const failedClimbsWithPark = teamData.filter(d => 
     d.endgame.action === 'climb' && !d.endgame.climbSuccessful && d.endgame.climbParked
   ).length;
-  const failedClimbs = climbAttempts - successfulClimbs - failedClimbsWithPark;
   const climbRate = climbAttempts > 0 ? 
     ((successfulClimbs / climbAttempts) * 100).toFixed(0) : 0;
   
-  // Park analysis (including failed climbs with park)
-  const directParkCount = teamData.filter(d => d.endgame.action === 'park').length;
-  const totalParkCount = directParkCount + failedClimbsWithPark;
-  const noEndgameCount = teamData.filter(d => 
-    d.endgame.action === 'did not park/climb' || !d.endgame.action
-  ).length;
-  
   // Game piece breakdown
   let totalL1 = 0, totalL2 = 0, totalL3 = 0, totalL4 = 0;
-  let totalProcessor = 0, totalBarge = 0;
-  let totalDropped = 0;
+  let totalProcessor = 0, totalBarge = 0, totalDropped = 0;
   
   teamData.forEach(d => {
-    // Auto pieces
-    totalL1 += (d.auto.ll1 || 0);
-    totalL2 += (d.auto.l2 || 0);
-    totalL3 += (d.auto.l3 || 0);
-    totalL4 += (d.auto.l4 || 0);
-    totalProcessor += (d.auto.processor || 0);
-    totalBarge += (d.auto.barge || 0);
-    totalDropped += (d.auto.droppedPieces || 0);
-    
-    // Teleop pieces
-    totalL1 += (d.teleop.ll1 || 0);
-    totalL2 += (d.teleop.l2 || 0);
-    totalL3 += (d.teleop.l3 || 0);
-    totalL4 += (d.teleop.l4 || 0);
-    totalProcessor += (d.teleop.processor || 0);
-    totalBarge += (d.teleop.barge || 0);
-    totalDropped += (d.teleop.droppedPieces || 0);
+    totalL1 += (d.auto.ll1 || 0) + (d.teleop.ll1 || 0);
+    totalL2 += (d.auto.l2 || 0) + (d.teleop.l2 || 0);
+    totalL3 += (d.auto.l3 || 0) + (d.teleop.l3 || 0);
+    totalL4 += (d.auto.l4 || 0) + (d.teleop.l4 || 0);
+    totalProcessor += (d.auto.processor || 0) + (d.teleop.processor || 0);
+    totalBarge += (d.auto.barge || 0) + (d.teleop.barge || 0);
+    totalDropped += (d.auto.droppedPieces || 0) + (d.teleop.droppedPieces || 0);
   });
   
-  // Calculate consistency (standard deviation)
+  // Consistency (standard deviation)
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
   const stdDev = Math.sqrt(variance).toFixed(1);
@@ -223,18 +208,8 @@ function calculateTeamStats(teamData) {
     climbAttempts,
     successfulClimbs,
     failedClimbsWithPark,
-    failedClimbs,
     climbRate,
-    directParkCount,
-    totalParkCount,
-    noEndgameCount,
-    totalL1,
-    totalL2,
-    totalL3,
-    totalL4,
-    totalProcessor,
-    totalBarge,
-    totalDropped,
+    totalL1, totalL2, totalL3, totalL4, totalProcessor, totalBarge, totalDropped,
     avgL1: (totalL1 / totalMatches).toFixed(1),
     avgL2: (totalL2 / totalMatches).toFixed(1),
     avgL3: (totalL3 / totalMatches).toFixed(1),
@@ -242,7 +217,8 @@ function calculateTeamStats(teamData) {
     avgProcessor: (totalProcessor / totalMatches).toFixed(1),
     avgBarge: (totalBarge / totalMatches).toFixed(1),
     avgDropped: (totalDropped / totalMatches).toFixed(1),
-    consistency: stdDev
+    consistency: stdDev,
+    trend
   };
 }
 
@@ -251,26 +227,42 @@ function renderTeamAnalysis(team, teamData, stats) {
   
   // Determine performance level
   let performanceLevel = 'low';
-  if (stats.avgScore >= 60) performanceLevel = 'high';
-  else if (stats.avgScore >= 40) performanceLevel = 'medium';
+  let performanceColor = 'warning';
+  if (stats.avgScore >= 80) {
+    performanceLevel = 'elite';
+    performanceColor = 'success';
+  } else if (stats.avgScore >= 60) {
+    performanceLevel = 'high';
+    performanceColor = 'success';
+  } else if (stats.avgScore >= 40) {
+    performanceLevel = 'medium';
+    performanceColor = 'highlight';
+  }
+  
+  // Trend indicator
+  const trendIcon = stats.trend === 'improving' ? '📈' : 
+                   stats.trend === 'declining' ? '📉' : '➡️';
   
   // Sort matches by number
   const sortedMatches = [...teamData].sort((a, b) => a.match - b.match);
   
   container.innerHTML = `
-    <h2 style="margin-bottom: 24px; color: #1e293b;">
-      Team ${team} Analysis
-      <span class="performance-badge badge-${performanceLevel}">${performanceLevel.toUpperCase()} PERFORMER</span>
-    </h2>
-    
-    ${stats.partialMatches > 0 ? `
-      <div class="warning-message">
-        ⚠️ This team had ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''} out of ${stats.totalMatches} matches
-      </div>
-    ` : ''}
+    <div class="team-header">
+      <h2 style="margin-bottom: 24px; color: #1e293b; display: flex; align-items: center; gap: 12px;">
+        🏆 Team ${team} Analysis
+        <span class="performance-badge badge-${performanceColor}">${performanceLevel.toUpperCase()} PERFORMER</span>
+        <span class="trend-indicator" title="${stats.trend} trend">${trendIcon}</span>
+      </h2>
+      
+      ${stats.partialMatches > 0 ? `
+        <div class="warning-message">
+          ⚠️ This team had ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''} out of ${stats.totalMatches} matches
+        </div>
+      ` : ''}
+    </div>
     
     <div class="team-overview">
-      <div class="stat-card ${stats.avgScore >= 60 ? 'success' : stats.avgScore >= 40 ? 'highlight' : 'warning'}">
+      <div class="stat-card ${stats.avgScore >= 80 ? 'elite' : stats.avgScore >= 60 ? 'success' : stats.avgScore >= 40 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgScore}</div>
         <div class="stat-label">Average Score</div>
       </div>
@@ -278,11 +270,11 @@ function renderTeamAnalysis(team, teamData, stats) {
         <div class="stat-value">${stats.totalMatches}</div>
         <div class="stat-label">Matches Played</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card ${stats.avgAuto >= 25 ? 'success' : stats.avgAuto >= 15 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgAuto}</div>
         <div class="stat-label">Avg Auto Score</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card ${stats.avgTeleop >= 60 ? 'success' : stats.avgTeleop >= 40 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgTeleop}</div>
         <div class="stat-label">Avg Teleop Score</div>
       </div>
@@ -290,9 +282,24 @@ function renderTeamAnalysis(team, teamData, stats) {
         <div class="stat-value">${stats.climbRate}%</div>
         <div class="stat-label">Climb Success Rate</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value">${stats.avgOffense}/5</div>
-        <div class="stat-label">Offense Rating</div>
+      <div class="stat-card ${stats.consistency < 10 ? 'success' : stats.consistency < 20 ? 'highlight' : 'warning'}">
+        <div class="stat-value">±${stats.consistency}</div>
+        <div class="stat-label">Consistency</div>
+      </div>
+    </div>
+    
+    <div class="charts-section">
+      <div class="chart-container">
+        <h3 class="chart-title">📈 Performance Trend</h3>
+        <canvas id="performance-chart" width="400" height="200"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3 class="chart-title">🎯 Scoring Breakdown (Avg per Match)</h3>
+        <canvas id="scoring-chart" width="400" height="200"></canvas>
+      </div>
+      <div class="chart-container">
+        <h3 class="chart-title">🏁 Endgame Actions</h3>
+        <canvas id="endgame-chart" width="400" height="200"></canvas>
       </div>
     </div>
     
@@ -309,36 +316,20 @@ function renderTeamAnalysis(team, teamData, stats) {
             <span class="breakdown-value">${stats.minScore}</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Consistency (σ)</span>
-            <span class="breakdown-value">±${stats.consistency}</span>
+            <span class="breakdown-label">Performance Trend</span>
+            <span class="breakdown-value trend-${stats.trend}">${stats.trend.toUpperCase()}</span>
           </div>
           <div class="breakdown-item">
             <span class="breakdown-label">Defense Rating</span>
             <span class="breakdown-value">${stats.avgDefense}/5</span>
           </div>
-        </div>
-        
-        <h4 style="margin-top: 24px; margin-bottom: 12px; color: #475569;">Endgame Breakdown</h4>
-        <div class="quick-facts">
-          <div class="fact-item">
-            <div class="fact-value">${stats.successfulClimbs}</div>
-            <div class="fact-label">Successful Climbs</div>
+          <div class="breakdown-item">
+            <span class="breakdown-label">Offense Rating</span>
+            <span class="breakdown-value">${stats.avgOffense}/5</span>
           </div>
-          <div class="fact-item">
-            <div class="fact-value">${stats.failedClimbsWithPark}</div>
-            <div class="fact-label">Failed Climb + Park</div>
-          </div>
-          <div class="fact-item">
-            <div class="fact-value">${stats.failedClimbs}</div>
-            <div class="fact-label">Failed Climbs</div>
-          </div>
-          <div class="fact-item">
-            <div class="fact-value">${stats.directParkCount}</div>
-            <div class="fact-label">Direct Parks</div>
-          </div>
-          <div class="fact-item">
-            <div class="fact-value">${stats.noEndgameCount}</div>
-            <div class="fact-label">No Endgame</div>
+          <div class="breakdown-item">
+            <span class="breakdown-label">Reliability</span>
+            <span class="breakdown-value">${((1 - stats.partialMatches / stats.totalMatches) * 100).toFixed(0)}%</span>
           </div>
         </div>
         
@@ -413,18 +404,146 @@ function renderTeamAnalysis(team, teamData, stats) {
       </div>
     </div>
     
-    <div style="margin-top: 24px; padding: 20px; background: #f1f5f9; border-radius: 12px;">
-      <h4 style="margin-bottom: 12px; color: #1e293b;">Quick Alliance Selection Summary</h4>
+    <div class="alliance-summary">
+      <h4 style="margin-bottom: 12px; color: #1e293b;">🤝 Quick Alliance Selection Summary</h4>
       <p style="color: #475569; line-height: 1.6;">
         <strong>Team ${team}</strong> averages <strong>${stats.avgScore} points</strong> per match with 
         ${stats.consistency < 10 ? 'very consistent' : stats.consistency < 20 ? 'moderate' : 'inconsistent'} performance 
         (σ = ${stats.consistency}). 
-        They ${stats.climbRate >= 50 ? `successfully climb ${stats.climbRate}% of the time` : 'struggle with climbing'}${stats.failedClimbsWithPark > 0 ? ` but often recover with parking (${stats.failedClimbsWithPark} failed climbs saved)` : ''} 
-        and ${stats.avgOffense >= 3.5 ? 'have strong offensive capabilities' : stats.avgOffense >= 2.5 ? 'have moderate offensive capabilities' : 'focus more on defense'}.
-        ${stats.partialMatches > 0 ? ` ⚠️ Reliability concern: ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''}.` : ''}
+        They show a <strong>${stats.trend}</strong> trend and 
+        ${stats.climbRate >= 50 ? `successfully climb ${stats.climbRate}% of the time` : 'struggle with climbing'}. 
+        ${stats.avgOffense >= 3.5 ? 'Strong offensive capabilities' : stats.avgOffense >= 2.5 ? 'Moderate offensive capabilities' : 'Defensive focus'}.
+        ${stats.partialMatches > 0 ? ` ⚠️ Reliability concern: ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''}.` : ' ✅ No reliability concerns.'}
       </p>
     </div>
   `;
+  
+  // Create charts after DOM is rendered
+  setTimeout(() => {
+    createPerformanceChart(sortedMatches);
+    createScoringChart(stats);
+    createEndgameChart(teamData);
+  }, 100);
+}
+
+function createPerformanceChart(matches) {
+  const ctx = document.getElementById('performance-chart')?.getContext('2d');
+  if (!ctx) return;
+  
+  if (performanceChart) {
+    performanceChart.destroy();
+  }
+  
+  const labels = matches.map(m => `Match ${m.match}`);
+  const scores = matches.map(m => m.totalScore);
+  const movingAvg = matches.map((m, i) => {
+    const start = Math.max(0, i - 2);
+    const subset = matches.slice(start, i + 1);
+    return subset.reduce((sum, match) => sum + match.totalScore, 0) / subset.length;
+  });
+  
+  performanceChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Score',
+        data: scores,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        tension: 0.1,
+        fill: true
+      }, {
+        label: '3-Match Average',
+        data: movingAvg,
+        borderColor: '#f59e0b',
+        borderDash: [5, 5],
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'top',
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function createScoringChart(stats) {
+  const ctx = document.getElementById('scoring-chart')?.getContext('2d');
+  if (!ctx) return;
+  
+  if (scoringChart) {
+    scoringChart.destroy();
+  }
+  
+  scoringChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge'],
+      datasets: [{
+        label: 'Avg per Match',
+        data: [stats.avgL1, stats.avgL2, stats.avgL3, stats.avgL4, stats.avgProcessor, stats.avgBarge],
+        backgroundColor: [
+          '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#f59e0b', '#fbbf24'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function createEndgameChart(teamData) {
+  const ctx = document.getElementById('endgame-chart')?.getContext('2d');
+  if (!ctx) return;
+  
+  if (endgameChart) {
+    endgameChart.destroy();
+  }
+  
+  const successfulClimbs = teamData.filter(d => d.endgame.action === 'climb' && d.endgame.climbSuccessful).length;
+  const failedClimbs = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful).length;
+  const parks = teamData.filter(d => d.endgame.action === 'park').length;
+  const noEndgame = teamData.filter(d => d.endgame.action === 'did not park/climb' || !d.endgame.action).length;
+  
+  endgameChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Successful Climbs', 'Failed Climbs', 'Parks', 'No Endgame'],
+      datasets: [{
+        data: [successfulClimbs, failedClimbs, parks, noEndgame],
+        backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6b7280']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+        }
+      }
+    }
+  });
 }
 
 function showError(message) {
