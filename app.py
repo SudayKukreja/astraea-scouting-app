@@ -57,47 +57,48 @@ def gemini_insight():
     team_stats = analyze_team_performance(matches)
     
     prompt = f"""
-        You are analyzing FIRST Robotics Team {team}. Provide a comprehensive but concise analysis of their performance based on the data.
+    You are analyzing FIRST Robotics Team {team} for ALLIANCE SELECTION purposes. Focus on practical, actionable insights that alliance captains need to make quick decisions.
 
-        PERFORMANCE DATA:
-        - Total Matches: {team_stats['total_matches']}
-        - Average Score: {team_stats['avg_total_score']:.1f} points (Best: {team_stats['best_score']}, Worst: {team_stats['worst_score']})
-        - Consistency: {team_stats['consistency_rating']} (score variation pattern)
-        - Performance Trend: {team_stats['performance_trend']}
-        
-        SCORING BREAKDOWN:
-        - Auto Average: {team_stats['avg_auto_score']:.1f} points | {team_stats['auto_breakdown']}
-        - Teleop Average: {team_stats['avg_teleop_score']:.1f} points | {team_stats['teleop_breakdown']}
-        - Avg Pieces Dropped: {team_stats['avg_dropped_pieces']:.1f} per match
-        
-        RATINGS & ENDGAME:
-        - Offense Rating: {team_stats['avg_offense_rating']:.1f}/5 | Defense Rating: {team_stats['avg_defense_rating']:.1f}/5
-        - Climb Success: {team_stats['climb_success_rate']}% ({team_stats['successful_climbs']}/{team_stats['climb_attempts']} attempts)
-        - Endgame Strategy: {team_stats['endgame_preference']}
+    PERFORMANCE DATA:
+    - Total Matches: {team_stats['total_matches']}
+    - Average Score: {team_stats['avg_total_score']:.1f} points (Best: {team_stats['best_score']}, Worst: {team_stats['worst_score']})
+    - Consistency: {team_stats['consistency_rating']} (score variation pattern)
+    - Performance Trend: {team_stats['performance_trend']}
+    
+    SCORING BREAKDOWN:
+    - Auto Average: {team_stats['avg_auto_score']:.1f} points | {team_stats['auto_breakdown']}
+    - Teleop Average: {team_stats['avg_teleop_score']:.1f} points | {team_stats['teleop_breakdown']}
+    - Avg Pieces Dropped: {team_stats['avg_dropped_pieces']:.1f} per match
+    
+    RATINGS & ENDGAME:
+    - Offense Rating: {team_stats['avg_offense_rating']:.1f}/5 | Defense Rating: {team_stats['avg_defense_rating']:.1f}/5
+    - Climb Success: {team_stats['climb_success_rate']}% ({team_stats['successful_climbs']}/{team_stats['climb_attempts']} attempts)
+    - Endgame Strategy: {team_stats['endgame_preference']}
 
-        RELIABILITY:
-        - Partial Matches: {team_stats['partial_matches']}/{team_stats['total_matches']} (breakdown/issue rate)
+    RELIABILITY:
+    - Partial Matches: {team_stats['partial_matches']}/{team_stats['total_matches']} (breakdown/issue rate)
 
-        Provide an analysis in this EXACT format:
+    Provide a concise analysis in this EXACT format:
 
-        ## Team {team} Performance Analysis
+    ## ALLIANCE VALUE: [HIGH/MEDIUM/LOW]
 
-        **Overall Performance:** [Brief description of their scoring ability and consistency level]
+    **Quick Summary:** [One sentence describing this team's role/value]
 
-        ### Key Characteristics:
-        • **Autonomous:** [Describe their auto performance and capabilities]
-        • **Teleop Play:** [Describe their teleop scoring patterns and style]  
-        • **Endgame:** [Describe their climb/park strategy and success rate]
-        • **Consistency:** [Describe how reliable their scoring is match-to-match]
+    ### STRENGTHS:
+    • [3-4 specific bullet points about what they do well]
 
-        ### Notable Patterns:
-        • [2-3 observations about trends, preferences, or standout performances]
+    ### WEAKNESSES:  
+    • [2-3 specific bullet points about concerns/limitations]
 
-        ### Summary:
-        [2-3 sentences summarizing what type of team this is, their scoring profile, and any reliability notes]
+    ### ALLIANCE SELECTION NOTES:
+    • **Best Role:** [What position/role they excel at]
+    • **Avoid If:** [Specific situations where they might struggle]
+    • **Pair With:** [Types of teams that complement them well]
 
-        Keep it factual and analytical. Focus on describing what they do, not evaluating if it's good or bad.
-        """
+    ### RELIABILITY SCORE: [EXCELLENT/GOOD/CONCERNING] - [Brief explanation]
+
+    Keep it concise, factual, and focused on alliance selection decisions. Use specific numbers from the data.
+    """
 
     try:
         response = requests.post(
