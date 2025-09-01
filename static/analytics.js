@@ -522,17 +522,52 @@ function createEndgameChart(teamData) {
   }
   
   const successfulClimbs = teamData.filter(d => d.endgame.action === 'climb' && d.endgame.climbSuccessful).length;
-  const failedClimbs = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful).length;
-  const parks = teamData.filter(d => d.endgame.action === 'park').length;
+  const failedClimbsWithPark = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful && d.endgame.climbParked).length;
+  const failedClimbsNoPark = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful && !d.endgame.climbParked).length;
+  const directParks = teamData.filter(d => d.endgame.action === 'park').length;
   const noEndgame = teamData.filter(d => d.endgame.action === 'did not park/climb' || !d.endgame.action).length;
+  
+  const chartData = [];
+  const chartLabels = [];
+  const chartColors = [];
+  
+  if (successfulClimbs > 0) {
+    chartData.push(successfulClimbs);
+    chartLabels.push('Successful Climbs');
+    chartColors.push('#10b981');
+  }
+  
+  if (failedClimbsWithPark > 0) {
+    chartData.push(failedClimbsWithPark);
+    chartLabels.push('Failed Climb + Park');
+    chartColors.push('#f59e0b');
+  }
+  
+  if (failedClimbsNoPark > 0) {
+    chartData.push(failedClimbsNoPark);
+    chartLabels.push('Failed Climbs');
+    chartColors.push('#ef4444');
+  }
+  
+  if (directParks > 0) {
+    chartData.push(directParks);
+    chartLabels.push('Direct Parks');
+    chartColors.push('#3b82f6');
+  }
+  
+  if (noEndgame > 0) {
+    chartData.push(noEndgame);
+    chartLabels.push('No Endgame');
+    chartColors.push('#6b7280');
+  }
   
   endgameChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Successful Climbs', 'Failed Climbs', 'Parks', 'No Endgame'],
+      labels: chartLabels,
       datasets: [{
-        data: [successfulClimbs, failedClimbs, parks, noEndgame],
-        backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6b7280']
+        data: chartData,
+        backgroundColor: chartColors
       }]
     },
     options: {
@@ -540,6 +575,17 @@ function createEndgameChart(teamData) {
       plugins: {
         legend: {
           position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const label = context.label || '';
+              const value = context.parsed || 0;
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((value / total) * 100).toFixed(1);
+              return `${label}: ${value} (${percentage}%)`;
+            }
+          }
         }
       }
     }
