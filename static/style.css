@@ -561,18 +561,15 @@ textarea {
     }
 }
 
-/* Global horizontal scroll fix */
 html, body {
     max-width: 100%;
     overflow-x: hidden;
 }
 
-/* Prevent iOS zoom-in on input focus */
 input, select, textarea {
     font-size: 16px;
 }
 
-/* Scroll snap for tab experience on mobile */
 .tabs {
     scroll-snap-type: x mandatory;
 }
@@ -581,7 +578,6 @@ input, select, textarea {
     scroll-snap-align: start;
 }
 
-/* Ultra-small device support */
 @media (max-width: 375px) {
     .form-row {
         grid-template-columns: 1fr;

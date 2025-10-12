@@ -4,7 +4,6 @@ let matches = [];
 let teams = [];
 let isUpdating = false;
 
-// Create a centralized update manager
 class UpdateManager {
   constructor() {
     this.pendingUpdates = new Set();
@@ -13,7 +12,7 @@ class UpdateManager {
   
   async performUpdate(key, updateFunction, forceRefresh = false) {
     if (this.pendingUpdates.has(key) && !forceRefresh) {
-      return; // Prevent duplicate updates
+      return;
     }
     
     this.pendingUpdates.add(key);
@@ -38,7 +37,7 @@ class UpdateManager {
     const oldHash = this.lastDataHash.get(key);
     const hasChanged = newHash !== oldHash;
     
-    if (hasChanged || !oldHash) { // Always update if no previous hash
+    if (hasChanged || !oldHash) {
       this.lastDataHash.set(key, newHash);
     }
     
@@ -61,19 +60,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('event-section').style.display = 'block';
     loadMatches();
   }
-  
-  // Set up auto-refresh every 10 seconds for matches
+
   setInterval(async () => {
     if (currentEvent && !isUpdating) {
       await silentLoadMatches();
     }
   }, 10000);
   
-  // Load initial scouter data
   loadScouters();
 });
 
-// Enhanced silent refresh with better error handling
 async function silentLoadMatches() {
   if (!currentEvent || isUpdating) return;
   
@@ -82,8 +78,7 @@ async function silentLoadMatches() {
     if (!response.ok) return;
     
     const newMatches = await response.json();
-    
-    // Only update if data has actually changed
+
     if (updateManager.hasDataChanged('matches', newMatches)) {
       matches = newMatches;
       await renderMatches();
@@ -93,13 +88,11 @@ async function silentLoadMatches() {
   }
 }
 
-// Enhanced renderMatches with better state management
 async function renderMatches() {
   const container = document.getElementById('matches-container');
   if (!container) return;
   
   try {
-    // Fetch all required data in parallel
     const [assignmentsResponse, summaryResponse] = await Promise.all([
       fetch(`/api/admin/assignments?event=${currentEvent}`),
       fetch(`/api/admin/match-summary?event=${currentEvent}`)
@@ -114,7 +107,6 @@ async function renderMatches() {
       summaryResponse.json()
     ]);
 
-    // Create summary HTML
     const summaryHTML = `
       <div class="match-summary">
         <h3>Assignment Summary</h3>
@@ -139,7 +131,6 @@ async function renderMatches() {
       </div>
     `;
     
-    // Render matches with current assignments
     container.innerHTML = summaryHTML + matches.map(match => {
       const matchAssignments = assignments.filter(a => a.match_number === match.match_number);
       const isHomeMatch = match.all_teams.includes('6897'); 
@@ -205,7 +196,6 @@ async function renderMatches() {
   }
 }
 
-// Fixed loadScouters with proper state management
 async function loadScouters() {
   try {
     const response = await fetch('/api/admin/scouters');
@@ -214,8 +204,7 @@ async function loadScouters() {
     }
     
     const newScouters = await response.json();
-    
-    // Always update scouters - don't rely on hash comparison for this
+
     scouters = newScouters;
     await updateScouterUI();
     
@@ -230,7 +219,6 @@ async function loadScouters() {
   }
 }
 
-// Separate UI update function for scouters
 async function updateScouterUI() {
   const bulkScouterSelect = document.getElementById('bulk-scouter');
   if (bulkScouterSelect) {
@@ -242,8 +230,7 @@ async function updateScouterUI() {
       bulkScouterSelect.appendChild(option);
     });
   }
-  
-  // Update scouters list with stats
+
   try {
     const statsResponse = await fetch('/api/admin/scouter-stats');
     const stats = await statsResponse.json();
@@ -274,16 +261,13 @@ async function updateScouterUI() {
   }
 }
 
-// Central refresh function for all data - SIMPLIFIED
 async function refreshAllData() {
   try {
     console.log('Starting complete data refresh...');
     isUpdating = true;
     
-    // Clear all caches to force fresh data
     updateManager.clearCache();
     
-    // Load data in sequence to avoid race conditions
     await loadScouters();
     
     if (currentEvent) {
@@ -299,7 +283,6 @@ async function refreshAllData() {
   }
 }
 
-// Enhanced action functions with proper refresh handling
 async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName) {
   if (!confirm(`Remove assignment for Team ${teamNumber} from ${scouterName}?`)) {
     return;
@@ -320,7 +303,6 @@ async function removeIndividualAssignment(assignmentKey, teamNumber, scouterName
     const result = await response.json();
     
     if (response.ok) {
-      // Force reload matches with cache busting
       updateManager.clearCache();
       await forceReloadMatches();
       showSuccessMessage(`Removed assignment for Team ${teamNumber} from ${scouterName}`);
@@ -360,7 +342,6 @@ async function clearMatchAssignments(matchNumber) {
     const result = await response.json();
     
     if (response.ok) {
-      // Force reload matches with cache busting
       updateManager.clearCache();
       await forceReloadMatches();
       showSuccessMessage(`Cleared ${result.removed_count} assignments from Match ${matchNumber}`);
@@ -377,7 +358,6 @@ async function clearMatchAssignments(matchNumber) {
   }
 }
 
-// Enhanced scouter creation with proper refresh
 async function createScouterSubmit(e) {
   e.preventDefault();
   
@@ -404,7 +384,6 @@ async function createScouterSubmit(e) {
     if (response.ok) {
       hideCreateScouterModal();
       
-      // Force clear cache and reload scouter data
       updateManager.clearCache();
       await forceReloadScouters();
       
@@ -427,7 +406,6 @@ async function deleteScouter(username) {
     });
     
     if (response.ok) {
-      // Force clear cache and reload scouter data
       updateManager.clearCache();
       await forceReloadScouters();
       
@@ -441,12 +419,10 @@ async function deleteScouter(username) {
   }
 }
 
-// Force reload functions that bypass cache
 async function forceReloadScouters() {
   try {
     console.log('Force reloading scouters...');
-    
-    // Add cache busting parameter
+
     const timestamp = new Date().getTime();
     const response = await fetch(`/api/admin/scouters?_=${timestamp}`);
     
@@ -471,7 +447,6 @@ async function forceReloadMatches() {
   try {
     console.log('Force reloading matches...');
     
-    // Add cache busting parameter
     const timestamp = new Date().getTime();
     const response = await fetch(`/api/admin/matches?event=${currentEvent}&_=${timestamp}`);
     
@@ -490,7 +465,6 @@ async function forceReloadMatches() {
   }
 }
 
-// Enhanced loadMatches function - SIMPLIFIED
 async function loadMatches() {
   if (!currentEvent) {
     alert('Please enter an event key first');
@@ -517,8 +491,7 @@ async function loadMatches() {
     if (teams.length === 0) {
       await loadTeamsForEvent(currentEvent);
     }
-    
-    // Always render matches after loading
+
     await renderMatches();
     
   } catch (error) {
@@ -530,7 +503,6 @@ async function loadMatches() {
   }
 }
 
-// Tab switching with proper data loading
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', async () => {
     const tabId = btn.getAttribute('data-tab');
@@ -541,23 +513,19 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     
-    // Load data when switching to scouters tab
     if (tabId === 'scouters') {
       await loadScouters();
     }
   });
 });
 
-// Event handlers setup
 document.addEventListener('DOMContentLoaded', () => {
-  // Set up create scouter form
   const createForm = document.getElementById('create-scouter-form');
   if (createForm) {
     createForm.addEventListener('submit', createScouterSubmit);
   }
 });
 
-// Keep all other existing functions unchanged
 function getAssignmentStatusDisplay(assignment) {
   if (assignment.is_home_game) {
     return '<span class="status-badge home-game">🏠 Home Game</span>';
@@ -681,7 +649,6 @@ async function assignMatch(matchNumber) {
       
       if (response.ok) {
         closeModal();
-        // Force reload matches with cache busting
         updateManager.clearCache();
         await forceReloadMatches();
         showSuccessMessage('Assignments saved successfully!');
@@ -778,7 +745,6 @@ async function bulkAssignTeam() {
       showSuccessMessage(result.message);
       updateManager.clearCache();
       await forceReloadMatches();
-      // Clear the form
       document.getElementById('bulk-team').value = '';
       document.getElementById('bulk-scouter').value = '';
     } else {
@@ -828,7 +794,6 @@ async function removeTeamAssignments() {
   }
 }
 
-// Notification functions
 function showSuccessMessage(message) {
   showNotification(message, 'success');
 }
@@ -875,7 +840,6 @@ function showNotification(message, type = 'info') {
   }, 4000);
 }
 
-// Utility functions
 async function loadEventData() {
   const eventKey = document.getElementById('event-key-input').value.trim();
   if (!eventKey) {
@@ -960,10 +924,8 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Manual Event Functions (keeping existing functionality)
 let manualMatchCount = 0;
 
-// Initialize manual events when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
   const eventTabBtns = document.querySelectorAll('.event-tab-btn');
   const eventTabContents = document.querySelectorAll('.event-tab-content');
@@ -1045,23 +1007,19 @@ Red: 1678, 5190, 6834 vs Blue: 973, 1114, 2056
   `;
   
   document.body.insertAdjacentHTML('beforeend', modalHTML);
-  
-  // Add event listeners for format tabs
+
   document.querySelectorAll('.format-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const format = btn.getAttribute('data-format');
-      
-      // Update active tab
+
       document.querySelectorAll('.format-tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
-      // Update active content
       document.querySelectorAll('.format-content').forEach(c => c.classList.remove('active'));
       document.getElementById(`${format}-format`).classList.add('active');
     });
   });
   
-  // Add real-time preview
   ['bulk-csv-input', 'bulk-text-input', 'bulk-json-input'].forEach(id => {
     const element = document.getElementById(id);
     if (element) {
@@ -1518,7 +1476,6 @@ async function autoAssignTeams() {
     console.log('Auto-assign result:', result);
     
     if (result.success) {
-      // Show formatted results
       let resultsHTML = `
         <div class="auto-assign-success">
           <h4>✅ Auto Assignment Complete!</h4>
@@ -1542,8 +1499,7 @@ async function autoAssignTeams() {
       if (resultsDiv) {
         resultsDiv.innerHTML = resultsHTML;
       }
-      
-      // Refresh matches to show new assignments
+
       console.log('Refreshing matches after auto-assign');
       updateManager.clearCache();
       await forceReloadMatches();
@@ -1613,8 +1569,7 @@ async function clearAllAssignments() {
         resultsDiv.style.display = 'block';
         resultsDiv.innerHTML = `<div class="auto-assign-success">✅ ${result.message}</div>`;
       }
-      
-      // Clear matches display
+
       console.log('Refreshing matches after clear assignments');
       updateManager.clearCache();
       await forceReloadMatches();

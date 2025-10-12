@@ -5,7 +5,6 @@
 }
 
 :root {
-  /* Enhanced Color Palette with Better Contrast */
   --primary-blue: #2563eb;
   --primary-blue-light: #3b82f6;
   --primary-blue-dark: #1e40af;
@@ -27,7 +26,6 @@
   --warning-orange-bg: #fff7ed;
   --warning-orange-border: #fed7aa;
   
-  /* Enhanced Neutral Colors */
   --white: #ffffff;
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -40,40 +38,34 @@
   --gray-800: #1f2937;
   --gray-900: #111827;
   
-  /* Typography */
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
   --font-mono: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+
+  --spacing-xs: 0.25rem;   
+  --spacing-sm: 0.5rem; 
+  --spacing-md: 0.75rem;  
+  --spacing-lg: 1rem;      
+  --spacing-xl: 1.5rem;   
+  --spacing-2xl: 2rem;    
+  --spacing-3xl: 3rem;      
   
-  /* Enhanced Spacing */
-  --spacing-xs: 0.25rem;    /* 4px */
-  --spacing-sm: 0.5rem;     /* 8px */
-  --spacing-md: 0.75rem;    /* 12px */
-  --spacing-lg: 1rem;       /* 16px */
-  --spacing-xl: 1.5rem;     /* 24px */
-  --spacing-2xl: 2rem;      /* 32px */
-  --spacing-3xl: 3rem;      /* 48px */
+  --radius-sm: 0.375rem;    
+  --radius-md: 0.5rem;      
+  --radius-lg: 0.75rem;    
+  --radius-xl: 1rem;       
+  --radius-2xl: 1.5rem;    
   
-  /* Enhanced Border Radius */
-  --radius-sm: 0.375rem;    /* 6px */
-  --radius-md: 0.5rem;      /* 8px */
-  --radius-lg: 0.75rem;     /* 12px */
-  --radius-xl: 1rem;        /* 16px */
-  --radius-2xl: 1.5rem;     /* 24px */
-  
-  /* Enhanced Shadows */
   --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   
-  /* Enhanced Transitions */
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ===== BASE STYLES ===== */
 body {
   font-family: var(--font-family);
   background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
@@ -91,7 +83,6 @@ body {
   background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
 }
 
-/* ===== ENHANCED HEADER STYLES ===== */
 .dashboard-header {
   background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
   border-bottom: 3px solid var(--primary-blue-dark);
@@ -166,7 +157,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== ENHANCED BUTTON SYSTEM ===== */
 .logout-btn {
   background: linear-gradient(135deg, var(--accent-red) 0%, #b91c1c 100%);
   color: white;
@@ -195,7 +185,6 @@ body {
   transform: translateY(0);
 }
 
-/* ===== ENHANCED MAIN CONTENT ===== */
 .dashboard-main {
   flex: 1;
   max-width: 1400px;
@@ -209,7 +198,6 @@ body {
   margin: 0 auto;
 }
 
-/* ===== ENHANCED TABS SYSTEM ===== */
 .dashboard-tabs {
   display: flex;
   gap: var(--spacing-sm);
@@ -314,7 +302,6 @@ body {
   background-clip: text;
 }
 
-/* ===== ENHANCED BUTTON STYLES ===== */
 .refresh-btn, .create-btn, .assign-btn, .load-event-btn {
   background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
   color: white;
@@ -361,7 +348,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== ENHANCED EVENT SELECTOR ===== */
 .event-selector {
   margin-bottom: var(--spacing-3xl);
   background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
@@ -418,7 +404,6 @@ body {
   border-color: var(--primary-blue-light);
 }
 
-/* ===== EVENT TABS ENHANCEMENT ===== */
 .event-tabs {
   display: flex;
   gap: var(--spacing-sm);
@@ -454,7 +439,6 @@ body {
   transform: translateY(-1px);
 }
 
-/* ===== ENHANCED MATCH CARDS ===== */
 .matches-container {
   display: flex;
   flex-direction: column;
@@ -537,7 +521,6 @@ body {
   align-items: center;
 }
 
-/* ===== ENHANCED ALLIANCE STYLING ===== */
 .teams-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -609,7 +592,6 @@ body {
   color: var(--primary-blue);
 }
 
-/* ===== ENHANCED TEAM ASSIGNMENTS ===== */
 .team-assignment {
   background: var(--white);
   border: 2px solid var(--gray-200);
@@ -687,7 +669,6 @@ body {
   gap: var(--spacing-sm);
 }
 
-/* ===== ENHANCED STATUS BADGES ===== */
 .status-badge {
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-lg);
@@ -726,7 +707,6 @@ body {
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
 
-/* ===== ENHANCED ACTION BUTTONS ===== */
 .assignment-actions {
   display: flex;
   flex-wrap: wrap;
@@ -842,7 +822,6 @@ body {
   margin-left: var(--spacing-xs);
 }
 
-/* ===== ENHANCED MODAL STYLES ===== */
 .modal {
   position: fixed;
   top: 0;
@@ -911,7 +890,6 @@ body {
   background-clip: text;
 }
 
-/* ===== ENHANCED FORM STYLES ===== */
 .form-group {
   margin-bottom: var(--spacing-xl);
 }
@@ -1006,7 +984,6 @@ body {
   border-color: rgba(255, 255, 255, 0.3);
 }
 
-/* ===== ENHANCED BULK ASSIGNMENT STYLES ===== */
 .bulk-assignment, .auto-assignment {
   background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
   border-radius: var(--radius-2xl);
@@ -1061,7 +1038,6 @@ body {
   font-weight: 500;
 }
 
-/* ===== ENHANCED CARD LAYOUTS ===== */
 .scouters-list, .events-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -1158,7 +1134,6 @@ body {
   margin-bottom: 0;
 }
 
-/* ===== ENHANCED LOADING AND STATES ===== */
 .info-text, .loading {
   text-align: center;
   color: var(--gray-500);
@@ -1192,7 +1167,6 @@ body {
   box-shadow: var(--shadow-md);
 }
 
-/* ===== ENHANCED WELCOME SECTION ===== */
 .welcome-section {
   margin-bottom: var(--spacing-3xl);
   background: linear-gradient(135deg, var(--primary-blue-ultra-light) 0%, var(--white) 100%);
@@ -1233,7 +1207,6 @@ body {
   line-height: 1.7;
 }
 
-/* ===== SCOUTER DASHBOARD ENHANCEMENTS ===== */
 .match-assignment-card {
   background: linear-gradient(135deg, var(--white) 0%, var(--gray-50) 100%);
   border-radius: var(--radius-2xl);
@@ -1403,7 +1376,6 @@ body {
   font-weight: bold;
 }
 
-/* ===== ENHANCED MATCH SUMMARY ===== */
 .match-summary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -1481,7 +1453,6 @@ body {
   letter-spacing: 0.025em;
 }
 
-/* ===== ENHANCED ANIMATIONS ===== */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -1509,7 +1480,6 @@ body {
 .animate-bounce { animation: bounce 1s infinite; }
 .animate-shake { animation: shake 0.5s ease-in-out; }
 
-/* ===== ENHANCED FOCUS STYLES ===== */
 *:focus-visible {
   outline: 3px solid var(--primary-blue);
   outline-offset: 3px;
@@ -1522,7 +1492,6 @@ button:focus-visible,
   outline-offset: 3px;
 }
 
-/* ===== ENHANCED SCROLLBAR STYLING ===== */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -1543,7 +1512,6 @@ button:focus-visible,
   background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-600) 100%);
 }
 
-/* ===== RESPONSIVE DESIGN ENHANCEMENTS ===== */
 @media (max-width: 1200px) {
   .header-content {
     max-width: 100%;
@@ -1807,7 +1775,6 @@ button:focus-visible,
   }
 }
 
-/* ===== UTILITY CLASSES ===== */
 .text-center { text-align: center; }
 .text-left { text-align: left; }
 .text-right { text-align: right; }
@@ -1829,7 +1796,6 @@ button:focus-visible,
 .hidden { display: none !important; }
 .visible { display: block !important; }
 
-/* ===== ENHANCED BULK ENTRY STYLES ===== */
 .bulk-format-tabs {
   display: flex;
   gap: var(--spacing-lg);
@@ -1973,7 +1939,6 @@ button:focus-visible,
   font-weight: 600;
 }
 
-/* ===== BULK ADD BUTTON ENHANCEMENT ===== */
 .matches-builder-header {
   display: flex;
   justify-content: space-between;
@@ -2013,7 +1978,6 @@ button:focus-visible,
   font-size: 1rem;
 }
 
-/* ===== MANUAL EVENTS STYLING ===== */
 .manual-events-list {
   margin-top: var(--spacing-2xl);
 }
@@ -2073,7 +2037,6 @@ button:focus-visible,
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
 }
 
-/* ===== AUTO ASSIGNMENT ENHANCEMENTS ===== */
 .auto-assign-success {
   background: linear-gradient(135deg, var(--success-green-bg) 0%, #f0fdf4 100%);
   border: 2px solid var(--success-green-border);
@@ -2163,7 +2126,6 @@ button:focus-visible,
   line-height: 1.5;
 }
 
-/* ===== LOADING STATE ENHANCEMENTS ===== */
 .auto-assignment.loading,
 .bulk-assignment.loading {
   opacity: 0.7;
@@ -2192,7 +2154,6 @@ button:focus-visible,
   100% { transform: rotate(360deg); }
 }
 
-/* ===== PRINT STYLES ===== */
 @media print {
   .dashboard-header,
   .logout-btn,
@@ -2231,7 +2192,6 @@ button:focus-visible,
   }
 }
 
-/* ===== ACCESSIBILITY ENHANCEMENTS ===== */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -2243,11 +2203,6 @@ button:focus-visible,
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  /* Future dark mode support can be added here */
-}
-
-/* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {
     --gray-200: #000000;
@@ -2266,7 +2221,6 @@ button:focus-visible,
   }
 }
 
-/* ===== FINAL TOUCH-UPS ===== */
 .dashboard-container {
   position: relative;
 }
@@ -2286,7 +2240,6 @@ button:focus-visible,
   z-index: -1;
 }
 
-/* Enhanced button hover effects */
 .assign-btn,
 .create-btn,
 .refresh-btn,
@@ -2318,8 +2271,6 @@ button:focus-visible,
   width: 200px;
   height: 200px;
 }
-
-/* ===== Legacy additions from original dashboard.css (only selectors/at-rules missing from new look) ===== */
 
 .refresh-btn, .create-btn, .assign-btn{
   background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-light) 100%);
@@ -2906,7 +2857,7 @@ margin-top: 12px;
 }
 
 .manual-actions .bulk-add-btn{
-  order: -1; /* Put bulk add button first */
+  order: -1; 
 }
 
 .action-btn:active{
@@ -3269,7 +3220,6 @@ button:disabled:hover{
   animation: spin 1s linear infinite;
 }
 
-/* === Simplified visible tab styles (patch) === */
 .tab-btn {
   background: none;
   border: none;
@@ -3324,14 +3274,12 @@ button:disabled:hover{
   outline-offset: 2px;
 }
 
-/* Update header-right to accommodate the new button */
 .header-right {
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-/* Responsive adjustments for mobile */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;

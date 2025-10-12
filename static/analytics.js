@@ -5,7 +5,6 @@ let currentFilters = {
   hidePartial: false
 };
 
-// Add Chart.js via CDN in your HTML template
 let performanceChart = null;
 let scoringChart = null;
 let endgameChart = null;
@@ -102,8 +101,7 @@ function analyzeTeam() {
   }
   
   currentFilters = { team, event, hidePartial };
-  
-  // Filter data
+
   let teamData = analyticsData.filter(d => String(d.team) === String(team));
   
   if (event) {
@@ -138,7 +136,6 @@ function calculateTeamStats(teamData) {
   const maxScore = Math.max(...scores);
   const minScore = Math.min(...scores);
   
-  // Trend calculation - compare recent vs earlier performance
   let trend = 'stable';
   if (totalMatches >= 4) {
     const recentMatches = teamData.slice(-Math.ceil(totalMatches / 2));
@@ -150,22 +147,19 @@ function calculateTeamStats(teamData) {
     if (recentAvg > earlierAvg + 5) trend = 'improving';
     else if (earlierAvg > recentAvg + 5) trend = 'declining';
   }
-  
-  // Auto/Teleop stats
+
   const autoScores = teamData.map(d => d.auto.score);
   const avgAuto = (autoScores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
   const teleopScores = teamData.map(d => d.teleop.score);
   const avgTeleop = (teleopScores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
-  // Offense/Defense ratings
   const offenseRatings = teamData.map(d => d.teleop.offenseRating || 0);
   const avgOffense = (offenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
   const defenseRatings = teamData.map(d => d.teleop.defenseRating || 0);
   const avgDefense = (defenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
-  
-  // Enhanced climb analysis
+
   const climbAttempts = teamData.filter(d => d.endgame.action === 'climb').length;
   const successfulClimbs = teamData.filter(d => 
     d.endgame.action === 'climb' && d.endgame.climbSuccessful
@@ -175,8 +169,7 @@ function calculateTeamStats(teamData) {
   ).length;
   const climbRate = climbAttempts > 0 ? 
     ((successfulClimbs / climbAttempts) * 100).toFixed(0) : 0;
-  
-  // Game piece breakdown
+
   let totalL1 = 0, totalL2 = 0, totalL3 = 0, totalL4 = 0;
   let totalProcessor = 0, totalBarge = 0, totalDropped = 0;
   
@@ -189,8 +182,7 @@ function calculateTeamStats(teamData) {
     totalBarge += (d.auto.barge || 0) + (d.teleop.barge || 0);
     totalDropped += (d.auto.droppedPieces || 0) + (d.teleop.droppedPieces || 0);
   });
-  
-  // Consistency (standard deviation)
+
   const mean = scores.reduce((a, b) => a + b, 0) / scores.length;
   const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
   const stdDev = Math.sqrt(variance).toFixed(1);
@@ -239,11 +231,9 @@ function renderTeamAnalysis(team, teamData, stats) {
     performanceColor = 'highlight';
   }
   
-  // Trend indicator
   const trendIcon = stats.trend === 'improving' ? '📈' : 
                    stats.trend === 'declining' ? '📉' : '➡️';
-  
-  // Sort matches by number
+
   const sortedMatches = [...teamData].sort((a, b) => a.match - b.match);
   
   container.innerHTML = `
@@ -417,8 +407,7 @@ function renderTeamAnalysis(team, teamData, stats) {
       </p>
     </div>
   `;
-  
-  // Create charts after DOM is rendered
+
   setTimeout(() => {
     createPerformanceChart(sortedMatches);
     createScoringChart(stats);

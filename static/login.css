@@ -1,4 +1,3 @@
-/* ===== RESET & VARIABLES ===== */
 * {
   margin: 0;
   padding: 0;
@@ -36,7 +35,6 @@
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ===== LAYOUT ===== */
 body {
   font-family: var(--font-family);
   background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue-dark) 100%);
@@ -47,7 +45,6 @@ body {
   padding: 1.25rem;
 }
 
-/* ===== CARD ===== */
 .login-container {
   width: 100%;
   max-width: 420px;
@@ -73,7 +70,6 @@ body {
   }
 }
 
-/* ===== HEADER ===== */
 .login-header {
   text-align: center;
   padding: 2.5rem 2rem 2rem;
@@ -102,7 +98,6 @@ body {
   font-size: 0.95rem;
 }
 
-/* ===== FORM ===== */
 .login-form {
   padding: 2rem;
 }
@@ -136,7 +131,6 @@ body {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-/* ===== BUTTON ===== */
 .login-btn {
   width: 100%;
   padding: 0.875rem;
@@ -167,7 +161,6 @@ body {
   cursor: not-allowed;
 }
 
-/* Spinner */
 .login-spinner {
   width: 18px;
   height: 18px;
@@ -181,7 +174,6 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ===== ERROR MESSAGE ===== */
 .error-message {
   background: var(--accent-red-bg);
   color: var(--accent-red);
@@ -192,7 +184,6 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* ===== FOOTER ===== */
 .login-footer {
   padding: 1.25rem 2rem 2rem;
   background: var(--gray-50);
@@ -214,7 +205,6 @@ body {
   font-size: 0.8rem;
 }
 
-/* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
   .login-card {
     margin: 0 10px;
