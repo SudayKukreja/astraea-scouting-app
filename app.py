@@ -26,8 +26,8 @@ CORS(app)
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'ScoutingTest'
-SHEET_ID = 1244073716 
+SHEET_NAME = 'Brunswick Eruption'
+SHEET_ID = 1546014881 
 # ==============================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
