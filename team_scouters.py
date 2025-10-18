@@ -118,7 +118,7 @@ TEAM_SCOUTERS = {
         'username': 'mbhuiyan',
         'password_hash': hash_password('Mohammud654'),
         'role': 'scouter',
-        'name': 'Mohammud Bhuiyan'
+        'name': 'Mohammad Bhuiyan'
     },
     'ghe': {
         'username': 'ghe',
@@ -348,6 +348,24 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Pradyum Somani'
     },
+    'gimranyi': {
+        'username': 'gimranyi',
+        'password_hash': hash_password('Gabriel123'),
+        'role': 'scouter',
+        'name': 'Gabriel Imranyi'
+    },
+    'avats': {
+        'username': 'avats',
+        'password_hash': hash_password('Aaradhya456'),
+        'role': 'scouter',
+        'name': 'Aaradhya Vats'
+    },
+    'smishra': {
+        'username': 'smishra',
+        'password_hash': hash_password('Shiven789'),
+        'role': 'scouter',
+        'name': 'Shiven Mishra'
+    },
     
     # PROGRAMMING
     'rannamaneni': {
@@ -454,6 +472,30 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Snigdha Pandya'
     },
+    'rtawadros': {
+        'username': 'rtawadros',
+        'password_hash': hash_password('Rebbecca321'),
+        'role': 'scouter',
+        'name': 'Rebbecca Tawadros'
+    },
+    'rkhatwani': {
+        'username': 'rkhatwani',
+        'password_hash': hash_password('Ryna654'),
+        'role': 'scouter',
+        'name': 'Ryna Khatwani'
+    },
+    'azhang': {
+        'username': 'azhang',
+        'password_hash': hash_password('Aiyi987'),
+        'role': 'scouter',
+        'name': 'Aiyi Zhang'
+    },
+    'adaka': {
+        'username': 'adaka',
+        'password_hash': hash_password('Abhinaav135'),
+        'role': 'scouter',
+        'name': 'Abhinaav Daka'
+    },
 }
 
 PASSWORD_REFERENCE = {
@@ -514,6 +556,9 @@ PASSWORD_REFERENCE = {
     'Adrian Chen': 'Adrian852',
     'Alishu Barai': 'Alishu456',
     'Pradyum Somani': 'Pradyum951',
+    'Gabriel Imranyi': 'Gabriel123',
+    'Aaradhya Vats': 'Aaradhya456',
+    'Shiven Mishra': 'Shiven789',
     
     # PROGRAMMING
     'Ritika Annamaneni': 'Ritika741',
@@ -535,6 +580,10 @@ PASSWORD_REFERENCE = {
     'Aathmika Dutta': 'Aathmika639',
     'Bebo Dewoud': 'Bebo741',
     'Snigdha Pandya': 'Snigdha852',
+    'Rebbecca Tawadros': 'Rebbecca321',
+    'Ryna Khatwani': 'Ryna654',
+    'Aiyi Zhang': 'Aiyi987',
+    'Abhinaav Daka': 'Abhinaav135',
 }
 
 def get_team_scouters():
@@ -557,7 +606,7 @@ def print_credentials():
             'Ruby Portnoy', 'Yashvi Parikh', 'Lakshya Singla', 'Nandan Mudakalli',
             'Aahana Dalvi', 'Jameela Bhinderwala', 'Adrita Chowdhury', 'Kevin Hang',
             'Paul Youssef', 'Oz Barda', 'Amruth Gani', 'Oliver Grasberger-Dorman',
-            'Andrew Rabinovich', 'Mohammud Bhuiyan', 'Gordon He', 'Aviral Agarwal',
+            'Andrew Rabinovich', 'Mohammad Bhuiyan', 'Gordon He', 'Aviral Agarwal',
             'Siddharth Khanna', 'Husain Kapasi', 'Francisco Nono', 'Joel Georgi',
             'Jivraj Singh', 'Yash Bhatnagar', 'Ihsan Shebeer Salam', 'Aditya Naren',
             'Swarit Gupta', 'Ishan Dasgupta', 'Zahi Obaidulla', 'Thomas Sorial',
@@ -566,7 +615,8 @@ def print_credentials():
             'Zain Arshad', 'Noah Jin', 'Akum Kang', 'Sebastian Eoon',
             'Ahaan Awasthi', 'Shubham Dhall', 'Prahlad Karanth', 'Nathaniel Josiah',
             'Elene Eristavi', 'Katherine Kalinkina', 'Arnav Mohan', 'Faiz Hussain',
-            'Reva Verma', 'Adrian Chen', 'Alishu Barai', 'Pradyum Somani'
+            'Reva Verma', 'Adrian Chen', 'Alishu Barai', 'Pradyum Somani', 'Gabriel Imranyi', 
+            'Aaradhya Vats', 'Shiven Mishra'
         ],
         'PROGRAMMING': [
             'Ritika Annamaneni', 'Anshika Pradhan', 'Katherine Wang', 'Rafaela Sepulveda',
@@ -575,7 +625,8 @@ def print_credentials():
         ],
         'BUSINESS': [
             'Carina Castillo', 'Jack Leber', 'Alison Yan', 'Nikita Shah',
-            'Caitlyn Laury', 'Aathmika Dutta', 'Bebo Dewoud', 'Snigdha Pandya'
+            'Caitlyn Laury', 'Aathmika Dutta', 'Bebo Dewoud', 'Snigdha Pandya', 
+            'Rebbecca Tawadros', 'Ryna Khatwani', 'Aiyi Zhang', 'Abhinaav Daka'
         ]
     }
     
