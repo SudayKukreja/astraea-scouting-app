@@ -15,10 +15,20 @@ DEFAULT_ADMIN = {
     'role': 'admin'
 }
 
+DEFAULT_PIT_SCOUTER = {
+    'username': 'pit',
+    'password_hash': hashlib.sha256('pit6897'.encode()).hexdigest(),
+    'role': 'pit_scouter',
+    'name': 'Pit Scouter'
+}
+
 def load_users():
     """Load users from JSON file"""
     if not os.path.exists(USERS_FILE):
-        users = {'admin': DEFAULT_ADMIN}
+        users = {
+            'admin': DEFAULT_ADMIN,
+            'pit': DEFAULT_PIT_SCOUTER
+        }
         team_scouters = get_team_scouters()
         users.update(team_scouters)
         save_users(users)
@@ -34,6 +44,11 @@ def load_users():
         if 'admin' not in existing_users:
             existing_users['admin'] = DEFAULT_ADMIN
             users_updated = True
+
+        if 'pit' not in existing_users:
+            existing_users['pit'] = DEFAULT_PIT_SCOUTER
+            users_updated = True
+            print("Added pit scouter account")
         
         team_scouters = get_team_scouters()
         for username, scouter_data in team_scouters.items():

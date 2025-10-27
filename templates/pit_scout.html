@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Astraea Robotics - Pit Scouting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='pit_scout.css') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
+</head>
+<body>
+  <div class="app-container">
+    <div class="container">
+      <div class="app-header">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="logo-img">
+        <h1 class="app-title">Pit Scouting</h1>
+        <p class="app-subtitle">Astraea Robotics - Team 6897</p>
+        {% if session.user_id %}
+        <div class="scout-info">
+          <p>Pit Scouting as: <strong>{{ session.user_name or session.user_id }}</strong></p>
+          <div class="header-actions">
+            <a href="/dashboard" class="back-link">← Back to Dashboard</a>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <div class="app-content">
+        <form id="pit-scout-form">
+          <!-- Basic Info Section -->
+          <div class="form-section">
+            <h2 class="section-title">Team Information</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="scouter_name">Pit Scouter Name</label>
+                <input type="text" id="scouter_name" name="scouter_name" required readonly value="{{ session.user_name or session.user_id or '' }}">
+              </div>
+              <div class="form-group">
+                <label for="team">Team Number</label>
+                <input type="number" id="team" name="team" required value="{{ prefill_team or '' }}">
+              </div>
+              <div class="form-group">
+                <label for="event">Event</label>
+                <input type="text" id="event" name="event" required value="{{ prefill_event or '' }}" placeholder="e.g., 2025njbru">
+              </div>
+            </div>
+          </div>
+
+          <!-- Robot Specifications -->
+          <div class="form-section">
+            <h2 class="section-title">Robot Specifications</h2>
+            
+            <div class="form-group">
+              <label for="drivebase_type">Drivebase Type</label>
+              <select id="drivebase_type" name="drivebase_type" required>
+                <option value="">Select Drivebase Type</option>
+                <option value="tank">Tank Drive</option>
+                <option value="mecanum">Mecanum Drive</option>
+                <option value="swerve">Swerve Drive</option>
+                <option value="west_coast">West Coast Drive</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="avg_cycle_time">Average Cycle Time (seconds)</label>
+              <input type="number" id="avg_cycle_time" name="avg_cycle_time" step="0.1" min="0" placeholder="e.g., 15.5">
+            </div>
+
+            <!-- ADD MORE FIELDS HERE AS NEEDED -->
+          </div>
+
+          <!-- Notes Section -->
+          <div class="form-section">
+            <h2 class="section-title">Additional Notes</h2>
+            <div class="form-group">
+              <label for="notes">Notes</label>
+              <textarea id="notes" name="notes" placeholder="Any additional observations about the robot..."></textarea>
+            </div>
+          </div>
+
+          <!-- Warning and spinner -->
+          <div id="form-warning" class="form-warning" style="display:none;"></div>
+          <div id="submit-spinner" class="spinner" style="display:none;"></div>
+
+          <input type="hidden" id="response_time" name="response_time" value="">
+
+          <!-- Submit Button -->
+          <button type="submit" class="submit-btn">Submit Pit Scout Report</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='pit_scout.js') }}"></script>
+</body>
+</html>

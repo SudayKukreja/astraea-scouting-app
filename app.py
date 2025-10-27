@@ -28,6 +28,8 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
 SHEET_NAME = 'Brunswick Eruption'
 SHEET_ID = 1546014881 
+PIT_SHEET_NAME = 'Pit Scouting'
+PIT_SHEET_ID = 0  #TODO: Update this with actual sheet ID after creating the sheet
 # ==============================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
@@ -1254,6 +1256,178 @@ def submit():
         session.pop('current_assignment', None)
 
     return jsonify({'status': 'success'})
+
+# =============================================================================
+# PIT SCOUTING ROUTES
+# =============================================================================
+
+@app.route('/pit-scout')
+@login_required
+def pit_scout_form():
+    """Serve the pit scouting form"""
+    from auth import load_users
+    users = load_users()
+    user = users.get(session['user_id'])
+    
+    # Allow pit scouters and admins
+    if not user or (user.get('role') not in ['pit_scouter', 'admin']):
+        return redirect('/dashboard')
+    
+    team = request.args.get('team', '')
+    event = request.args.get('event', '')
+    
+    return render_template('pit_scout.html', prefill_team=team, prefill_event=event)
+
+@app.route('/api/pit-scout/submit', methods=['POST'])
+@login_required
+def submit_pit_scout():
+    """Submit pit scouting data to Google Sheets"""
+    data = request.json
+    
+    scouter_name = session.get('user_name', session.get('user_id', ''))
+    team = str(data.get('team', '')).strip()
+    event_key = data.get('event', '').strip()
+    
+    est = timezone(timedelta(hours=-4))
+    now = datetime.now(est)
+    timestamp_us = now.isoformat(timespec='microseconds')
+    unique_suffix = uuid4().hex[:8]
+    submitted_time_internal = f"{timestamp_us}_{unique_suffix}"
+    submitted_time_display = now.strftime("%m/%d/%Y %I:%M:%S %p")
+    
+    if not all([team, event_key]):
+        return jsonify({'error': 'Team number and event are required'}), 400
+    
+    # Prepare data row for Google Sheets
+    data_row = [
+        scouter_name,
+        team,
+        event_key,
+        submitted_time_display,
+        data.get('drivebase_type', ''),
+        data.get('avg_cycle_time', ''),
+        data.get('notes', '').strip()
+    ]
+    
+    try:
+        # Read existing data
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID, 
+            range=f'{PIT_SHEET_NAME}!A1:Z1000'
+        ).execute()
+        
+        all_values = result.get('values', [])
+        
+        # Check if we need to add headers
+        if not all_values or all_values[0][0] != 'Scouter Name':
+            # Add headers
+            headers = [
+                'Scouter Name', 'Team Number', 'Event', 'Submission Time',
+                'Drivebase Type', 'Avg Cycle Time (sec)', 'Notes'
+            ]
+            all_values = [headers] + all_values
+        
+        # Add new data
+        all_values.append(data_row)
+        
+        # Write back to sheet
+        sheet.values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range=f'{PIT_SHEET_NAME}!A1:G{len(all_values)}',
+            valueInputOption='RAW',
+            body={'values': all_values}
+        ).execute()
+        
+        # Apply formatting
+        format_requests = [
+            # Header row - bold and larger font
+            {
+                "repeatCell": {
+                    "range": {
+                        "sheetId": PIT_SHEET_ID,
+                        "startRowIndex": 0,
+                        "endRowIndex": 1
+                    },
+                    "cell": {
+                        "userEnteredFormat": {
+                            "textFormat": {
+                                "bold": True,
+                                "fontSize": 11
+                            },
+                            "backgroundColor": {
+                                "red": 0.9,
+                                "green": 0.9,
+                                "blue": 0.9
+                            }
+                        }
+                    },
+                    "fields": "userEnteredFormat(textFormat,backgroundColor)"
+                }
+            },
+            # Freeze header row
+            {
+                "updateSheetProperties": {
+                    "properties": {
+                        "sheetId": PIT_SHEET_ID,
+                        "gridProperties": {
+                            "frozenRowCount": 1
+                        }
+                    },
+                    "fields": "gridProperties.frozenRowCount"
+                }
+            }
+        ]
+        
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=SPREADSHEET_ID,
+            body={"requests": format_requests}
+        ).execute()
+        
+        return jsonify({'status': 'success'})
+        
+    except Exception as e:
+        print(f"Error submitting pit scout data: {str(e)}")
+        return jsonify({'error': 'Failed to submit pit scout data'}), 500
+
+@app.route('/api/admin/pit-scout-data')
+@admin_required
+def get_pit_scout_data():
+    """Get all pit scouting data for admin view"""
+    try:
+        result = sheet.values().get(
+            spreadsheetId=SPREADSHEET_ID, 
+            range=f'{PIT_SHEET_NAME}!A1:Z1000'
+        ).execute()
+        
+        all_values = result.get('values', [])
+        
+        if not all_values:
+            return jsonify([])
+        
+        # Skip header row, return data
+        headers = all_values[0] if all_values else []
+        data_rows = all_values[1:] if len(all_values) > 1 else []
+        
+        # Format as list of dictionaries
+        pit_data = []
+        for row in data_rows:
+            if len(row) >= 4:  # Ensure minimum required fields
+                pit_entry = {
+                    'scouter_name': row[0] if len(row) > 0 else '',
+                    'team_number': row[1] if len(row) > 1 else '',
+                    'event': row[2] if len(row) > 2 else '',
+                    'timestamp': row[3] if len(row) > 3 else '',
+                    'drivebase_type': row[4] if len(row) > 4 else '',
+                    'avg_cycle_time': row[5] if len(row) > 5 else '',
+                    'notes': row[6] if len(row) > 6 else ''
+                }
+                pit_data.append(pit_entry)
+        
+        return jsonify(pit_data)
+        
+    except Exception as e:
+        print(f"Error fetching pit scout data: {str(e)}")
+        return jsonify({'error': 'Failed to fetch pit scout data'}), 500
 
 @app.route('/sw.js')
 def serve_sw():
