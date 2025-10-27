@@ -599,6 +599,14 @@ def admin_dashboard():
 @app.route('/dashboard')
 @login_required
 def scouter_dashboard():
+    from auth import load_users
+    users = load_users()
+    user = users.get(session['user_id'])
+    
+    # Auto-redirect pit scouters to pit scouting page
+    if user and user.get('role') == 'pit_scouter':
+        return redirect('/pit-scout')
+    
     return render_template('scouter_dashboard.html')
 
 # =============================================================================
