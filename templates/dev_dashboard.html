@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Developer Dashboard - Astraea Scouting</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <style>
+    .dev-banner {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      padding: 12px 24px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .dev-tools {
+      background: #fffbeb;
+      border: 2px solid #fbbf24;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+
+    .dev-tools h3 {
+      color: #92400e;
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .dev-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .dev-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .dev-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .dev-btn.danger {
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    }
+
+    .dev-status {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .status-item:last-child {
+      border-bottom: none;
+    }
+
+    .status-label {
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .status-value {
+      color: #6b7280;
+      font-family: monospace;
+    }
+
+    .quick-links {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .quick-link {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: #374151;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .quick-link:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .quick-link-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .quick-link-title {
+      font-weight: 600;
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Dev Mode Banner -->
+    <div class="dev-banner">
+      🚀 DEVELOPER MODE - ISOLATED TESTING ENVIRONMENT
+    </div>
+
+    <!-- Header -->
+    <header class="dashboard-header">
+      <div class="header-content">
+        <div class="header-left">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="header-logo">
+          <h1>Developer Dashboard</h1>
+        </div>
+        <div class="header-right">
+          <span class="user-info">👨‍💻 Developer</span>
+          <button onclick="logout()" class="logout-btn">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+      <!-- Dev Tools Section -->
+      <div class="dev-tools">
+        <h3>⚙️ Development Tools</h3>
+        <div class="dev-actions">
+          <button onclick="loadDevStatus()" class="dev-btn">Refresh Status</button>
+          <button onclick="resetDevEnvironment()" class="dev-btn danger">Reset Dev Data</button>
+          <button onclick="loadMockData()" class="dev-btn">Load Mock Data</button>
+        </div>
+
+        <div class="dev-status" id="dev-status">
+          <div class="status-item">
+            <span class="status-label">Status:</span>
+            <span class="status-value">Loading...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="quick-links">
+        <a href="/scout" class="quick-link">
+          <div class="quick-link-icon">📝</div>
+          <div class="quick-link-title">Scout Form</div>
+        </a>
+        <a href="/admin" class="quick-link">
+          <div class="quick-link-icon">⚙️</div>
+          <div class="quick-link-title">Admin Dashboard</div>
+        </a>
+        <a href="/dashboard" class="quick-link">
+          <div class="quick-link-icon">📊</div>
+          <div class="quick-link-title">Scouter Dashboard</div>
+        </a>
+        <a href="/analytics" class="quick-link">
+          <div class="quick-link-icon">📈</div>
+          <div class="quick-link-title">Analytics</div>
+        </a>
+        <a href="/pit-scout" class="quick-link">
+          <div class="quick-link-icon">🔧</div>
+          <div class="quick-link-title">Pit Scouting</div>
+        </a>
+      </div>
+
+      <!-- Info Section -->
+      <div style="margin-top: 32px; padding: 24px; background: #f8fafc; border-radius: 12px;">
+        <h3 style="margin-bottom: 16px; color: #374151;">ℹ️ About Dev Mode</h3>
+        <ul style="color: #6b7280; line-height: 1.8;">
+          <li>All data is stored in separate dev files (dev_*.json)</li>
+          <li>Changes won't affect production data</li>
+          <li>You can access all pages without going through the normal flow</li>
+          <li>Use "Reset Dev Data" to start fresh at any time</li>
+          <li>Mock data is available for testing without real TBA data</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    async function loadDevStatus() {
+      try {
+        const response = await fetch('/api/dev/status');
+        const status = await response.json();
+        
+        const statusContainer = document.getElementById('dev-status');
+        statusContainer.innerHTML = `
+          <div class="status-item">
+            <span class="status-label">Dev Mode:</span>
+            <span class="status-value" style="color: #10b981;">✓ Active</span>
+          </div>
+          ${Object.entries(status.files).map(([key, info]) => `
+            <div class="status-item">
+              <span class="status-label">${key}.json:</span>
+              <span class="status-value">${info.exists ? `✓ ${info.size} bytes` : '✗ Not found'}</span>
+            </div>
+          `).join('')}
+        `;
+      } catch (error) {
+        console.error('Error loading status:', error);
+        alert('Error loading dev status');
+      }
+    }
+
+    async function resetDevEnvironment() {
+      if (!confirm('Reset all dev data? This will clear all dev assignments, users, and events.')) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/dev/reset', { method: 'POST' });
+        const result = await response.json();
+
+        if (response.ok) {
+          alert('Dev environment reset successfully!');
+          loadDevStatus();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error resetting:', error);
+        alert('Error resetting dev environment');
+      }
+    }
+
+    async function loadMockData() {
+      alert('Mock data loaded! You can now use dev_2025test as an event key.');
+    }
+
+    async function logout() {
+      try {
+        await fetch('/api/logout', { method: 'POST' });
+        window.location.href = '/login';
+      } catch (error) {
+        window.location.href = '/login';
+      }
+    }
+
+    // Load status on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDevStatus();
+    });
+  </script>
+</body>
+</html>

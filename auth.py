@@ -4,6 +4,7 @@ import hashlib
 import secrets
 import json
 import os
+from dev_mode import get_data_file, is_dev_user
 
 from team_scouters import get_team_scouters
 
@@ -24,7 +25,8 @@ DEFAULT_PIT_SCOUTER = {
 
 def load_users():
     """Load users from JSON file"""
-    if not os.path.exists(USERS_FILE):
+    users_file = get_data_file('users') if is_dev_user() else USERS_FILE
+    if not os.path.exists(users_file):
         users = {
             'admin': DEFAULT_ADMIN,
             'pit': DEFAULT_PIT_SCOUTER
@@ -70,7 +72,8 @@ def load_users():
 
 def save_users(users):
     """Save users to JSON file"""
-    with open(USERS_FILE, 'w') as f:
+    users_file = get_data_file('users') if is_dev_user() else USERS_FILE
+    with open(users_file, 'w') as f:
         json.dump(users, f, indent=2)
 
 def hash_password(password):

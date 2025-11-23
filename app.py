@@ -19,9 +19,29 @@ from manual_matches import (create_manual_event, get_manual_event_matches, get_m
 from tba_api import TBAClient, get_sample_matches
 from team_names import TEAM_NAMES
 
+# Add these imports after your other imports
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file for local development
+
+from dev_mode import (
+    is_dev_mode, 
+    is_dev_user, 
+    authenticate_dev, 
+    get_dev_mock_data, 
+    get_data_file,
+    init_dev_files,
+    reset_dev_data,
+    dev_login_required
+)
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 CORS(app)
+
+# Initialize dev mode if enabled
+if is_dev_mode():
+    print("🚀 DEV MODE ENABLED - Using isolated dev environment")
+    init_dev_files()
 
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -191,10 +211,25 @@ def api_login():
     username = data.get('username')
     password = data.get('password')
     
+    # Try dev authentication first if dev mode is enabled
+    if is_dev_mode() and username == 'dev':
+        user = authenticate_dev(username, password)
+        if user:
+            session['user_id'] = username
+            session['user_name'] = user.get('name', username)
+            session['is_dev_user'] = True
+            return jsonify({
+                'success': True,
+                'role': 'dev',
+                'dev_mode': True
+            })
+    
+    # Regular authentication
     user = authenticate_user(username, password)
     if user:
         session['user_id'] = username
         session['user_name'] = user.get('name', username)
+        session['is_dev_user'] = False
         return jsonify({
             'success': True,
             'role': user.get('role', 'scouter')
@@ -530,6 +565,53 @@ def calculate_additional_scores(auto_data, teleop_data, endgame_data):
         additional_score += 3  # LEAVE points
     
     return additional_score
+
+# =============================================================================
+# DEV MODE ROUTES
+# =============================================================================
+
+@app.route('/dev')
+@dev_login_required
+def dev_dashboard():
+    """Dev-only dashboard with testing tools"""
+    return render_template('dev_dashboard.html')
+
+@app.route('/api/dev/reset', methods=['POST'])
+@dev_login_required
+def reset_dev_environment():
+    """Reset dev environment to clean state"""
+    try:
+        reset_dev_data()
+        return jsonify({'success': True, 'message': 'Dev environment reset successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dev/mock-data/<data_type>')
+@dev_login_required
+def get_dev_data(data_type):
+    """Get mock data for testing"""
+    data = get_dev_mock_data(data_type)
+    return jsonify(data)
+
+@app.route('/api/dev/status')
+@dev_login_required
+def dev_status():
+    """Get dev environment status"""
+    import os
+    from dev_mode import DEV_FILES
+    
+    status = {
+        'dev_mode': True,
+        'files': {}
+    }
+    
+    for key, path in DEV_FILES.items():
+        status['files'][key] = {
+            'exists': os.path.exists(path),
+            'size': os.path.getsize(path) if os.path.exists(path) else 0
+        }
+    
+    return jsonify(status)
 
 # =============================================================================
 # MANUAL MATCHES ROUTES

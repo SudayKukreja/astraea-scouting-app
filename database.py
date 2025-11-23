@@ -1,23 +1,30 @@
 import json
 import os
 from datetime import datetime
+from dev_mode import get_data_file, is_dev_user
 
 ASSIGNMENTS_FILE = 'assignments.json'
 
 def load_assignments():
     """Load scouter assignments from JSON file"""
-    if not os.path.exists(ASSIGNMENTS_FILE):
+    # Use dev file if dev user, otherwise use normal file
+    assignments_file = get_data_file('assignments') if is_dev_user() else ASSIGNMENTS_FILE
+    
+    if not os.path.exists(assignments_file):
         return {}
     
     try:
-        with open(ASSIGNMENTS_FILE, 'r') as f:
+        with open(assignments_file, 'r') as f:
             return json.load(f)
     except:
         return {}
 
 def save_assignments(assignments):
     """Save assignments to JSON file"""
-    with open(ASSIGNMENTS_FILE, 'w') as f:
+    # Use dev file if dev user, otherwise use normal file
+    assignments_file = get_data_file('assignments') if is_dev_user() else ASSIGNMENTS_FILE
+    
+    with open(assignments_file, 'w') as f:
         json.dump(assignments, f, indent=2)
 
 def assign_scouter_to_team(scouter_username, event_key, match_number, team_number):

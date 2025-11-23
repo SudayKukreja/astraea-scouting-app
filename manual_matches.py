@@ -2,22 +2,28 @@ import json
 import os
 from datetime import datetime
 
+from dev_mode import get_data_file, is_dev_user
+
 MANUAL_EVENTS_FILE = 'manual_events.json'
 
 def load_manual_events():
     """Load manual events from JSON file"""
-    if not os.path.exists(MANUAL_EVENTS_FILE):
+    events_file = get_data_file('manual_events') if is_dev_user() else MANUAL_EVENTS_FILE
+    
+    if not os.path.exists(events_file):
         return {}
     
     try:
-        with open(MANUAL_EVENTS_FILE, 'r') as f:
+        with open(events_file, 'r') as f:
             return json.load(f)
     except:
         return {}
 
 def save_manual_events(events):
     """Save manual events to JSON file"""
-    with open(MANUAL_EVENTS_FILE, 'w') as f:
+    events_file = get_data_file('manual_events') if is_dev_user() else MANUAL_EVENTS_FILE
+    
+    with open(events_file, 'w') as f:
         json.dump(events, f, indent=2)
 
 def create_manual_event(event_name, matches_data):

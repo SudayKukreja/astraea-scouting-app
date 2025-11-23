@@ -1,1 +1,31 @@
+# Environment variables - NEVER COMMIT THESE
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dev mode data files
+dev_*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials (just in case)
 credentials.json
