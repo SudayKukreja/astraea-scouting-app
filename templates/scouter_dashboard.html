@@ -47,6 +47,18 @@
     </main>
   </div>
 
-  <script src="{{ url_for('static', filename='scouter_dashboard.js') }}"></script>
+  <script 
+    src="{{ url_for('static', filename='scouter_dashboard.js') }}">
+  
+      if (sessionStorage.getItem('dev_mode') === 'true') {
+        const devButton = document.createElement('div');
+        devButton.innerHTML = `
+          <a href="/dev" style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 20px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); z-index: 9999; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+            <span>🚀</span><span>Back to Dev</span>
+          </a>
+        `;
+        document.body.appendChild(devButton);
+      }
+  </script>
 </body>
 </html>
