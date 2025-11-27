@@ -94,12 +94,16 @@ def login_required(f):
     return decorated_function
 
 def admin_required(f):
-    """Decorator to require admin role"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             return jsonify({'error': 'Login required'}), 401
         
+        # ✅ Check if user is dev first
+        if is_dev_user():
+            return f(*args, **kwargs)
+        
+        # Then check regular admin
         users = load_users()
         user = users.get(session['user_id'])
         if not user or user.get('role') != 'admin':

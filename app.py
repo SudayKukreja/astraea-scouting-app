@@ -32,7 +32,8 @@ from dev_mode import (
     init_dev_files,
     reset_dev_data,
     dev_login_required,
-    maintenance_required
+    maintenance_required,
+    populate_dev_test_data
 )
 
 app = Flask(__name__)
@@ -757,7 +758,11 @@ def delete_manual_event_route(event_key):
 @app.route('/admin')
 @login_required
 def admin_dashboard():
-    # Check admin role
+    # ✅ Check for dev user first
+    if is_dev_user():
+        return render_template('admin_dashboard.html')
+    
+    # Then check regular admin
     from auth import load_users
     users = load_users()
     user = users.get(session['user_id'])
@@ -1439,21 +1444,24 @@ def submit():
 # PIT SCOUTING ROUTES
 # =============================================================================
 
-@app.route('/pit-scout')
+app.route('/pit-scout')
 @login_required
 def pit_scout_form():
-    """Serve the pit scouting form"""
+    # ✅ Allow dev users
+    if is_dev_user():
+        team = request.args.get('team', '')
+        event = request.args.get('event', '')
+        return render_template('pit_scout.html', prefill_team=team, prefill_event=event)
+    
+    # Regular permission check
     from auth import load_users
     users = load_users()
     user = users.get(session['user_id'])
-    
-    # Allow pit scouters and admins
     if not user or (user.get('role') not in ['pit_scouter', 'admin']):
         return redirect('/dashboard')
     
     team = request.args.get('team', '')
     event = request.args.get('event', '')
-    
     return render_template('pit_scout.html', prefill_team=team, prefill_event=event)
 
 @app.route('/api/pit-scout/submit', methods=['POST'])

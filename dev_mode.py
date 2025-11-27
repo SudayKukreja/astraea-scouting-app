@@ -310,51 +310,84 @@ def reset_dev_data():
     print("✅ Dev data reset complete")
 
 def populate_dev_test_data():
-    """Populate dev environment with realistic test data"""
+    """✅ FIX: Populate dev environment with realistic test data"""
     if not is_dev_user():
         return False
     
-    # Create some fake assignments
-    assignments_path = DEV_FILES['assignments']
-    test_assignments = {
-        'dev_2025test_qm1_254': {
-            'scouter': 'test_scouter1',
-            'event_key': 'dev_2025test',
-            'match_number': 1,
-            'team_number': '254',
-            'assigned_at': '2025-01-15T10:00:00',
-            'completed': False
-        },
-        'dev_2025test_qm1_148': {
-            'scouter': 'test_scouter2',
-            'event_key': 'dev_2025test',
-            'match_number': 1,
-            'team_number': '148',
-            'assigned_at': '2025-01-15T10:00:00',
-            'completed': True,
-            'completed_at': '2025-01-15T11:30:00'
-        },
-        'dev_2025test_qm2_1678': {
-            'scouter': 'test_scouter1',
-            'event_key': 'dev_2025test',
-            'match_number': 2,
-            'team_number': '1678',
-            'assigned_at': '2025-01-15T10:00:00',
-            'completed': False
-        },
-        'dev_2025test_qm3_6897': {
-            'scouter': 'test_scouter3',
-            'event_key': 'dev_2025test',
-            'match_number': 3,
-            'team_number': '6897',
-            'assigned_at': '2025-01-15T10:00:00',
-            'completed': False,
-            'is_home_game': True
+    try:
+        # Create some fake assignments
+        assignments_path = DEV_FILES['assignments']
+        test_assignments = {
+            'dev_2025test_qm1_254': {
+                'scouter': 'test_scouter1',
+                'event_key': 'dev_2025test',
+                'match_number': 1,
+                'team_number': '254',
+                'assigned_at': '2025-01-15T10:00:00',
+                'completed': False
+            },
+            'dev_2025test_qm1_148': {
+                'scouter': 'test_scouter2',
+                'event_key': 'dev_2025test',
+                'match_number': 1,
+                'team_number': '148',
+                'assigned_at': '2025-01-15T10:00:00',
+                'completed': True,
+                'completed_at': '2025-01-15T11:30:00'
+            },
+            'dev_2025test_qm2_1678': {
+                'scouter': 'test_scouter1',
+                'event_key': 'dev_2025test',
+                'match_number': 2,
+                'team_number': '1678',
+                'assigned_at': '2025-01-15T10:00:00',
+                'completed': False
+            },
+            'dev_2025test_qm3_6897': {
+                'scouter': 'test_scouter3',
+                'event_key': 'dev_2025test',
+                'match_number': 3,
+                'team_number': '6897',
+                'assigned_at': '2025-01-15T10:00:00',
+                'completed': False,
+                'is_home_game': True
+            }
         }
-    }
-    
-    with open(assignments_path, 'w') as f:
-        json.dump(test_assignments, f, indent=2)
-    
-    print(f"✅ Populated {len(test_assignments)} test assignments")
-    return True
+        
+        with open(assignments_path, 'w') as f:
+            json.dump(test_assignments, f, indent=2)
+        
+        # Create manual event
+        manual_events_path = DEV_FILES['manual_events']
+        test_manual_events = {
+            'manual_dev_practice': {
+                'name': 'Dev Practice Event',
+                'key': 'manual_dev_practice',
+                'created_at': '2025-01-10T09:00:00',
+                'matches': [
+                    {
+                        'match_number': 1,
+                        'red_teams': ['100', '200', '300'],
+                        'blue_teams': ['400', '500', '600'],
+                        'all_teams': ['100', '200', '300', '400', '500', '600']
+                    },
+                    {
+                        'match_number': 2,
+                        'red_teams': ['700', '800', '900'],
+                        'blue_teams': ['1000', '1100', '1200'],
+                        'all_teams': ['700', '800', '900', '1000', '1100', '1200']
+                    }
+                ],
+                'is_manual': True
+            }
+        }
+        
+        with open(manual_events_path, 'w') as f:
+            json.dump(test_manual_events, f, indent=2)
+        
+        print(f"✅ Populated {len(test_assignments)} test assignments")
+        print(f"✅ Populated {len(test_manual_events)} test events")
+        return True
+    except Exception as e:
+        print(f"❌ Error populating test data: {e}")
+        return False
