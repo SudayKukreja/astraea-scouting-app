@@ -241,11 +241,10 @@ def init_dev_files():
     
     # Create dev users file with dev user
     if not os.path.exists(DEV_FILES['users']):
-        import hashlib
         dev_users = {
             'dev': {
                 'username': 'dev',
-                'password_hash': hashlib.sha256(DEV_PASSWORD.encode()).hexdigest(),
+                'password': DEV_PASSWORD,  # Plain text password
                 'role': 'dev',
                 'name': 'Developer'
             }
