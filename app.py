@@ -665,6 +665,41 @@ def dev_status():
     
     return jsonify(status)
 
+@app.route('/api/dev/populate-test-data', methods=['POST'])
+@dev_login_required
+def populate_test_data():
+    """Populate dev environment with test data"""
+    try:
+        from dev_mode import populate_dev_test_data
+        result = populate_dev_test_data()
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': 'Test data populated successfully',
+                'data': {
+                    'scouters': 3,
+                    'assignments': 4,
+                    'events': 2,
+                    'matches': 3
+                }
+            })
+        else:
+            return jsonify({'error': 'Failed to populate test data'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dev/get-fake-data/<data_type>')
+@dev_login_required
+def get_fake_data(data_type):
+    """Get fake data for testing"""
+    try:
+        from dev_mode import get_dev_mock_data
+        data = get_dev_mock_data(data_type)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # =============================================================================
 # MANUAL MATCHES ROUTES
 # =============================================================================

@@ -1,9 +1,10 @@
-# dev_mode.py - Enhanced version
+# dev_mode.py - Enhanced version with fake data
 """
 Enhanced Developer Mode Configuration
 - Supports both local and production dev mode
 - Public maintenance mode
 - Better dev navigation
+- Fake data generation for testing
 """
 
 import os
@@ -22,7 +23,7 @@ def is_dev_user():
 
 # Dev credentials
 DEV_USERNAME = 'dev'
-DEV_PASSWORD = os.environ.get('DEV_PASSWORD', 'dev123')  # Set this in Render
+DEV_PASSWORD = os.environ.get('DEV_PASSWORD', 'dev123')
 
 # Maintenance mode template
 MAINTENANCE_TEMPLATE = """
@@ -177,39 +178,70 @@ def authenticate_dev(username, password):
         }
     return None
 
-# Dev mode mock data
-DEV_MOCK_DATA = {
+# Dev mode fake data
+DEV_FAKE_DATA = {
     'events': [
         {
             'key': 'dev_2025test',
             'name': 'Dev Test Event 2025',
-            'start_date': '2025-01-01',
-            'end_date': '2025-01-03',
-            'location': 'Test Location, NJ'
+            'start_date': '2025-01-15',
+            'end_date': '2025-01-17',
+            'location': 'Virtual Testing, NJ'
+        },
+        {
+            'key': 'dev_2025comp',
+            'name': 'Dev Competition 2025',
+            'start_date': '2025-02-20',
+            'end_date': '2025-02-22',
+            'location': 'Dev Arena, NJ'
         }
     ],
     'matches': [
         {
             'key': 'dev_2025test_qm1',
             'match_number': 1,
-            'red_teams': ['1', '2', '3'],
-            'blue_teams': ['4', '5', '6'],
-            'all_teams': ['1', '2', '3', '4', '5', '6']
+            'red_teams': ['254', '1323', '2468'],
+            'blue_teams': ['148', '2471', '5940'],
+            'all_teams': ['254', '1323', '2468', '148', '2471', '5940'],
         },
         {
             'key': 'dev_2025test_qm2',
             'match_number': 2,
-            'red_teams': ['7', '8', '9'],
-            'blue_teams': ['10', '11', '12'],
-            'all_teams': ['7', '8', '9', '10', '11', '12']
+            'red_teams': ['1678', '5190', '6834'],
+            'blue_teams': ['973', '1114', '2056'],
+            'all_teams': ['1678', '5190', '6834', '973', '1114', '2056'],
+        },
+        {
+            'key': 'dev_2025test_qm3',
+            'match_number': 3,
+            'red_teams': ['6897', '1', '2'],
+            'blue_teams': ['3', '4', '5'],
+            'all_teams': ['6897', '1', '2', '3', '4', '5'],
         }
     ],
-    'teams': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+    'teams': ['254', '148', '1323', '2468', '2471', '5940', '1678', '5190', '6834', '973', '1114', '2056', '6897', '1', '2', '3', '4', '5'],
+    'scouters': {
+        'test_scouter1': {
+            'username': 'test_scouter1',
+            'name': 'Test Scouter 1',
+            'role': 'scouter'
+        },
+        'test_scouter2': {
+            'username': 'test_scouter2',
+            'name': 'Test Scouter 2',
+            'role': 'scouter'
+        },
+        'test_scouter3': {
+            'username': 'test_scouter3',
+            'name': 'Test Scouter 3',
+            'role': 'scouter'
+        }
+    }
 }
 
 def get_dev_mock_data(data_type):
     """Get mock data for dev testing"""
-    return DEV_MOCK_DATA.get(data_type, [])
+    return DEV_FAKE_DATA.get(data_type, [])
 
 # Dev-specific file paths
 DEV_FILES = {
@@ -234,23 +266,40 @@ def init_dev_files():
     if not is_dev_mode():
         return
     
+    # Initialize empty files
     for key, path in DEV_FILES.items():
         if not os.path.exists(path):
             with open(path, 'w') as f:
                 json.dump({}, f)
     
-    # Create dev users file with dev user
-    if not os.path.exists(DEV_FILES['users']):
-        dev_users = {
-            'dev': {
-                'username': 'dev',
-                'password': DEV_PASSWORD,  # Plain text password
-                'role': 'dev',
-                'name': 'Developer'
+    # Create dev users file with dev user and test scouters
+    users_path = DEV_FILES['users']
+    if os.path.exists(users_path):
+        with open(users_path, 'r') as f:
+            existing_users = json.load(f)
+    else:
+        existing_users = {}
+    
+    # Add dev user
+    existing_users['dev'] = {
+        'username': 'dev',
+        'password_hash': 'dev',  # Plain text for dev mode
+        'role': 'dev',
+        'name': 'Developer'
+    }
+    
+    # Add test scouters
+    for username, scouter_data in DEV_FAKE_DATA['scouters'].items():
+        if username not in existing_users:
+            existing_users[username] = {
+                **scouter_data,
+                'password_hash': 'test123'  # Simple password for testing
             }
-        }
-        with open(DEV_FILES['users'], 'w') as f:
-            json.dump(dev_users, f, indent=2)
+    
+    with open(users_path, 'w') as f:
+        json.dump(existing_users, f, indent=2)
+    
+    print(f"✅ Dev mode initialized with {len(existing_users)} users")
 
 def reset_dev_data():
     """Reset all dev data to clean state"""
@@ -258,3 +307,54 @@ def reset_dev_data():
         if os.path.exists(file_path):
             os.remove(file_path)
     init_dev_files()
+    print("✅ Dev data reset complete")
+
+def populate_dev_test_data():
+    """Populate dev environment with realistic test data"""
+    if not is_dev_user():
+        return False
+    
+    # Create some fake assignments
+    assignments_path = DEV_FILES['assignments']
+    test_assignments = {
+        'dev_2025test_qm1_254': {
+            'scouter': 'test_scouter1',
+            'event_key': 'dev_2025test',
+            'match_number': 1,
+            'team_number': '254',
+            'assigned_at': '2025-01-15T10:00:00',
+            'completed': False
+        },
+        'dev_2025test_qm1_148': {
+            'scouter': 'test_scouter2',
+            'event_key': 'dev_2025test',
+            'match_number': 1,
+            'team_number': '148',
+            'assigned_at': '2025-01-15T10:00:00',
+            'completed': True,
+            'completed_at': '2025-01-15T11:30:00'
+        },
+        'dev_2025test_qm2_1678': {
+            'scouter': 'test_scouter1',
+            'event_key': 'dev_2025test',
+            'match_number': 2,
+            'team_number': '1678',
+            'assigned_at': '2025-01-15T10:00:00',
+            'completed': False
+        },
+        'dev_2025test_qm3_6897': {
+            'scouter': 'test_scouter3',
+            'event_key': 'dev_2025test',
+            'match_number': 3,
+            'team_number': '6897',
+            'assigned_at': '2025-01-15T10:00:00',
+            'completed': False,
+            'is_home_game': True
+        }
+    }
+    
+    with open(assignments_path, 'w') as f:
+        json.dump(test_assignments, f, indent=2)
+    
+    print(f"✅ Populated {len(test_assignments)} test assignments")
+    return True
