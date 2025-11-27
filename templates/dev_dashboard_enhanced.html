@@ -294,6 +294,49 @@
       max-width: 500px;
       line-height: 1.6;
     }
+
+    .quick-guide {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 32px;
+      text-align: left;
+      max-width: 600px;
+    }
+
+    .quick-guide h3 {
+      color: #f59e0b;
+      margin-bottom: 16px;
+      font-size: 18px;
+    }
+
+    .quick-guide ol {
+      color: #94a3b8;
+      line-height: 1.8;
+      font-size: 14px;
+      padding-left: 20px;
+    }
+
+    .quick-guide li {
+      margin-bottom: 8px;
+    }
+
+    .quick-guide strong {
+      color: #e2e8f0;
+    }
+
+    .quick-guide code {
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .quick-guide .tip {
+      margin-top: 16px;
+      color: #64748b;
+      font-size: 13px;
+    }
   </style>
 </head>
 <body>
@@ -303,6 +346,14 @@
       <div class="sidebar-header">
         <h2>🚀 Dev Dashboard</h2>
         <p>Developer Tools & Preview</p>
+      </div>
+
+      <div class="nav-section">
+        <h3>My Views</h3>
+        <button class="nav-item" onclick="window.location.href='/dashboard'">
+          <span class="nav-item-icon">👤</span>
+          <span>My Assignments (Scouter)</span>
+        </button>
       </div>
 
       <div class="nav-section">
@@ -373,6 +424,19 @@
             Select a page from the sidebar to preview it. All changes you make will be visible in real-time.
             You're currently in maintenance mode - public users will see a maintenance page.
           </p>
+          <div class="quick-guide">
+            <h3>🚀 Quick Test Workflow:</h3>
+            <ol>
+              <li>Click <strong>"Admin Dashboard"</strong> in sidebar</li>
+              <li>Load a TBA event (e.g., <code>2025njski</code>)</li>
+              <li>Assign yourself (<strong>"Developer"</strong>) to a team</li>
+              <li>Click <strong>"My Assignments"</strong> to see your tasks</li>
+              <li>Fill out scout forms and test the full workflow!</li>
+            </ol>
+            <p class="tip">
+              💡 <strong>Tip:</strong> You're both an admin AND a scouter in dev mode, so you can test everything!
+            </p>
+          </div>
         </div>
         <iframe id="preview-frame" class="preview-frame" style="display: none;"></iframe>
       </div>

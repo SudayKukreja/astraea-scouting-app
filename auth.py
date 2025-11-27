@@ -38,7 +38,7 @@ def load_users():
         return users
     
     try:
-        with open(USERS_FILE, 'r') as f:
+        with open(users_file, 'r') as f:
             existing_users = json.load(f)
         
         users_updated = False
@@ -139,12 +139,22 @@ def create_scouter(username, password, name):
     return True, "Scouter created successfully"
 
 def get_all_scouters():
-    """Get all scouter accounts"""
+    """Get all scouter accounts - ✅ FIXED: Include dev user if in dev mode"""
     users = load_users()
-    return {k: v for k, v in users.items() if v.get('role') == 'scouter'}
+    scouters = {k: v for k, v in users.items() if v.get('role') == 'scouter'}
+    
+    # ✅ FIXED: In dev mode, dev user is a scouter too
+    if is_dev_user() and 'dev' in users:
+        scouters['dev'] = users['dev']
+    
+    return scouters
 
 def delete_scouter(username):
     """Delete a scouter account"""
+    # ✅ FIXED: Don't allow deleting dev user
+    if username == 'dev':
+        return False
+    
     users = load_users()
     if username in users and users[username].get('role') == 'scouter':
         del users[username]

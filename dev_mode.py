@@ -280,12 +280,21 @@ def init_dev_files():
     else:
         existing_users = {}
     
-    # Add dev user
+    # ✅ FIXED: Make dev user BOTH admin AND scouter so they can be assigned
     existing_users['dev'] = {
         'username': 'dev',
         'password_hash': 'dev',  # Plain text for dev mode
-        'role': 'dev',
-        'name': 'Developer'
+        'role': 'scouter',  # Changed from 'dev' to 'scouter' so they can be assigned
+        'name': 'Developer',
+        'is_dev': True  # Flag to maintain dev privileges
+    }
+    
+    # Add admin user for dev mode
+    existing_users['admin'] = {
+        'username': 'admin',
+        'password_hash': 'admin',
+        'role': 'admin',
+        'name': 'Dev Admin'
     }
     
     # Add test scouters
@@ -300,6 +309,7 @@ def init_dev_files():
         json.dump(existing_users, f, indent=2)
     
     print(f"✅ Dev mode initialized with {len(existing_users)} users")
+    print(f"✅ Dev user 'dev' is now a SCOUTER and can be assigned to teams")
 
 def reset_dev_data():
     """Reset all dev data to clean state"""
