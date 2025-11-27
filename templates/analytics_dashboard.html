@@ -82,6 +82,19 @@
       color: #475569;
     }
 
+    /* ✅ NEW: Highlighted sheet selector */
+    .control-group.sheet-selector {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 2px solid #3b82f6;
+    }
+
+    .control-group.sheet-selector label {
+      color: #1e40af;
+      font-weight: 700;
+    }
+
     select, input[type="number"] {
       padding: 8px 12px;
       border: 2px solid #e2e8f0;
@@ -94,6 +107,13 @@
     select:focus, input:focus {
       outline: none;
       border-color: #6366f1;
+    }
+
+    /* ✅ NEW: Special styling for sheet selector */
+    #sheet-filter {
+      border-color: #3b82f6;
+      font-weight: 600;
+      min-width: 200px;
     }
 
     .analyze-btn {
@@ -405,6 +425,14 @@
 
     <div class="main-content">
       <div class="controls-bar">
+        <!-- ✅ NEW: Sheet selector with prominent styling -->
+        <div class="control-group sheet-selector">
+          <label>📄 Data Source:</label>
+          <select id="sheet-filter">
+            <option value="">Loading sheets...</option>
+          </select>
+        </div>
+        
         <div class="control-group">
           <label>Event:</label>
           <select id="event-filter">
@@ -428,8 +456,8 @@
 
       <div id="analysis-container">
         <div class="no-data">
-          <h3>👆 Select a team to view analysis</h3>
-          <p>Choose an event and team from the dropdowns above to see detailed performance metrics with interactive charts</p>
+          <h3>👆 Select a data source and team</h3>
+          <p>Choose a sheet from the dropdown above, then select a team to see detailed performance metrics with interactive charts</p>
         </div>
       </div>
     </div>

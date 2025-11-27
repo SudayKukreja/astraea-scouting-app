@@ -2,15 +2,18 @@ let analyticsData = [];
 let currentFilters = {
   event: '',
   team: '',
-  hidePartial: false
+  hidePartial: false,
+  sheet: ''  // ✅ NEW: Track selected sheet
 };
+
+let availableSheets = [];  // ✅ NEW: Store available sheets
 
 let performanceChart = null;
 let scoringChart = null;
 let endgameChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadAnalyticsData();
+  loadAvailableSheets();  // ✅ NEW: Load sheets first
   
   document.getElementById('event-filter').addEventListener('change', updateTeamsList);
   document.getElementById('hide-partial').addEventListener('change', () => {
@@ -18,12 +21,61 @@ document.addEventListener('DOMContentLoaded', () => {
       analyzeTeam();
     }
   });
+  
+  // ✅ NEW: Sheet selector listener
+  document.getElementById('sheet-filter').addEventListener('change', () => {
+    loadAnalyticsData();
+  });
 });
+
+// ✅ NEW: Load available sheets
+async function loadAvailableSheets() {
+  try {
+    console.log('Loading available sheets...');
+    const response = await fetch('/api/admin/analytics/sheets');
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch sheets list');
+    }
+    
+    availableSheets = await response.json();
+    console.log('Available sheets:', availableSheets);
+    
+    // Populate sheet selector
+    const sheetSelect = document.getElementById('sheet-filter');
+    sheetSelect.innerHTML = '<option value="">Auto-detect (current mode)</option>';
+    
+    availableSheets.forEach(sheet => {
+      sheetSelect.innerHTML += `<option value="${sheet.name}">${sheet.name}</option>`;
+    });
+    
+    // Load data from default sheet
+    loadAnalyticsData();
+    
+  } catch (error) {
+    console.error('Error loading sheets:', error);
+    // Still try to load data even if sheet list fails
+    loadAnalyticsData();
+  }
+}
 
 async function loadAnalyticsData() {
   try {
     console.log('Loading analytics data...');
-    const response = await fetch('/api/admin/analytics/data');
+    
+    // Get selected sheet
+    const selectedSheet = document.getElementById('sheet-filter').value;
+    
+    // Build URL with sheet parameter
+    let url = '/api/admin/analytics/data';
+    if (selectedSheet) {
+      url += `?sheet=${encodeURIComponent(selectedSheet)}`;
+      console.log(`Loading from sheet: ${selectedSheet}`);
+    } else {
+      console.log('Loading from auto-detected sheet');
+    }
+    
+    const response = await fetch(url);
     console.log('Response status:', response.status);
     
     if (!response.ok) {
@@ -43,6 +95,7 @@ async function loadAnalyticsData() {
       console.log('First entry:', analyticsData[0]);
     } else {
       console.warn('No analytics data returned from API');
+      showNoDataMessage();
     }
     
     populateFilters();
@@ -50,6 +103,18 @@ async function loadAnalyticsData() {
     console.error('Error loading analytics data:', error);
     showError('Failed to load data: ' + error.message);
   }
+}
+
+function showNoDataMessage() {
+  const container = document.getElementById('analysis-container');
+  const selectedSheet = document.getElementById('sheet-filter').value || 'the selected sheet';
+  container.innerHTML = `
+    <div class="no-data">
+      <h3>📭 No Data Found</h3>
+      <p>There is no scouting data in <strong>${selectedSheet}</strong> yet.</p>
+      <p>Try selecting a different sheet or submit some scout reports first.</p>
+    </div>
+  `;
 }
 
 function populateFilters() {

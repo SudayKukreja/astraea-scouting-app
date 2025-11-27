@@ -7,7 +7,8 @@ from uuid import uuid4
 import os, json
 import re
 from datetime import datetime
-import requests  # ✅ FIXED: Added this import
+import requests 
+from statbotics_client import StatboticsPredictor
 
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
@@ -59,6 +60,12 @@ service = build('sheets', 'v4', credentials=creds)
 sheet = service.spreadsheets()
 
 tba_client = TBAClient(api_key=os.environ.get('TBA_API_KEY'))
+
+try:
+    statbotics_predictor = StatboticsPredictor()
+except Exception as e:
+    print(f"⚠️  Statbotics not available: {e}")
+    statbotics_predictor = None
 
 def analyze_team_performance(matches):
     """Analyze team performance data to create structured insights for AI"""
@@ -280,12 +287,25 @@ def analytics_dashboard():
 @app.route('/api/admin/analytics/data')
 @admin_required
 def get_analytics_data():
-    """Get all scouting data for analytics"""
+    """Get all scouting data for analytics from a specific sheet"""
+    # Get sheet name from query parameter, default to current sheet config
+    requested_sheet = request.args.get('sheet')
+    
+    if requested_sheet:
+        # Use requested sheet
+        current_sheet_name = requested_sheet
+    else:
+        # Use default sheet based on mode
+        sheet_config = get_sheet_config()
+        current_sheet_name = sheet_config['SHEET_NAME']
+    
+    print(f"📊 Loading analytics from sheet: {current_sheet_name}")
+    
     try:
-        # Read all data from the Google Sheet
+        # Read all data from the specified Google Sheet
         result = sheet.values().get(
             spreadsheetId=SPREADSHEET_ID, 
-            range=f'{SHEET_NAME}!A1:Z1000'
+            range=f'{current_sheet_name}!A1:Z1000'
         ).execute()
         
         all_values = result.get('values', [])
@@ -357,7 +377,7 @@ def get_analytics_data():
                     'match': int(match_number) if match_number.isdigit() else 0,
                     'scouterName': scouter_name,
                     'submissionTime': submission_datetime.isoformat(),
-                    'event': 'current_event',  # You might want to track this differently
+                    'event': current_sheet_name,  # Use sheet name as event identifier
                     'auto': {
                         'score': auto_score,
                         **auto_data
@@ -383,6 +403,7 @@ def get_analytics_data():
                 print(f"Error parsing row {row}: {str(e)}")
                 continue
         
+        print(f"✅ Loaded {len(analytics_data)} analytics entries from {current_sheet_name}")
         return jsonify(analytics_data)
         
     except Exception as e:
@@ -594,6 +615,99 @@ def calculate_additional_scores(auto_data, teleop_data, endgame_data):
         additional_score += 3  # LEAVE points
     
     return additional_score
+
+# =============================================================================
+# STATBOTICS ROUTES
+# =============================================================================
+
+@app.route('/match-predictor')
+@admin_required
+def match_predictor_page():
+    """Serve the match predictor page"""
+    return render_template('match_predictor.html')
+
+
+@app.route('/api/admin/predict-matches')
+@admin_required
+def predict_event_matches():
+    """Get match predictions for an event and team"""
+    event_key = request.args.get('event')
+    team_number = request.args.get('team')
+    
+    if not event_key:
+        return jsonify({'error': 'Event key required'}), 400
+    
+    if not statbotics_predictor:
+        return jsonify({'error': 'Statbotics API not available'}), 503
+    
+    try:
+        # Get matches from TBA
+        from manual_matches import is_manual_event, get_manual_event_matches
+        
+        if is_manual_event(event_key):
+            matches = get_manual_event_matches(event_key)
+        else:
+            matches = tba_client.get_event_matches(event_key)
+            if not matches:
+                return jsonify({'error': 'No matches found for event'}), 404
+        
+        # Extract year from event key (e.g., "2025njbru" -> 2025)
+        year = int(event_key[:4])
+        
+        predictions = []
+        
+        for match in matches:
+            # Get teams as integers
+            red_teams = [int(t.replace('frc', '')) for t in match['red_teams']]
+            blue_teams = [int(t.replace('frc', '')) for t in match['blue_teams']]
+            
+            # Predict match outcome
+            prediction = statbotics_predictor.predict_match(red_teams, blue_teams, year)
+            
+            # Determine if selected team is in this match and on which alliance
+            team_alliance = None
+            if team_number:
+                team_num = int(team_number)
+                if team_num in red_teams:
+                    team_alliance = 'red'
+                elif team_num in blue_teams:
+                    team_alliance = 'blue'
+            
+            # Only include matches where the team plays (if team specified)
+            if team_number and not team_alliance:
+                continue
+            
+            # Determine predicted outcome for the team
+            if team_alliance:
+                if team_alliance == prediction['predicted_winner']:
+                    predicted_result = 'WIN'
+                    win_probability = prediction[f'{team_alliance}_win_prob']
+                else:
+                    predicted_result = 'LOSS'
+                    win_probability = prediction[f'{team_alliance}_win_prob']
+            else:
+                predicted_result = None
+                win_probability = None
+            
+            predictions.append({
+                'match_number': match['match_number'],
+                'match_key': match.get('key', f"{event_key}_qm{match['match_number']}"),
+                'red_teams': red_teams,
+                'blue_teams': blue_teams,
+                'team_alliance': team_alliance,
+                'predicted_result': predicted_result,
+                'win_probability': win_probability,
+                'prediction': prediction
+            })
+        
+        # Sort by match number
+        predictions.sort(key=lambda x: x['match_number'])
+        
+        return jsonify(predictions)
+        
+    except Exception as e:
+        print(f"Error predicting matches: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # =============================================================================
 # DEV MODE ROUTES
@@ -1203,6 +1317,23 @@ def get_scouter_assignments_api():
     return jsonify(assignments)
 
 # =============================================================================
+# MISCELLANOUS API ROUTES
+# =============================================================================
+
+def get_sheet_config():
+    """Get the appropriate sheet configuration based on dev mode"""
+    if is_dev_user():
+        return {
+            'SHEET_NAME': 'TestingDataDev',  # 'TestingDataDev'
+            'SHEET_ID': 1892725645
+        }
+    else:
+        return {
+            'SHEET_NAME': 'TestingData',  # 'TestingData'
+            'SHEET_ID': 1549733301
+        }
+
+# =============================================================================
 # SCOUTING FORM ROUTES
 # =============================================================================
 
@@ -1438,6 +1569,37 @@ def submit():
         session.pop('current_assignment', None)
 
     return jsonify({'status': 'success'})
+
+# =============================================================================
+# ADMIN ANALYTICS ROUTES
+# =============================================================================
+
+@app.route('/api/admin/analytics/sheets')
+@admin_required
+def get_all_sheets():
+    """Get list of all sheets in the Google Spreadsheet"""
+    try:
+        # Get spreadsheet metadata to list all sheets
+        spreadsheet = service.spreadsheets().get(
+            spreadsheetId=SPREADSHEET_ID
+        ).execute()
+        
+        sheets = []
+        for sheet in spreadsheet.get('sheets', []):
+            sheet_properties = sheet.get('properties', {})
+            sheets.append({
+                'name': sheet_properties.get('title', 'Unnamed'),
+                'id': sheet_properties.get('sheetId'),
+                'index': sheet_properties.get('index', 0)
+            })
+        
+        # Sort by index to maintain order
+        sheets.sort(key=lambda x: x['index'])
+        
+        return jsonify(sheets)
+    except Exception as e:
+        print(f"Error fetching sheets: {str(e)}")
+        return jsonify({'error': 'Failed to fetch sheets list'}), 500
 
 # =============================================================================
 # PIT SCOUTING ROUTES
