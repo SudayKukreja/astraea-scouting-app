@@ -439,3 +439,29 @@ input, select, textarea {
         height: 50px;
     }
 }
+
+.pit-specific-section {
+  background: #f0f9ff;
+  border-left: 4px solid #0ea5e9;
+  padding: 16px;
+  margin: 20px 0;
+  border-radius: 8px;
+}
+
+.pit-warning {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments for pit scouting */
+@media (max-width: 768px) {
+  .pit-specific-section {
+    padding: 12px;
+    margin: 12px 0;
+  }
+}

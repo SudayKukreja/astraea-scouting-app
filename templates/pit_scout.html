@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Astraea Robotics - Pit Scouting</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='pit_scout.css') }}">
+  <!-- ✅ FIXED: Use style.css instead of missing pit_scout.css -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo2.png') }}">
 </head>
 <body>
@@ -66,8 +67,6 @@
               <label for="avg_cycle_time">Average Cycle Time (seconds)</label>
               <input type="number" id="avg_cycle_time" name="avg_cycle_time" step="0.1" min="0" placeholder="e.g., 15.5">
             </div>
-
-            <!-- ADD MORE FIELDS HERE AS NEEDED -->
           </div>
 
           <!-- Notes Section -->
@@ -92,68 +91,48 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        let refreshing = false;
-        
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-            
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  if (confirm('A new version of the app is available. Would you like to refresh to get the latest version?')) {
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  }
-                }
-              });
-            });
-          }, function(err) {
-            console.log('ServiceWorker registration failed: ', err);
-          });
+  <!-- ✅ FIXED: Added pit_scout.js script -->
+  <script src="{{ url_for('static', filename='pit_scout.js') }}"></script>
+  
+  <!-- ✅ FIXED: Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+          console.log('ServiceWorker registration successful');
+        }, function(err) {
+          console.log('ServiceWorker registration failed: ', err);
         });
+      });
+    }
 
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
-        });
+    // Dev Mode Handler
+    function isDevMode() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('dev') === 'true' || sessionStorage.getItem('dev_mode') === 'true';
+    }
+
+    if (isDevMode()) {
+      sessionStorage.setItem('dev_mode', 'true');
+      
+      const headerActions = document.getElementById('header-actions');
+      if (headerActions) {
+        headerActions.style.display = 'none';
       }
+      
+      const devButton = document.createElement('div');
+      devButton.innerHTML = `
+        <a href="/dev" style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 20px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); z-index: 9999; display: flex; align-items: center; gap: 8px;">
+          <span>🚀</span><span>Back to Dev</span>
+        </a>
+      `;
+      document.body.appendChild(devButton);
 
-      // Dev Mode Back Button
-      function isDevMode() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('dev') === 'true' || sessionStorage.getItem('dev_mode') === 'true';
-      }
-
-      if (isDevMode()) {
-        sessionStorage.setItem('dev_mode', 'true');
-        
-        // Hide the normal back buttons when in dev mode
-        const headerActions = document.getElementById('header-actions');
-        if (headerActions) {
-          headerActions.style.display = 'none';
-        }
-        
-        // Create dev back button
-        const devButton = document.createElement('div');
-        devButton.innerHTML = `
-          <a href="/dev" style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 12px 20px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 14px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4); z-index: 9999; display: flex; align-items: center; gap: 8px;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
-            <span>🚀</span><span>Back to Dev</span>
-          </a>
-        `;
-        document.body.appendChild(devButton);
-
-        // Create dev banner
-        const devBanner = document.createElement('div');
-        devBanner.innerHTML = `<div style="position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 8px 16px; text-align: center; font-weight: 700; font-size: 12px; z-index: 9998; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">🚀 DEV MODE - Testing Environment</div>`;
-        document.body.insertBefore(devBanner, document.body.firstChild);
-        document.body.style.paddingTop = '40px';
-      }
-    </script>
+      const devBanner = document.createElement('div');
+      devBanner.innerHTML = `<div style="position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 8px 16px; text-align: center; font-weight: 700; font-size: 12px; z-index: 9998;">🚀 DEV MODE - Testing Environment</div>`;
+      document.body.insertBefore(devBanner, document.body.firstChild);
+      document.body.style.paddingTop = '40px';
+    }
+  </script>
 </body>
 </html>

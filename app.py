@@ -7,7 +7,7 @@ from uuid import uuid4
 import os, json
 import re
 from datetime import datetime
-import requests
+import requests  # ✅ FIXED: Added this import
 
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
@@ -40,7 +40,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 CORS(app)
 
-# Initialize dev mode if enabled
 if is_dev_mode():
     print("🚀 DEV MODE ENABLED - Using isolated dev environment")
     init_dev_files()
@@ -48,10 +47,10 @@ if is_dev_mode():
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'Brunswick Eruption'
-SHEET_ID = 1546014881 
-PIT_SHEET_NAME = 'Pit Scouting'
-PIT_SHEET_ID = 0  #TODO: Update this with actual sheet ID after creating the sheet
+SHEET_NAME = 'TestingData'
+SHEET_ID = 1549733301
+PIT_SHEET_NAME = 'TestingDataDev'
+PIT_SHEET_ID = 1892725645
 # ==============================
 
 credentials_info = json.loads(os.environ['GOOGLE_CREDENTIALS'])
@@ -1444,7 +1443,7 @@ def submit():
 # PIT SCOUTING ROUTES
 # =============================================================================
 
-app.route('/pit-scout')
+@app.route('/pit-scout')
 @login_required
 def pit_scout_form():
     # ✅ Allow dev users
@@ -1621,4 +1620,21 @@ def serve_sw():
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    print("\n" + "="*60)
+    print("🚀 Astraea Scouting System Starting")
+    print("="*60)
+    print(f"\n✅ Server running on:")
+    print(f"   - http://localhost:{port}")
+    print(f"   - http://127.0.0.1:{port}")
+    try:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        print(f"   - http://{local_ip}:{port} (for other devices)")
+    except:
+        pass
+    print("\n" + "="*60 + "\n")
+    
     app.run(host='0.0.0.0', port=port)
