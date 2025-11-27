@@ -31,7 +31,8 @@ from dev_mode import (
     get_data_file,
     init_dev_files,
     reset_dev_data,
-    dev_login_required
+    dev_login_required,
+    maintenance_required
 )
 
 app = Flask(__name__)
@@ -194,6 +195,7 @@ def analyze_scoring_breakdown(matches, phase):
     return breakdown_str
 
 @app.route('/login')
+@maintenance_required
 def login_page():
     if 'user_id' in session:
         from auth import load_users
@@ -204,6 +206,33 @@ def login_page():
         else:
             return redirect('/dashboard')
     return render_template('login.html')
+
+@app.route('/dev-login')
+def dev_login_page():
+    """Special login page for devs during maintenance mode"""
+    if is_dev_user():
+        return redirect('/dev')
+    
+    return render_template('dev_login.html')
+
+@app.route('/api/dev-login', methods=['POST'])
+def api_dev_login():
+    """Dev-specific login endpoint"""
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = authenticate_dev(username, password)
+    if user:
+        session['user_id'] = username
+        session['user_name'] = user.get('name', username)
+        session['is_dev_user'] = True
+        return jsonify({
+            'success': True,
+            'role': 'dev'
+        })
+    else:
+        return jsonify({'error': 'Invalid dev credentials'}), 401
 
 @app.route('/api/login', methods=['POST'])
 def api_login():
@@ -573,8 +602,36 @@ def calculate_additional_scores(auto_data, teleop_data, endgame_data):
 @app.route('/dev')
 @dev_login_required
 def dev_dashboard():
-    """Dev-only dashboard with testing tools"""
-    return render_template('dev_dashboard.html')
+    """Enhanced dev dashboard with live preview"""
+    return render_template('dev_dashboard_enhanced.html')
+
+@app.route('/api/dev/navigate/<page>')
+@dev_login_required
+def dev_navigate(page):
+    """Navigate to different pages in dev mode"""
+    # Set a flag in session to show dev navigation
+    session['dev_preview'] = True
+    
+    routes = {
+        'scout': '/scout',
+        'dashboard': '/dashboard',
+        'admin': '/admin',
+        'analytics': '/analytics',
+        'pit-scout': '/pit-scout'
+    }
+    
+    return jsonify({'url': routes.get(page, '/')})
+
+@app.route('/api/dev/toggle-mode', methods=['POST'])
+@dev_login_required
+def toggle_dev_mode():
+    """Toggle dev/maintenance mode (requires environment variable change)"""
+    # This is just informational - actual toggle happens via environment
+    current_state = is_dev_mode()
+    return jsonify({
+        'current_mode': 'maintenance' if current_state else 'normal',
+        'message': 'To change mode, update DEV_MODE environment variable in Render'
+    })
 
 @app.route('/api/dev/reset', methods=['POST'])
 @dev_login_required
@@ -586,13 +643,6 @@ def reset_dev_environment():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/dev/mock-data/<data_type>')
-@dev_login_required
-def get_dev_data(data_type):
-    """Get mock data for testing"""
-    data = get_dev_mock_data(data_type)
-    return jsonify(data)
-
 @app.route('/api/dev/status')
 @dev_login_required
 def dev_status():
@@ -601,7 +651,9 @@ def dev_status():
     from dev_mode import DEV_FILES
     
     status = {
-        'dev_mode': True,
+        'dev_mode': is_dev_mode(),
+        'dev_user': is_dev_user(),
+        'environment': 'production' if os.environ.get('RENDER') else 'local',
         'files': {}
     }
     
@@ -1128,6 +1180,7 @@ def scout_form():
     return render_template('index.html', prefill_team=team, prefill_match=match)
 
 @app.route('/')
+@maintenance_required
 def home():
     if 'user_id' not in session:
         return redirect('/login')

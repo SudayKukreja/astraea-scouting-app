@@ -4,72 +4,255 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Developer Dashboard - Astraea Scouting</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
   <style>
-    .dev-banner {
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .dev-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .dev-sidebar {
+      width: 280px;
+      background: #1e293b;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 20px;
       background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
       color: white;
-      padding: 12px 24px;
       text-align: center;
-      font-weight: 700;
-      font-size: 14px;
+    }
+
+    .sidebar-header h2 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-header p {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .nav-section {
+      padding: 20px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .nav-section h3 {
+      font-size: 12px;
+      text-transform: uppercase;
       letter-spacing: 0.5px;
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+      color: #94a3b8;
+      margin-bottom: 12px;
     }
 
-    .dev-tools {
-      background: #fffbeb;
-      border: 2px solid #fbbf24;
-      border-radius: 12px;
-      padding: 24px;
-      margin-bottom: 32px;
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 4px;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+      color: #e2e8f0;
+      font-size: 14px;
     }
 
-    .dev-tools h3 {
-      color: #92400e;
-      margin-bottom: 16px;
+    .nav-item:hover {
+      background: #334155;
+    }
+
+    .nav-item.active {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .nav-item-icon {
       font-size: 18px;
     }
 
-    .dev-actions {
+    .dev-tools {
+      padding: 20px;
+    }
+
+    .tool-btn {
+      width: 100%;
+      padding: 10px;
+      background: #334155;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+
+    .tool-btn:hover {
+      background: #475569;
+    }
+
+    .tool-btn.danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .tool-btn.danger:hover {
+      background: #b91c1c;
+    }
+
+    /* Main Content */
+    .dev-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .dev-toolbar {
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .toolbar-left {
       display: flex;
       gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 24px;
+      align-items: center;
     }
 
-    .dev-btn {
-      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    .mode-badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-badge.maintenance {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .mode-badge.normal {
+      background: #10b981;
+      color: white;
+    }
+
+    .refresh-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: #475569;
+    }
+
+    .logout-btn {
+      background: #dc2626;
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all 0.3s;
+      font-size: 13px;
+      transition: all 0.2s;
     }
 
-    .dev-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    .logout-btn:hover {
+      background: #b91c1c;
     }
 
-    .dev-btn.danger {
-      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    .dev-preview {
+      flex: 1;
+      background: #0f172a;
+      position: relative;
+      overflow: hidden;
     }
 
-    .dev-status {
+    .preview-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
       background: white;
+    }
+
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #334155;
+      border-top-color: #f59e0b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .status-panel {
+      background: #1e293b;
       border-radius: 8px;
       padding: 16px;
-      border: 1px solid #e5e7eb;
+      margin-top: 20px;
     }
 
     .status-item {
       display: flex;
       justify-content: space-between;
       padding: 8px 0;
-      border-bottom: 1px solid #f3f4f6;
+      border-bottom: 1px solid #334155;
+      font-size: 13px;
     }
 
     .status-item:last-child {
@@ -77,154 +260,194 @@
     }
 
     .status-label {
-      font-weight: 600;
-      color: #374151;
+      color: #94a3b8;
     }
 
     .status-value {
-      color: #6b7280;
+      color: #e2e8f0;
       font-family: monospace;
     }
 
-    .quick-links {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-top: 24px;
-    }
-
-    .quick-link {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 12px;
-      padding: 20px;
-      text-decoration: none;
-      color: #374151;
-      transition: all 0.3s;
+    .welcome-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
       text-align: center;
+      padding: 40px;
     }
 
-    .quick-link:hover {
-      border-color: #3b82f6;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    .welcome-icon {
+      font-size: 80px;
+      margin-bottom: 20px;
     }
 
-    .quick-link-icon {
+    .welcome-screen h2 {
       font-size: 32px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .quick-link-title {
-      font-weight: 600;
-      color: #1f2937;
+    .welcome-screen p {
+      color: #94a3b8;
+      font-size: 16px;
+      max-width: 500px;
+      line-height: 1.6;
     }
   </style>
 </head>
 <body>
-  <div class="dashboard-container">
-    <!-- Dev Mode Banner -->
-    <div class="dev-banner">
-      🚀 DEVELOPER MODE - ISOLATED TESTING ENVIRONMENT
-    </div>
-
-    <!-- Header -->
-    <header class="dashboard-header">
-      <div class="header-content">
-        <div class="header-left">
-          <img src="{{ url_for('static', filename='logo.png') }}" alt="Astraea Logo" class="header-logo">
-          <h1>Developer Dashboard</h1>
-        </div>
-        <div class="header-right">
-          <span class="user-info">👨‍💻 Developer</span>
-          <button onclick="logout()" class="logout-btn">Logout</button>
-        </div>
+  <div class="dev-container">
+    <!-- Sidebar -->
+    <div class="dev-sidebar">
+      <div class="sidebar-header">
+        <h2>🚀 Dev Dashboard</h2>
+        <p>Developer Tools & Preview</p>
       </div>
-    </header>
 
-    <!-- Main Content -->
-    <main class="dashboard-main">
-      <!-- Dev Tools Section -->
+      <div class="nav-section">
+        <h3>Pages</h3>
+        <button class="nav-item" onclick="navigateTo('scout')">
+          <span class="nav-item-icon">📝</span>
+          <span>Scout Form</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('dashboard')">
+          <span class="nav-item-icon">📊</span>
+          <span>Scouter Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('admin')">
+          <span class="nav-item-icon">⚙️</span>
+          <span>Admin Dashboard</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('analytics')">
+          <span class="nav-item-icon">📈</span>
+          <span>Analytics</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('pit-scout')">
+          <span class="nav-item-icon">🔧</span>
+          <span>Pit Scouting</span>
+        </button>
+      </div>
+
       <div class="dev-tools">
-        <h3>⚙️ Development Tools</h3>
-        <div class="dev-actions">
-          <button onclick="loadDevStatus()" class="dev-btn">Refresh Status</button>
-          <button onclick="resetDevEnvironment()" class="dev-btn danger">Reset Dev Data</button>
-          <button onclick="loadMockData()" class="dev-btn">Load Mock Data</button>
-        </div>
+        <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px;">Developer Tools</h3>
+        <button class="tool-btn" onclick="refreshPreview()">🔄 Refresh Preview</button>
+        <button class="tool-btn" onclick="loadStatus()">📊 Load Status</button>
+        <button class="tool-btn danger" onclick="resetData()">⚠️ Reset Dev Data</button>
+      </div>
 
-        <div class="dev-status" id="dev-status">
+      <div class="status-panel">
+        <h3 style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 12px;">Status</h3>
+        <div id="status-container">
           <div class="status-item">
-            <span class="status-label">Status:</span>
-            <span class="status-value">Loading...</span>
+            <span class="status-label">Loading...</span>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Quick Links -->
-      <div class="quick-links">
-        <a href="/scout" class="quick-link">
-          <div class="quick-link-icon">📝</div>
-          <div class="quick-link-title">Scout Form</div>
-        </a>
-        <a href="/admin" class="quick-link">
-          <div class="quick-link-icon">⚙️</div>
-          <div class="quick-link-title">Admin Dashboard</div>
-        </a>
-        <a href="/dashboard" class="quick-link">
-          <div class="quick-link-icon">📊</div>
-          <div class="quick-link-title">Scouter Dashboard</div>
-        </a>
-        <a href="/analytics" class="quick-link">
-          <div class="quick-link-icon">📈</div>
-          <div class="quick-link-title">Analytics</div>
-        </a>
-        <a href="/pit-scout" class="quick-link">
-          <div class="quick-link-icon">🔧</div>
-          <div class="quick-link-title">Pit Scouting</div>
-        </a>
+    <!-- Main Content -->
+    <div class="dev-main">
+      <div class="dev-toolbar">
+        <div class="toolbar-left">
+          <div class="mode-badge maintenance">
+            <span>🔧</span>
+            <span>Maintenance Mode Active</span>
+          </div>
+          <span style="font-size: 13px; color: #94a3b8;">Public users see maintenance page</span>
+        </div>
+        <div class="toolbar-right">
+          <button class="refresh-btn" onclick="refreshPreview()">↻ Refresh</button>
+          <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
       </div>
 
-      <!-- Info Section -->
-      <div style="margin-top: 32px; padding: 24px; background: #f8fafc; border-radius: 12px;">
-        <h3 style="margin-bottom: 16px; color: #374151;">ℹ️ About Dev Mode</h3>
-        <ul style="color: #6b7280; line-height: 1.8;">
-          <li>All data is stored in separate dev files (dev_*.json)</li>
-          <li>Changes won't affect production data</li>
-          <li>You can access all pages without going through the normal flow</li>
-          <li>Use "Reset Dev Data" to start fresh at any time</li>
-          <li>Mock data is available for testing without real TBA data</li>
-        </ul>
+      <div class="dev-preview">
+        <div class="loading-overlay" id="loading">
+          <div class="spinner"></div>
+        </div>
+        <div class="welcome-screen" id="welcome">
+          <div class="welcome-icon">👋</div>
+          <h2>Welcome to Dev Mode</h2>
+          <p>
+            Select a page from the sidebar to preview it. All changes you make will be visible in real-time.
+            You're currently in maintenance mode - public users will see a maintenance page.
+          </p>
+        </div>
+        <iframe id="preview-frame" class="preview-frame" style="display: none;"></iframe>
       </div>
-    </main>
+    </div>
   </div>
 
   <script>
-    async function loadDevStatus() {
+    let currentPage = null;
+
+    async function navigateTo(page) {
+      // Update active nav item
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      event.currentTarget.classList.add('active');
+
+      currentPage = page;
+
+      // Show loading
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('welcome').style.display = 'none';
+      
+      const routes = {
+        'scout': '/scout?dev=true',
+        'dashboard': '/dashboard?dev=true',
+        'admin': '/admin?dev=true',
+        'analytics': '/analytics?dev=true',
+        'pit-scout': '/pit-scout?dev=true'
+      };
+
+      const frame = document.getElementById('preview-frame');
+      frame.style.display = 'block';
+      frame.src = routes[page];
+
+      // Hide loading after frame loads
+      frame.onload = () => {
+        document.getElementById('loading').classList.add('hidden');
+      };
+    }
+
+    function refreshPreview() {
+      if (currentPage) {
+        const frame = document.getElementById('preview-frame');
+        frame.src = frame.src;
+      }
+    }
+
+    async function loadStatus() {
       try {
         const response = await fetch('/api/dev/status');
         const status = await response.json();
-        
-        const statusContainer = document.getElementById('dev-status');
-        statusContainer.innerHTML = `
+
+        const container = document.getElementById('status-container');
+        container.innerHTML = `
           <div class="status-item">
-            <span class="status-label">Dev Mode:</span>
-            <span class="status-value" style="color: #10b981;">✓ Active</span>
+            <span class="status-label">Mode:</span>
+            <span class="status-value">${status.dev_mode ? '🔧 Maintenance' : '✅ Normal'}</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Environment:</span>
+            <span class="status-value">${status.environment}</span>
           </div>
           ${Object.entries(status.files).map(([key, info]) => `
             <div class="status-item">
-              <span class="status-label">${key}.json:</span>
-              <span class="status-value">${info.exists ? `✓ ${info.size} bytes` : '✗ Not found'}</span>
+              <span class="status-label">${key}:</span>
+              <span class="status-value">${info.exists ? '✓ ' + info.size + 'b' : '✗'}</span>
             </div>
           `).join('')}
         `;
       } catch (error) {
         console.error('Error loading status:', error);
-        alert('Error loading dev status');
       }
     }
 
-    async function resetDevEnvironment() {
+    async function resetData() {
       if (!confirm('Reset all dev data? This will clear all dev assignments, users, and events.')) {
         return;
       }
@@ -235,7 +458,8 @@
 
         if (response.ok) {
           alert('Dev environment reset successfully!');
-          loadDevStatus();
+          await loadStatus();
+          if (currentPage) refreshPreview();
         } else {
           alert('Error: ' + result.error);
         }
@@ -243,10 +467,6 @@
         console.error('Error resetting:', error);
         alert('Error resetting dev environment');
       }
-    }
-
-    async function loadMockData() {
-      alert('Mock data loaded! You can now use dev_2025test as an event key.');
     }
 
     async function logout() {
@@ -260,7 +480,9 @@
 
     // Load status on page load
     document.addEventListener('DOMContentLoaded', () => {
-      loadDevStatus();
+      loadStatus();
+      // Auto-refresh status every 10 seconds
+      setInterval(loadStatus, 10000);
     });
   </script>
 </body>

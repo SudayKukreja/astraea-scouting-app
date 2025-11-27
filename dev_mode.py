@@ -1,22 +1,183 @@
-# dev_mode.py
+# dev_mode.py - Enhanced version
 """
-Developer Mode Configuration
-Provides isolated testing environment with mock data and bypassed authentication
+Enhanced Developer Mode Configuration
+- Supports both local and production dev mode
+- Public maintenance mode
+- Better dev navigation
 """
 
 import os
 import json
 from functools import wraps
-from flask import session, request, jsonify, redirect
+from flask import session, request, jsonify, redirect, render_template_string
 
-# Dev mode flag - set via environment variable
-DEV_MODE = os.environ.get('DEV_MODE', 'False').lower() == 'true'
+# Dev mode can be enabled via environment variable OR session
+def is_dev_mode():
+    """Check if dev mode is enabled globally (blocks public access)"""
+    return os.environ.get('DEV_MODE', 'False').lower() == 'true'
+
+def is_dev_user():
+    """Check if current user has dev access"""
+    return session.get('is_dev_user', False) or session.get('user_id') == 'dev'
 
 # Dev credentials
 DEV_USERNAME = 'dev'
-DEV_PASSWORD = 'dev123'  # Change this to something secure
+DEV_PASSWORD = os.environ.get('DEV_PASSWORD', 'dev123')  # Set this in Render
 
-# Mock data for dev testing
+# Maintenance mode template
+MAINTENANCE_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Under Maintenance - Astraea Scouting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .maintenance-container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .maintenance-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            color: #1e293b;
+            font-size: 32px;
+            margin-bottom: 16px;
+        }
+        
+        p {
+            color: #64748b;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+        
+        .dev-login-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .dev-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(245, 158, 11, 0.4);
+        }
+        
+        .status-dots {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 40px;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-icon">🔧</div>
+        <h1>We'll Be Right Back!</h1>
+        <p>
+            We're currently making some improvements to the Astraea Scouting System. 
+            We should be back online shortly.
+        </p>
+        <p style="font-size: 14px; color: #94a3b8;">
+            If you're a developer, you can access the dev dashboard below.
+        </p>
+        <a href="/dev-login" class="dev-login-btn">Developer Access →</a>
+        <div class="status-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+def maintenance_required(f):
+    """Decorator to show maintenance page when dev mode is active"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # If dev mode is active AND user is not a dev user
+        if is_dev_mode() and not is_dev_user():
+            return render_template_string(MAINTENANCE_TEMPLATE), 503
+        return f(*args, **kwargs)
+    return decorated_function
+
+def dev_login_required(f):
+    """Decorator for dev-only routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not is_dev_user():
+            return jsonify({'error': 'Dev access required'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+def authenticate_dev(username, password):
+    """Authenticate dev user"""
+    if username == DEV_USERNAME and password == DEV_PASSWORD:
+        return {
+            'username': username,
+            'role': 'dev',
+            'name': 'Developer',
+            'is_dev': True
+        }
+    return None
+
+# Dev mode mock data
 DEV_MOCK_DATA = {
     'events': [
         {
@@ -46,41 +207,11 @@ DEV_MOCK_DATA = {
     'teams': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
 }
 
-def is_dev_mode():
-    """Check if app is in dev mode"""
-    return DEV_MODE
-
-def is_dev_user():
-    """Check if current user is a dev user"""
-    return session.get('is_dev_user', False)
-
-def dev_login_required(f):
-    """Decorator for dev-only routes"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not is_dev_mode():
-            return jsonify({'error': 'Dev mode not enabled'}), 403
-        if not is_dev_user():
-            return jsonify({'error': 'Dev login required'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-def authenticate_dev(username, password):
-    """Authenticate dev user"""
-    if username == DEV_USERNAME and password == DEV_PASSWORD:
-        return {
-            'username': username,
-            'role': 'dev',
-            'name': 'Developer',
-            'is_dev': True
-        }
-    return None
-
 def get_dev_mock_data(data_type):
     """Get mock data for dev testing"""
     return DEV_MOCK_DATA.get(data_type, [])
 
-# Dev-specific file paths (separate from production)
+# Dev-specific file paths
 DEV_FILES = {
     'assignments': 'dev_assignments.json',
     'users': 'dev_users.json',
@@ -91,7 +222,6 @@ def get_data_file(file_key):
     """Get appropriate data file based on dev mode"""
     if is_dev_user():
         return DEV_FILES.get(file_key)
-    # Return normal file paths
     file_map = {
         'assignments': 'assignments.json',
         'users': 'users.json',
@@ -104,10 +234,10 @@ def init_dev_files():
     if not is_dev_mode():
         return
     
-    # Create dev assignments file
-    if not os.path.exists(DEV_FILES['assignments']):
-        with open(DEV_FILES['assignments'], 'w') as f:
-            json.dump({}, f)
+    for key, path in DEV_FILES.items():
+        if not os.path.exists(path):
+            with open(path, 'w') as f:
+                json.dump({}, f)
     
     # Create dev users file with dev user
     if not os.path.exists(DEV_FILES['users']):
@@ -122,11 +252,6 @@ def init_dev_files():
         }
         with open(DEV_FILES['users'], 'w') as f:
             json.dump(dev_users, f, indent=2)
-    
-    # Create dev manual events file
-    if not os.path.exists(DEV_FILES['manual_events']):
-        with open(DEV_FILES['manual_events'], 'w') as f:
-            json.dump({}, f)
 
 def reset_dev_data():
     """Reset all dev data to clean state"""
