@@ -84,31 +84,33 @@ class StatboticsPredictor:
         print(f"📊 Fetching EPA data for {len(teams_to_fetch)} teams from Statbotics...")
         
         try:
-            # Use batch API call to get all team_years at once
-            # This is MUCH faster than individual calls
-            team_years = self.sb.get_team_years(
-                year=year,
-                limit=10000  # Get all teams
-            )
+            # ✅ FIX: Use the correct method - fetch each team individually but cache them
+            # The batch API doesn't work the way we thought, so we'll fetch efficiently
             
-            # Build a lookup dict
-            team_year_dict = {ty['team']: ty for ty in team_years}
-            
-            # Cache the EPAs
             for team in teams_to_fetch:
                 cache_key = f"{team}_{year}"
-                if team in team_year_dict:
-                    epa = team_year_dict[team].get('epa_end', 0)
-                    self.epa_cache[cache_key] = epa
-                else:
-                    # Team not found, use 0 EPA
+                try:
+                    # Get team year data for this specific team
+                    team_year = self.sb.get_team_year(team=team, year=year)
+                    
+                    if team_year and 'epa_end' in team_year:
+                        epa = team_year['epa_end']
+                        self.epa_cache[cache_key] = epa
+                    else:
+                        # Team exists but no EPA data
+                        self.epa_cache[cache_key] = 0
+                        print(f"⚠️  No EPA data for team {team} in {year}")
+                        
+                except Exception as e:
+                    # Team not found or error
+                    print(f"⚠️  Could not fetch EPA for team {team}: {e}")
                     self.epa_cache[cache_key] = 0
                     
             print(f"✅ Cached EPA data for {len(teams_to_fetch)} teams")
             
         except Exception as e:
-            print(f"❌ Error fetching batch EPA data: {e}")
-            # Fall back to mock data for missing teams
+            print(f"❌ Error fetching EPA data: {e}")
+            # Fall back to zeros for missing teams
             for team in teams_to_fetch:
                 cache_key = f"{team}_{year}"
                 if cache_key not in self.epa_cache:
