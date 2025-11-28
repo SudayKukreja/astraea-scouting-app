@@ -651,8 +651,23 @@ def predict_event_matches():
             if not matches:
                 return jsonify({'error': 'No matches found for event'}), 404
         
-        # Extract year from event key (e.g., "2025njbru" -> 2025)
+        # Extract year from event key
         year = int(event_key[:4])
+        
+        # ✅ FIX: Collect ALL unique teams first
+        all_teams = set()
+        for match in matches:
+            red_teams = [int(t.replace('frc', '')) for t in match['red_teams']]
+            blue_teams = [int(t.replace('frc', '')) for t in match['blue_teams']]
+            all_teams.update(red_teams)
+            all_teams.update(blue_teams)
+        
+        print(f"📊 Found {len(all_teams)} unique teams in event {event_key}")
+        
+        # ✅ FIX: Preload ALL team EPAs in ONE batch call
+        statbotics_predictor.preload_team_epas(all_teams, year)
+        
+        print(f"🎯 Predicting outcomes for {len(matches)} matches...")
         
         predictions = []
         
@@ -661,10 +676,10 @@ def predict_event_matches():
             red_teams = [int(t.replace('frc', '')) for t in match['red_teams']]
             blue_teams = [int(t.replace('frc', '')) for t in match['blue_teams']]
             
-            # Predict match outcome
+            # Predict match outcome (now uses cached EPAs - super fast!)
             prediction = statbotics_predictor.predict_match(red_teams, blue_teams, year)
             
-            # Determine if selected team is in this match and on which alliance
+            # Determine if selected team is in this match
             team_alliance = None
             if team_number:
                 team_num = int(team_number)
@@ -703,10 +718,14 @@ def predict_event_matches():
         # Sort by match number
         predictions.sort(key=lambda x: x['match_number'])
         
+        print(f"✅ Successfully predicted {len(predictions)} matches")
+        
         return jsonify(predictions)
         
     except Exception as e:
-        print(f"Error predicting matches: {str(e)}")
+        print(f"❌ Error predicting matches: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # =============================================================================

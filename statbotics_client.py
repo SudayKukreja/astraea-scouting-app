@@ -1,77 +1,155 @@
 """
-Statbotics API Integration for Match Win/Loss Predictions
+Statbotics API Integration with Batch Processing & Caching
+Fixes timeout issues by fetching all team data at once
 """
 
-import statbotics
-from typing import List, Dict, Optional
+import os
+from typing import List, Dict, Optional, Set
+from dev_mode import is_dev_mode
+import math
+
+# Try to import statbotics, but don't fail if it's not installed
+try:
+    import statbotics
+    STATBOTICS_AVAILABLE = True
+except ImportError:
+    print("⚠️  Statbotics package not installed - using mock data")
+    STATBOTICS_AVAILABLE = False
 
 class StatboticsPredictor:
-    """Client for predicting match outcomes using Statbotics EPA"""
+    """Client for predicting match outcomes using Statbotics EPA with caching"""
     
     def __init__(self):
-        """Initialize Statbotics client"""
-        try:
-            self.sb = statbotics.Statbotics()
-            print("✅ Statbotics API initialized")
-        except Exception as e:
-            print(f"⚠️  Statbotics initialization failed: {e}")
+        """Initialize Statbotics client or use mock mode"""
+        self.mock_mode = False
+        self.epa_cache = {}  # Cache EPA values to avoid redundant API calls
+        
+        # In dev mode, use mock data if Statbotics isn't available
+        if is_dev_mode() and not STATBOTICS_AVAILABLE:
+            print("🚀 DEV MODE: Using mock EPA data for predictions")
+            self.mock_mode = True
+            self.sb = None
+        elif STATBOTICS_AVAILABLE:
+            try:
+                self.sb = statbotics.Statbotics()
+                print("✅ Statbotics API initialized")
+            except Exception as e:
+                print(f"⚠️  Statbotics initialization failed: {e}")
+                if is_dev_mode():
+                    print("🚀 DEV MODE: Falling back to mock data")
+                    self.mock_mode = True
+                    self.sb = None
+                else:
+                    self.sb = None
+        else:
             self.sb = None
     
-    def get_team_epa(self, team_number: int, year: int = 2025) -> Optional[float]:
-        """Get team's EPA rating"""
+    def _generate_mock_epa(self, team_number: int) -> float:
+        """Generate consistent mock EPA values for dev testing"""
+        import random
+        random.seed(team_number)
+        
+        if team_number <= 500:
+            return random.uniform(50, 80)
+        elif team_number <= 2000:
+            return random.uniform(30, 50)
+        elif team_number <= 5000:
+            return random.uniform(10, 30)
+        else:
+            return random.uniform(-10, 10)
+    
+    def preload_team_epas(self, team_numbers: Set[int], year: int = 2025):
+        """
+        Preload EPA values for multiple teams at once
+        This dramatically reduces API calls and prevents timeouts
+        """
+        if self.mock_mode:
+            # Generate mock EPAs for all teams
+            for team in team_numbers:
+                cache_key = f"{team}_{year}"
+                self.epa_cache[cache_key] = self._generate_mock_epa(team)
+            print(f"🚀 Generated mock EPAs for {len(team_numbers)} teams")
+            return
+        
         if not self.sb:
-            return None
-            
+            return
+        
+        # Filter out teams we already have cached
+        teams_to_fetch = [t for t in team_numbers if f"{t}_{year}" not in self.epa_cache]
+        
+        if not teams_to_fetch:
+            print(f"✅ All {len(team_numbers)} teams already cached")
+            return
+        
+        print(f"📊 Fetching EPA data for {len(teams_to_fetch)} teams from Statbotics...")
+        
         try:
-            team_year = self.sb.get_team_year(team_number, year)
-            return team_year.get('epa_end', 0)
+            # Use batch API call to get all team_years at once
+            # This is MUCH faster than individual calls
+            team_years = self.sb.get_team_years(
+                year=year,
+                limit=10000  # Get all teams
+            )
+            
+            # Build a lookup dict
+            team_year_dict = {ty['team']: ty for ty in team_years}
+            
+            # Cache the EPAs
+            for team in teams_to_fetch:
+                cache_key = f"{team}_{year}"
+                if team in team_year_dict:
+                    epa = team_year_dict[team].get('epa_end', 0)
+                    self.epa_cache[cache_key] = epa
+                else:
+                    # Team not found, use 0 EPA
+                    self.epa_cache[cache_key] = 0
+                    
+            print(f"✅ Cached EPA data for {len(teams_to_fetch)} teams")
+            
         except Exception as e:
-            print(f"Could not fetch EPA for team {team_number}: {e}")
-            return None
+            print(f"❌ Error fetching batch EPA data: {e}")
+            # Fall back to mock data for missing teams
+            for team in teams_to_fetch:
+                cache_key = f"{team}_{year}"
+                if cache_key not in self.epa_cache:
+                    if is_dev_mode():
+                        self.epa_cache[cache_key] = self._generate_mock_epa(team)
+                    else:
+                        self.epa_cache[cache_key] = 0
+    
+    def get_team_epa(self, team_number: int, year: int = 2025) -> float:
+        """Get team's EPA rating from cache (must preload first!)"""
+        cache_key = f"{team_number}_{year}"
+        
+        # Return from cache if available
+        if cache_key in self.epa_cache:
+            return self.epa_cache[cache_key]
+        
+        # If not in cache and mock mode, generate mock
+        if self.mock_mode:
+            epa = self._generate_mock_epa(team_number)
+            self.epa_cache[cache_key] = epa
+            return epa
+        
+        # Otherwise return 0 (should have been preloaded)
+        print(f"⚠️  EPA not cached for team {team_number}, returning 0")
+        return 0
     
     def predict_match(self, red_teams: List[int], blue_teams: List[int], year: int = 2025) -> Dict:
         """
         Predict match outcome using EPA
-        
-        Returns:
-            {
-                'red_epa': float,
-                'blue_epa': float,
-                'red_win_prob': float (0-100),
-                'blue_win_prob': float (0-100),
-                'predicted_winner': 'red' or 'blue',
-                'confidence': 'high', 'medium', or 'low'
-            }
+        Note: Call preload_team_epas() first for best performance!
         """
-        # Get EPAs for all teams
+        # Get EPAs from cache
         red_epas = [self.get_team_epa(team, year) for team in red_teams]
         blue_epas = [self.get_team_epa(team, year) for team in blue_teams]
-        
-        # Filter out None values and calculate totals
-        red_epas = [epa for epa in red_epas if epa is not None]
-        blue_epas = [epa for epa in blue_epas if epa is not None]
-        
-        if not red_epas or not blue_epas:
-            return {
-                'red_epa': 0,
-                'blue_epa': 0,
-                'red_win_prob': 50,
-                'blue_win_prob': 50,
-                'predicted_winner': 'unknown',
-                'confidence': 'none',
-                'error': 'EPA data not available'
-            }
         
         red_total_epa = sum(red_epas)
         blue_total_epa = sum(blue_epas)
         
         # Calculate win probability using logistic function
-        # EPA difference of ~30 = ~70% win probability
         epa_diff = red_total_epa - blue_total_epa
-        
-        # Logistic function: P(red wins) = 1 / (1 + e^(-diff/scaling_factor))
-        import math
-        scaling_factor = 30  # Tuned so 30 EPA diff = ~70% win prob
+        scaling_factor = 30  # 30 EPA diff = ~70% win prob
         
         red_win_prob = 1 / (1 + math.exp(-epa_diff / scaling_factor))
         blue_win_prob = 1 - red_win_prob
@@ -95,5 +173,11 @@ class StatboticsPredictor:
             'red_win_prob': round(red_win_prob_pct, 1),
             'blue_win_prob': round(blue_win_prob_pct, 1),
             'predicted_winner': 'red' if red_win_prob > 0.5 else 'blue',
-            'confidence': confidence
+            'confidence': confidence,
+            'mock_data': self.mock_mode
         }
+    
+    def clear_cache(self):
+        """Clear the EPA cache (useful between events)"""
+        self.epa_cache.clear()
+        print("🗑️  EPA cache cleared")
