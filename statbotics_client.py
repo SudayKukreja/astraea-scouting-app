@@ -1,11 +1,12 @@
 """
-Statbotics API Integration - With better error handling and debugging
+Statbotics API Integration - Using individual team_year lookups (WORKS!)
 """
 
 import os
 from typing import List, Dict, Optional, Set
 from dev_mode import is_dev_mode
 import math
+import time
 
 # Try to import statbotics
 try:
@@ -44,7 +45,8 @@ class StatboticsPredictor:
     
     def preload_team_epas(self, team_numbers: Set[int], year: int = 2025):
         """
-        Preload EPA values for multiple teams using the correct API method
+        Preload EPA values for multiple teams by fetching each individually
+        This is slower but actually works with the Statbotics API
         """
         if self.mock_mode or not self.sb:
             for team in team_numbers:
@@ -61,75 +63,48 @@ class StatboticsPredictor:
         
         print(f"📊 Fetching EPA data for {len(teams_to_fetch)} teams from Statbotics...")
         
-        try:
-            # Get all team_years for this year with explicit parameters
-            print(f"🔍 Calling get_team_years(year={year}, limit=10000, fields=['team', 'epa_end'])")
+        found_count = 0
+        missing_count = 0
+        
+        for team in teams_to_fetch:
+            cache_key = f"{team}_{year}"
             
-            all_team_years = self.sb.get_team_years(
-                year=year,
-                limit=10000,
-                fields=['team', 'year', 'epa_end', 'epa_start', 'epa_mean', 'epa_max']
-            )
-            
-            if not all_team_years:
-                print(f"⚠️  No data returned from Statbotics for year {year}")
-                print(f"⚠️  This likely means {year} season data is not yet available")
-                # Fall back to zeros
-                for team in teams_to_fetch:
-                    cache_key = f"{team}_{year}"
-                    self.epa_cache[cache_key] = 0
-                return
-            
-            print(f"📊 Received {len(all_team_years)} teams from Statbotics for {year}")
-            
-            # Debug: print first few entries
-            if len(all_team_years) > 0:
-                print(f"🔍 Sample data: {all_team_years[0]}")
-            
-            # Build lookup dict: team_number -> epa_end
-            team_epa_map = {}
-            for ty in all_team_years:
-                team_num = ty.get('team')
-                # Use epa_end (end of season EPA), fall back to epa_mean or epa_max
-                epa = ty.get('epa_end') or ty.get('epa_mean') or ty.get('epa_max') or 0
+            try:
+                # ✅ FIX: Use get_team_year() for individual team lookup
+                # This method WORKS and is documented!
+                team_year_data = self.sb.get_team_year(team=team, year=year)
                 
-                if team_num:
-                    team_epa_map[team_num] = epa
-            
-            print(f"📊 Loaded EPA data for {len(team_epa_map)} teams")
-            
-            # Cache the requested teams
-            found_count = 0
-            missing_count = 0
-            
-            for team in teams_to_fetch:
-                cache_key = f"{team}_{year}"
-                if team in team_epa_map:
-                    epa_value = team_epa_map[team]
-                    self.epa_cache[cache_key] = epa_value
+                if team_year_data:
+                    # Try to get epa_end, fall back to other EPA values
+                    epa = (team_year_data.get('epa_end') or 
+                           team_year_data.get('epa_mean') or 
+                           team_year_data.get('epa_max') or 0)
+                    
+                    self.epa_cache[cache_key] = epa
                     found_count += 1
-                    # Debug: show some EPA values
+                    
+                    # Show first few for debugging
                     if found_count <= 3:
-                        print(f"✅ Team {team}: EPA = {epa_value}")
+                        print(f"✅ Team {team}: EPA = {epa:.1f}")
                 else:
-                    # Team not in database for this year
+                    # No data for this team/year
                     self.epa_cache[cache_key] = 0
                     missing_count += 1
-            
-            print(f"✅ Cached {found_count} teams with EPA data")
-            if missing_count > 0:
-                print(f"⚠️  {missing_count} teams have no {year} data (using EPA=0)")
                     
-        except Exception as e:
-            print(f"❌ Error fetching EPA data: {e}")
-            import traceback
-            traceback.print_exc()
+            except Exception as e:
+                # Team not found or error
+                if "404" not in str(e):
+                    print(f"⚠️  Error fetching team {team}: {e}")
+                self.epa_cache[cache_key] = 0
+                missing_count += 1
             
-            # Fall back to zeros
-            for team in teams_to_fetch:
-                cache_key = f"{team}_{year}"
-                if cache_key not in self.epa_cache:
-                    self.epa_cache[cache_key] = 0
+            # Small delay to avoid rate limiting (10 requests/second = 0.1s delay)
+            if len(teams_to_fetch) > 10:
+                time.sleep(0.1)
+        
+        print(f"✅ Cached {found_count} teams with EPA data")
+        if missing_count > 0:
+            print(f"⚠️  {missing_count} teams have no {year} data (using EPA=0)")
     
     def get_team_epa(self, team_number: int, year: int = 2025) -> float:
         """Get team's EPA rating from cache"""
