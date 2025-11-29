@@ -28,15 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadSheets() {
   try {
-    console.log('Loading available sheets...');
     const response = await fetch('/api/admin/analytics/sheets');
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch sheets list');
-    }
+    if (!response.ok) throw new Error('Failed to fetch sheets list');
     
     availableSheets = await response.json();
-    console.log('Available sheets:', availableSheets);
     
     const sheetSelect = document.getElementById('sheet-filter');
     sheetSelect.innerHTML = '<option value="">Auto-detect (current mode)</option>';
@@ -46,7 +41,6 @@ async function loadSheets() {
     });
     
     loadAnalyticsData();
-    
   } catch (error) {
     console.error('Error loading sheets:', error);
     loadAnalyticsData();
@@ -55,42 +49,24 @@ async function loadSheets() {
 
 async function loadAnalyticsData() {
   try {
-    console.log('Loading analytics data...');
-    
     const selectedSheet = document.getElementById('sheet-filter').value;
-    
     let url = '/api/admin/analytics/data';
     if (selectedSheet) {
       url += `?sheet=${encodeURIComponent(selectedSheet)}`;
-      console.log(`Loading from sheet: ${selectedSheet}`);
-    } else {
-      console.log('Loading from auto-detected sheet');
     }
     
     const response = await fetch(url);
-    console.log('Response status:', response.status);
-    
-    if (!response.ok) {
-      console.error('API response not OK:', response.status, response.statusText);
-      throw new Error('Failed to fetch analytics data');
-    }
+    if (!response.ok) throw new Error('Failed to fetch analytics data');
     
     analyticsData = await response.json();
-    console.log('Data loaded, entries:', analyticsData.length);
     
-    if (analyticsData.error) {
-      console.error('API returned error:', analyticsData.error);
-      throw new Error(analyticsData.error);
-    }
+    if (analyticsData.error) throw new Error(analyticsData.error);
     
-    if (analyticsData.length > 0) {
-      console.log('First entry:', analyticsData[0]);
-    } else {
-      console.warn('No analytics data returned from API');
+    if (analyticsData.length === 0) {
       showNoDataMessage();
+    } else {
+      populateFilters();
     }
-    
-    populateFilters();
   } catch (error) {
     console.error('Error loading analytics data:', error);
     showError('Failed to load data: ' + error.message);
@@ -111,10 +87,7 @@ function showNoDataMessage() {
 
 function populateFilters() {
   const events = [...new Set(analyticsData.map(d => d.event))];
-
-  if (events.length === 0) {
-    events.push('current_event');
-  }
+  if (events.length === 0) events.push('current_event');
 
   const eventSelect = document.getElementById('event-filter');
   eventSelect.innerHTML = '<option value="">All Events</option>';
@@ -216,6 +189,7 @@ function calculateTeamStats(teamData) {
   const defenseRatings = teamData.map(d => d.teleop.defenseRating || 0);
   const avgDefense = (defenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
 
+  // Enhanced endgame analysis
   const climbAttempts = teamData.filter(d => d.endgame.action === 'climb').length;
   const successfulClimbs = teamData.filter(d => 
     d.endgame.action === 'climb' && d.endgame.climbSuccessful
@@ -223,8 +197,23 @@ function calculateTeamStats(teamData) {
   const failedClimbsWithPark = teamData.filter(d => 
     d.endgame.action === 'climb' && !d.endgame.climbSuccessful && d.endgame.climbParked
   ).length;
-  const climbRate = climbAttempts > 0 ? 
-    ((successfulClimbs / climbAttempts) * 100).toFixed(0) : 0;
+  const parkOnly = teamData.filter(d => d.endgame.action === 'park').length;
+  const noEndgame = teamData.filter(d => 
+    d.endgame.action === 'did not park/climb' || !d.endgame.action
+  ).length;
+  
+  // Smart climb rate calculation
+  let climbRate = null;
+  let climbStrategy = 'none';
+  
+  if (climbAttempts > 0) {
+    climbRate = ((successfulClimbs / climbAttempts) * 100).toFixed(0);
+    climbStrategy = 'attempts';
+  } else if (parkOnly > totalMatches * 0.5) {
+    climbStrategy = 'park_focused';
+  } else {
+    climbStrategy = 'no_endgame';
+  }
 
   let totalL1 = 0, totalL2 = 0, totalL3 = 0, totalL4 = 0;
   let totalProcessor = 0, totalBarge = 0, totalDropped = 0;
@@ -256,7 +245,10 @@ function calculateTeamStats(teamData) {
     climbAttempts,
     successfulClimbs,
     failedClimbsWithPark,
+    parkOnly,
+    noEndgame,
     climbRate,
+    climbStrategy,
     totalL1, totalL2, totalL3, totalL4, totalProcessor, totalBarge, totalDropped,
     avgL1: (totalL1 / totalMatches).toFixed(1),
     avgL2: (totalL2 / totalMatches).toFixed(1),
@@ -273,112 +265,142 @@ function calculateTeamStats(teamData) {
 function renderTeamAnalysis(team, teamData, stats) {
   const container = document.getElementById('analysis-container');
   
-  let performanceLevel = 'low';
+  let performanceLevel = 'developing';
   let performanceColor = 'warning';
-  if (stats.avgScore >= 80) {
+  let performanceEmoji = '🔨';
+  
+  if (stats.avgScore >= 90) {
+    performanceLevel = 'world-class';
+    performanceColor = 'elite';
+    performanceEmoji = '👑';
+  } else if (stats.avgScore >= 75) {
     performanceLevel = 'elite';
-    performanceColor = 'success';
+    performanceColor = 'elite';
+    performanceEmoji = '🚀';
   } else if (stats.avgScore >= 60) {
-    performanceLevel = 'high';
+    performanceLevel = 'strong';
     performanceColor = 'success';
-  } else if (stats.avgScore >= 40) {
-    performanceLevel = 'medium';
+    performanceEmoji = '💪';
+  } else if (stats.avgScore >= 45) {
+    performanceLevel = 'competitive';
     performanceColor = 'highlight';
+    performanceEmoji = '⚡';
   }
   
   const trendIcon = stats.trend === 'improving' ? '📈' : 
-                   stats.trend === 'declining' ? '📉' : '➡️';
+                   stats.trend === 'declining' ? '📉' : '📊';
+
+  // Smart endgame display
+  let endgameDisplay = '';
+  let endgameBadge = '';
+  
+  if (stats.climbStrategy === 'attempts') {
+    endgameDisplay = `${stats.climbRate}%`;
+    endgameBadge = '<span class="info-badge climb-focused">Climbs</span>';
+  } else if (stats.climbStrategy === 'park_focused') {
+    endgameDisplay = 'Parks';
+    endgameBadge = '<span class="info-badge park-focused">Park Focused</span>';
+  } else {
+    endgameDisplay = 'None';
+    endgameBadge = '<span class="info-badge no-endgame">No Strategy</span>';
+  }
 
   const sortedMatches = [...teamData].sort((a, b) => a.match - b.match);
   
+  // Generate smart summary
+  const summary = generateSmartSummary(team, stats);
+  
   container.innerHTML = `
     <div class="team-header">
-      <h2 style="margin-bottom: 24px; color: #1e293b; display: flex; align-items: center; gap: 12px;">
-        🏆 Team ${team} Analysis
-        <span class="performance-badge badge-${performanceColor}">${performanceLevel.toUpperCase()} PERFORMER</span>
-        <span class="trend-indicator" title="${stats.trend} trend">${trendIcon}</span>
-      </h2>
+      <div class="team-title">
+        <h2>
+          ${performanceEmoji} Team ${team}
+          <span class="performance-badge badge-${performanceColor}">${performanceLevel.toUpperCase()}</span>
+          <span class="trend-indicator" title="${stats.trend} performance">${trendIcon}</span>
+          ${endgameBadge}
+        </h2>
+      </div>
       
       ${stats.partialMatches > 0 ? `
         <div class="warning-message">
-          ⚠️ This team had ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''} out of ${stats.totalMatches} matches
+          ⚠️ <strong>Reliability Alert:</strong> ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''} in ${stats.totalMatches} matches (${((stats.partialMatches / stats.totalMatches) * 100).toFixed(0)}% failure rate)
         </div>
       ` : ''}
     </div>
     
     <div class="team-overview">
-      <div class="stat-card ${stats.avgScore >= 80 ? 'elite' : stats.avgScore >= 60 ? 'success' : stats.avgScore >= 40 ? 'highlight' : 'warning'}">
+      <div class="stat-card ${stats.avgScore >= 75 ? 'elite' : stats.avgScore >= 60 ? 'success' : stats.avgScore >= 45 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgScore}</div>
-        <div class="stat-label">Average Score</div>
+        <div class="stat-label">⭐ Average Score</div>
       </div>
       <div class="stat-card">
         <div class="stat-value">${stats.totalMatches}</div>
-        <div class="stat-label">Matches Played</div>
+        <div class="stat-label">🎮 Matches Played</div>
       </div>
-      <div class="stat-card ${stats.avgAuto >= 25 ? 'success' : stats.avgAuto >= 15 ? 'highlight' : 'warning'}">
+      <div class="stat-card ${stats.avgAuto >= 30 ? 'elite' : stats.avgAuto >= 20 ? 'success' : stats.avgAuto >= 12 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgAuto}</div>
-        <div class="stat-label">Avg Auto Score</div>
+        <div class="stat-label">🏁 Avg Auto Score</div>
       </div>
-      <div class="stat-card ${stats.avgTeleop >= 60 ? 'success' : stats.avgTeleop >= 40 ? 'highlight' : 'warning'}">
+      <div class="stat-card ${stats.avgTeleop >= 60 ? 'elite' : stats.avgTeleop >= 45 ? 'success' : stats.avgTeleop >= 30 ? 'highlight' : 'warning'}">
         <div class="stat-value">${stats.avgTeleop}</div>
-        <div class="stat-label">Avg Teleop Score</div>
+        <div class="stat-label">🎯 Avg Teleop Score</div>
       </div>
-      <div class="stat-card ${stats.climbRate >= 75 ? 'success' : stats.climbRate >= 50 ? 'highlight' : 'warning'}">
-        <div class="stat-value">${stats.climbRate}%</div>
-        <div class="stat-label">Climb Success Rate</div>
+      <div class="stat-card ${stats.climbStrategy === 'attempts' ? (stats.climbRate >= 75 ? 'elite' : stats.climbRate >= 50 ? 'success' : 'highlight') : ''}">
+        <div class="stat-value">${endgameDisplay}</div>
+        <div class="stat-label">🏔️ Endgame ${stats.climbStrategy === 'attempts' ? 'Success' : 'Strategy'}</div>
       </div>
-      <div class="stat-card ${stats.consistency < 10 ? 'success' : stats.consistency < 20 ? 'highlight' : 'warning'}">
+      <div class="stat-card ${stats.consistency < 8 ? 'elite' : stats.consistency < 15 ? 'success' : stats.consistency < 25 ? 'highlight' : 'warning'}">
         <div class="stat-value">±${stats.consistency}</div>
-        <div class="stat-label">Consistency</div>
+        <div class="stat-label">📊 Consistency</div>
       </div>
     </div>
     
     <div class="charts-section">
       <div class="chart-container">
-        <h3 class="chart-title">📈 Performance Trend</h3>
+        <h3 class="chart-title">📈 Performance Over Time</h3>
         <canvas id="performance-chart" width="400" height="200"></canvas>
       </div>
       <div class="chart-container">
-        <h3 class="chart-title">🎯 Scoring Breakdown (Avg per Match)</h3>
+        <h3 class="chart-title">🎯 Scoring Breakdown</h3>
         <canvas id="scoring-chart" width="400" height="200"></canvas>
       </div>
       <div class="chart-container">
-        <h3 class="chart-title">🏁 Endgame Actions</h3>
+        <h3 class="chart-title">🏁 Endgame Distribution</h3>
         <canvas id="endgame-chart" width="400" height="200"></canvas>
       </div>
     </div>
     
     <div class="detail-sections">
       <div class="section-card">
-        <h3 class="section-title">🎯 Key Statistics</h3>
+        <h3 class="section-title">📊 Performance Metrics</h3>
         <div class="breakdown-grid">
           <div class="breakdown-item">
-            <span class="breakdown-label">Best Score</span>
+            <span class="breakdown-label">🏆 Peak Score</span>
             <span class="breakdown-value">${stats.maxScore}</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Worst Score</span>
+            <span class="breakdown-label">📉 Lowest Score</span>
             <span class="breakdown-value">${stats.minScore}</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Performance Trend</span>
+            <span class="breakdown-label">📈 Trend</span>
             <span class="breakdown-value trend-${stats.trend}">${stats.trend.toUpperCase()}</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Defense Rating</span>
+            <span class="breakdown-label">🛡️ Defense</span>
             <span class="breakdown-value">${stats.avgDefense}/5</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Offense Rating</span>
+            <span class="breakdown-label">⚔️ Offense</span>
             <span class="breakdown-value">${stats.avgOffense}/5</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Reliability</span>
+            <span class="breakdown-label">✅ Reliability</span>
             <span class="breakdown-value">${((1 - stats.partialMatches / stats.totalMatches) * 100).toFixed(0)}%</span>
           </div>
         </div>
         
-        <h4 style="margin-top: 24px; margin-bottom: 12px; color: #475569;">Scoring Locations (Avg/Match)</h4>
+        <h4 style="margin-top: 28px; margin-bottom: 16px; color: #1e293b; font-weight: 800; font-size: 16px;">🎯 Scoring Locations (Avg/Match)</h4>
         <div class="breakdown-grid">
           <div class="breakdown-item">
             <span class="breakdown-label">L1 (Ground)</span>
@@ -401,14 +423,16 @@ function renderTeamAnalysis(team, teamData, stats) {
             <span class="breakdown-value">${stats.avgProcessor}</span>
           </div>
           <div class="breakdown-item">
-            <span class="breakdown-label">Barge</span>
+            <span class="breakdown-label">Barge/Net</span>
             <span class="breakdown-value">${stats.avgBarge}</span>
           </div>
         </div>
         
         ${stats.avgDropped > 0 ? `
-          <div style="margin-top: 16px; padding: 12px; background: #fef3c7; border-radius: 8px;">
-            <strong>⚠️ Dropped Pieces:</strong> ${stats.avgDropped} per match (${stats.totalDropped} total)
+          <div style="margin-top: 20px; padding: 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; border: 2px solid #fbbf24;">
+            <strong style="color: #92400e;">⚠️ Dropped Pieces:</strong> 
+            <span style="color: #92400e; font-weight: 600;">${stats.avgDropped} per match</span>
+            <span style="color: #b45309; font-size: 13px;"> (${stats.totalDropped} total across ${stats.totalMatches} matches)</span>
           </div>
         ` : ''}
       </div>
@@ -420,9 +444,9 @@ function renderTeamAnalysis(team, teamData, stats) {
             let endgameText = '⚪ None';
             if (match.endgame.action === 'climb') {
               if (match.endgame.climbSuccessful) {
-                endgameText = '✅ Climb';
+                endgameText = match.endgame.climbDepth === 'deep' ? '🏔️ Deep Climb' : '⛰️ Shallow Climb';
               } else if (match.endgame.climbParked) {
-                endgameText = '🔶 Failed Climb + Park';
+                endgameText = '🔶 Failed + Park';
               } else {
                 endgameText = '❌ Failed Climb';
               }
@@ -432,13 +456,13 @@ function renderTeamAnalysis(team, teamData, stats) {
             
             return `
               <div class="match-item">
-                <div>
+                <div style="display: flex; align-items: center; gap: 12px;">
                   <span class="match-number">Match ${match.match}</span>
                   ${match.partialMatch ? '<span class="badge-shutdown">SHUTDOWN</span>' : ''}
                 </div>
                 <div class="match-details">
-                  <span>Auto: ${match.auto.score}</span>
-                  <span>Teleop: ${match.teleop.score}</span>
+                  <span><strong>Auto:</strong> ${match.auto.score}</span>
+                  <span><strong>Teleop:</strong> ${match.teleop.score}</span>
                   <span>${endgameText}</span>
                   <span class="match-score">${match.totalScore}</span>
                 </div>
@@ -450,24 +474,105 @@ function renderTeamAnalysis(team, teamData, stats) {
     </div>
     
     <div class="alliance-summary">
-      <h4 style="margin-bottom: 12px; color: #1e293b;">🤝 Quick Alliance Selection Summary</h4>
-      <p style="color: #475569; line-height: 1.6;">
-        <strong>Team ${team}</strong> averages <strong>${stats.avgScore} points</strong> per match with 
-        ${stats.consistency < 10 ? 'very consistent' : stats.consistency < 20 ? 'moderate' : 'inconsistent'} performance 
-        (σ = ${stats.consistency}). 
-        They show a <strong>${stats.trend}</strong> trend and 
-        ${stats.climbRate >= 50 ? `successfully climb ${stats.climbRate}% of the time` : 'struggle with climbing'}. 
-        ${stats.avgOffense >= 3.5 ? 'Strong offensive capabilities' : stats.avgOffense >= 2.5 ? 'Moderate offensive capabilities' : 'Defensive focus'}.
-        ${stats.partialMatches > 0 ? ` ⚠️ Reliability concern: ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''}.` : ' ✅ No reliability concerns.'}
-      </p>
+      ${summary}
     </div>
   `;
 
   setTimeout(() => {
     createPerformanceChart(sortedMatches);
     createScoringChart(stats);
-    createEndgameChart(teamData);
+    createEndgameChart(teamData, stats);
   }, 100);
+}
+
+function generateSmartSummary(team, stats) {
+  let summary = `<h4>🤝 Alliance Selection Summary</h4><p style="color: #0c4a6e; line-height: 1.9; font-size: 16px;">`;
+  
+  // Performance intro
+  if (stats.avgScore >= 90) {
+    summary += `<strong>Team ${team}</strong> is a <strong>world-class competitor</strong>, averaging an exceptional <strong>${stats.avgScore} points</strong> per match. `;
+  } else if (stats.avgScore >= 75) {
+    summary += `<strong>Team ${team}</strong> is an <strong>elite performer</strong>, consistently scoring <strong>${stats.avgScore} points</strong> per match. `;
+  } else if (stats.avgScore >= 60) {
+    summary += `<strong>Team ${team}</strong> is a <strong>strong competitor</strong>, averaging <strong>${stats.avgScore} points</strong> per match. `;
+  } else if (stats.avgScore >= 45) {
+    summary += `<strong>Team ${team}</strong> is a <strong>competitive robot</strong>, scoring an average of <strong>${stats.avgScore} points</strong>. `;
+  } else {
+    summary += `<strong>Team ${team}</strong> is a <strong>developing team</strong>, averaging <strong>${stats.avgScore} points</strong> per match. `;
+  }
+  
+  // Consistency
+  if (stats.consistency < 8) {
+    summary += `Their performance is <strong>exceptionally consistent</strong> (σ = ${stats.consistency}). `;
+  } else if (stats.consistency < 15) {
+    summary += `They show <strong>good consistency</strong> (σ = ${stats.consistency}). `;
+  } else if (stats.consistency < 25) {
+    summary += `Their performance varies moderately (σ = ${stats.consistency}). `;
+  } else {
+    summary += `⚠️ Their scores are <strong>highly variable</strong> (σ = ${stats.consistency}). `;
+  }
+  
+  // Trend
+  if (stats.trend === 'improving') {
+    summary += `<strong style="color: #10b981;">📈 They're improving</strong> throughout the competition. `;
+  } else if (stats.trend === 'declining') {
+    summary += `<strong style="color: #ef4444;">📉 Performance is declining</strong> over time. `;
+  } else {
+    summary += `They maintain <strong>stable performance</strong>. `;
+  }
+  
+  // Auto capability
+  if (stats.avgAuto >= 30) {
+    summary += `<strong>Exceptional autonomous</strong> (${stats.avgAuto} pts avg). `;
+  } else if (stats.avgAuto >= 20) {
+    summary += `<strong>Strong auto capability</strong> (${stats.avgAuto} pts avg). `;
+  } else if (stats.avgAuto >= 12) {
+    summary += `Moderate auto performance (${stats.avgAuto} pts avg). `;
+  } else {
+    summary += `Limited auto capability (${stats.avgAuto} pts avg). `;
+  }
+  
+  // Endgame analysis
+  if (stats.climbStrategy === 'attempts') {
+    if (stats.climbRate >= 80) {
+      summary += `<strong>🏔️ Elite climbing</strong> with ${stats.climbRate}% success rate. `;
+    } else if (stats.climbRate >= 60) {
+      summary += `<strong>Reliable climbing</strong> (${stats.climbRate}% success). `;
+    } else if (stats.climbRate >= 40) {
+      summary += `Moderate climbing success (${stats.climbRate}%). `;
+    } else {
+      summary += `⚠️ Struggles with climbing (${stats.climbRate}% success). `;
+    }
+  } else if (stats.climbStrategy === 'park_focused') {
+    summary += `<strong>Focuses on parking</strong> rather than climbing. `;
+  } else {
+    summary += `⚠️ <strong>No endgame strategy</strong> observed. `;
+  }
+  
+  // Offensive/defensive role
+  if (stats.avgOffense >= 4) {
+    summary += `<strong>Dominant offensive threat</strong> (${stats.avgOffense}/5 rating). `;
+  } else if (stats.avgOffense >= 3) {
+    summary += `Solid offensive capabilities (${stats.avgOffense}/5). `;
+  } else if (stats.avgDefense >= 3) {
+    summary += `<strong>Defense-oriented</strong> playstyle (Defense: ${stats.avgDefense}/5). `;
+  } else {
+    summary += `Balanced playstyle. `;
+  }
+  
+  // Reliability
+  if (stats.partialMatches === 0) {
+    summary += `<strong style="color: #10b981;">✅ Perfect reliability</strong> - no shutdowns.`;
+  } else if (stats.partialMatches / stats.totalMatches <= 0.1) {
+    summary += `<strong style="color: #10b981;">✅ Highly reliable</strong> with minimal shutdowns.`;
+  } else if (stats.partialMatches / stats.totalMatches <= 0.25) {
+    summary += `<strong style="color: #f59e0b;">⚠️ Moderate reliability concern</strong> - ${stats.partialMatches} shutdown${stats.partialMatches > 1 ? 's' : ''}.`;
+  } else {
+    summary += `<strong style="color: #ef4444;">🚨 Serious reliability issues</strong> - ${stats.partialMatches} shutdowns in ${stats.totalMatches} matches.`;
+  }
+  
+  summary += `</p>`;
+  return summary;
 }
 
 function createPerformanceChart(matches) {
@@ -478,13 +583,15 @@ function createPerformanceChart(matches) {
     performanceChart.destroy();
   }
   
-  const labels = matches.map(m => `Match ${m.match}`);
+  const labels = matches.map(m => `M${m.match}`);
   const scores = matches.map(m => m.totalScore);
   const movingAvg = matches.map((m, i) => {
     const start = Math.max(0, i - 2);
     const subset = matches.slice(start, i + 1);
     return subset.reduce((sum, match) => sum + match.totalScore, 0) / subset.length;
   });
+  
+  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
   
   performanceChart = new Chart(ctx, {
     type: 'line',
@@ -494,15 +601,30 @@ function createPerformanceChart(matches) {
         label: 'Score',
         data: scores,
         borderColor: '#6366f1',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-        tension: 0.1,
-        fill: true
+        backgroundColor: 'rgba(99, 102, 241, 0.15)',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: '#6366f1',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2
       }, {
-        label: '3-Match Average',
+        label: '3-Match Rolling Avg',
         data: movingAvg,
         borderColor: '#f59e0b',
+        borderDash: [8, 4],
+        fill: false,
+        pointRadius: 0,
+        borderWidth: 3
+      }, {
+        label: 'Overall Average',
+        data: Array(matches.length).fill(avgScore),
+        borderColor: '#10b981',
         borderDash: [5, 5],
-        fill: false
+        fill: false,
+        pointRadius: 0,
+        borderWidth: 2
       }]
     },
     options: {
@@ -510,11 +632,51 @@ function createPerformanceChart(matches) {
       plugins: {
         legend: {
           position: 'top',
+          labels: {
+            font: {
+              size: 13,
+              weight: '600'
+            },
+            padding: 15,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          cornerRadius: 8
         }
       },
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '600'
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '600'
+            }
+          }
         }
       }
     }
@@ -532,13 +694,35 @@ function createScoringChart(stats) {
   scoringChart = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['L1', 'L2', 'L3', 'L4', 'Processor', 'Barge'],
+      labels: ['L1\n(Ground)', 'L2', 'L3', 'L4', 'Processor', 'Net/Barge'],
       datasets: [{
-        label: 'Avg per Match',
-        data: [stats.avgL1, stats.avgL2, stats.avgL3, stats.avgL4, stats.avgProcessor, stats.avgBarge],
+        label: 'Avg Pieces per Match',
+        data: [
+          stats.avgL1, 
+          stats.avgL2, 
+          stats.avgL3, 
+          stats.avgL4, 
+          stats.avgProcessor, 
+          stats.avgBarge
+        ],
         backgroundColor: [
-          '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#f59e0b', '#fbbf24'
-        ]
+          'rgba(16, 185, 129, 0.8)',   // L1 - Green
+          'rgba(52, 211, 153, 0.8)',   // L2 - Light Green
+          'rgba(110, 231, 183, 0.8)',  // L3 - Lighter Green
+          'rgba(167, 243, 208, 0.8)',  // L4 - Lightest Green
+          'rgba(245, 158, 11, 0.8)',   // Processor - Orange
+          'rgba(251, 191, 36, 0.8)'    // Barge - Yellow
+        ],
+        borderColor: [
+          '#10b981',
+          '#34d399',
+          '#6ee7b7',
+          '#a7f3d0',
+          '#f59e0b',
+          '#fbbf24'
+        ],
+        borderWidth: 2,
+        borderRadius: 8
       }]
     },
     options: {
@@ -546,18 +730,55 @@ function createScoringChart(stats) {
       plugins: {
         legend: {
           display: false
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          cornerRadius: 8,
+          callbacks: {
+            label: function(context) {
+              return `Avg: ${context.parsed.y.toFixed(1)} pieces/match`;
+            }
+          }
         }
       },
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)'
+          },
+          ticks: {
+            font: {
+              size: 12,
+              weight: '600'
+            }
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 11,
+              weight: '600'
+            }
+          }
         }
       }
     }
   });
 }
 
-function createEndgameChart(teamData) {
+function createEndgameChart(teamData, stats) {
   const ctx = document.getElementById('endgame-chart')?.getContext('2d');
   if (!ctx) return;
   
@@ -565,11 +786,11 @@ function createEndgameChart(teamData) {
     endgameChart.destroy();
   }
   
-  const successfulClimbs = teamData.filter(d => d.endgame.action === 'climb' && d.endgame.climbSuccessful).length;
-  const failedClimbsWithPark = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful && d.endgame.climbParked).length;
-  const failedClimbsNoPark = teamData.filter(d => d.endgame.action === 'climb' && !d.endgame.climbSuccessful && !d.endgame.climbParked).length;
-  const directParks = teamData.filter(d => d.endgame.action === 'park').length;
-  const noEndgame = teamData.filter(d => d.endgame.action === 'did not park/climb' || !d.endgame.action).length;
+  const successfulClimbs = stats.successfulClimbs;
+  const failedClimbsWithPark = stats.failedClimbsWithPark;
+  const failedClimbsNoPark = stats.climbAttempts - successfulClimbs - failedClimbsWithPark;
+  const directParks = stats.parkOnly;
+  const noEndgame = stats.noEndgame;
   
   const chartData = [];
   const chartLabels = [];
@@ -583,7 +804,7 @@ function createEndgameChart(teamData) {
   
   if (failedClimbsWithPark > 0) {
     chartData.push(failedClimbsWithPark);
-    chartLabels.push('Failed Climb + Park');
+    chartLabels.push('Failed + Park');
     chartColors.push('#f59e0b');
   }
   
@@ -605,13 +826,23 @@ function createEndgameChart(teamData) {
     chartColors.push('#6b7280');
   }
   
+  // Fallback if no data
+  if (chartData.length === 0) {
+    chartData.push(1);
+    chartLabels.push('No Data');
+    chartColors.push('#94a3b8');
+  }
+  
   endgameChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: chartLabels,
       datasets: [{
         data: chartData,
-        backgroundColor: chartColors
+        backgroundColor: chartColors,
+        borderColor: '#fff',
+        borderWidth: 3,
+        hoverOffset: 15
       }]
     },
     options: {
@@ -619,15 +850,34 @@ function createEndgameChart(teamData) {
       plugins: {
         legend: {
           position: 'bottom',
+          labels: {
+            font: {
+              size: 13,
+              weight: '600'
+            },
+            padding: 15,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
         },
         tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          cornerRadius: 8,
           callbacks: {
             label: function(context) {
               const label = context.label || '';
               const value = context.parsed || 0;
               const total = context.dataset.data.reduce((a, b) => a + b, 0);
               const percentage = ((value / total) * 100).toFixed(1);
-              return `${label}: ${value} (${percentage}%)`;
+              return `${label}: ${value} matches (${percentage}%)`;
             }
           }
         }
