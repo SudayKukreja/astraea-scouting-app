@@ -3,17 +3,16 @@ let currentFilters = {
   event: '',
   team: '',
   hidePartial: false,
-  sheet: ''  // ✅ NEW: Track selected sheet
+  sheet: ''
 };
 
-let availableSheets = [];  // ✅ NEW: Store available sheets
-
+let availableSheets = [];
 let performanceChart = null;
 let scoringChart = null;
 let endgameChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  loadAvailableSheets();  // ✅ NEW: Load sheets first
+  loadSheets();
   
   document.getElementById('event-filter').addEventListener('change', updateTeamsList);
   document.getElementById('hide-partial').addEventListener('change', () => {
@@ -22,14 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // ✅ NEW: Sheet selector listener
   document.getElementById('sheet-filter').addEventListener('change', () => {
     loadAnalyticsData();
   });
 });
 
-// ✅ NEW: Load available sheets
-async function loadAvailableSheets() {
+async function loadSheets() {
   try {
     console.log('Loading available sheets...');
     const response = await fetch('/api/admin/analytics/sheets');
@@ -41,7 +38,6 @@ async function loadAvailableSheets() {
     availableSheets = await response.json();
     console.log('Available sheets:', availableSheets);
     
-    // Populate sheet selector
     const sheetSelect = document.getElementById('sheet-filter');
     sheetSelect.innerHTML = '<option value="">Auto-detect (current mode)</option>';
     
@@ -49,12 +45,10 @@ async function loadAvailableSheets() {
       sheetSelect.innerHTML += `<option value="${sheet.name}">${sheet.name}</option>`;
     });
     
-    // Load data from default sheet
     loadAnalyticsData();
     
   } catch (error) {
     console.error('Error loading sheets:', error);
-    // Still try to load data even if sheet list fails
     loadAnalyticsData();
   }
 }
@@ -63,10 +57,8 @@ async function loadAnalyticsData() {
   try {
     console.log('Loading analytics data...');
     
-    // Get selected sheet
     const selectedSheet = document.getElementById('sheet-filter').value;
     
-    // Build URL with sheet parameter
     let url = '/api/admin/analytics/data';
     if (selectedSheet) {
       url += `?sheet=${encodeURIComponent(selectedSheet)}`;
@@ -195,7 +187,6 @@ function calculateTeamStats(teamData) {
   const totalMatches = teamData.length;
   const partialMatches = teamData.filter(d => d.partialMatch).length;
   
-  // Scoring stats
   const scores = teamData.map(d => d.totalScore);
   const avgScore = (scores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   const maxScore = Math.max(...scores);
@@ -282,7 +273,6 @@ function calculateTeamStats(teamData) {
 function renderTeamAnalysis(team, teamData, stats) {
   const container = document.getElementById('analysis-container');
   
-  // Determine performance level
   let performanceLevel = 'low';
   let performanceColor = 'warning';
   if (stats.avgScore >= 80) {

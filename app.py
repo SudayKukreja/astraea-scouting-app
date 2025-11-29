@@ -8,7 +8,44 @@ import os, json
 import re
 from datetime import datetime
 import requests 
-from statbotics_client import StatboticsPredictor
+try:
+    from statbotics_client import StatboticsPredictor
+except ImportError:
+    # Fallback predictor when statbotics_client package isn't installed.
+    # This implements the minimal interface used by the app so imports won't fail.
+    print("⚠️  statbotics_client not found, using fallback StatboticsPredictor")
+
+    class StatboticsPredictor:
+        def __init__(self):
+            pass
+
+        def preload_team_epas(self, teams, year):
+            # No-op fallback that mirrors the real client's capability to preload/cache data.
+            return
+
+        def predict_match(self, red_teams, blue_teams, year):
+            # Very simple heuristic fallback prediction based on average team numbers.
+            # Returns structure expected by the app routes.
+            import statistics
+            try:
+                red_avg = statistics.mean(red_teams) if red_teams else 0
+                blue_avg = statistics.mean(blue_teams) if blue_teams else 0
+            except Exception:
+                red_avg = sum(red_teams)/len(red_teams) if red_teams else 0
+                blue_avg = sum(blue_teams)/len(blue_teams) if blue_teams else 0
+
+            if red_avg >= blue_avg:
+                return {
+                    'predicted_winner': 'red',
+                    'red_win_prob': 0.55,
+                    'blue_win_prob': 0.45
+                }
+            else:
+                return {
+                    'predicted_winner': 'blue',
+                    'red_win_prob': 0.45,
+                    'blue_win_prob': 0.55
+                }
 
 # Import our new modules
 from auth import login_required, admin_required, authenticate_user, create_scouter, get_all_scouters, delete_scouter
@@ -21,7 +58,15 @@ from tba_api import TBAClient, get_sample_matches
 from team_names import TEAM_NAMES
 
 # Add these imports after your other imports
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+except Exception:
+    # Optional: python-dotenv isn't installed in some environments (CI/builds or production).
+    # Provide a no-op fallback so the app can continue without throwing an ImportError.
+    def load_dotenv(*args, **kwargs):
+        return False
+
+# Attempt to load .env file if available
 load_dotenv()  # Load .env file for local development
 
 from dev_mode import (
@@ -48,8 +93,8 @@ if is_dev_mode():
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'TestingData'
-SHEET_ID = 1549733301
+SHEET_NAME = 'OnseasonTest'  # Changed from 'TestingData'
+SHEET_ID = 843237674  # Changed from 1549733301
 PIT_SHEET_NAME = 'TestingDataDev'
 PIT_SHEET_ID = 1892725645
 # ==============================
@@ -1381,6 +1426,30 @@ def home():
         return redirect('/admin')
     else:
         return redirect('/dashboard')
+    
+def get_event_name(event_key):
+    """Get friendly event name from event key"""
+    if not event_key or event_key == 'Unknown Event':
+        return 'Unknown Event'
+    
+    # Check if it's a manual event first
+    if is_manual_event(event_key):
+        from manual_matches import list_manual_events
+        manual_events = list_manual_events()
+        for event in manual_events:
+            if event['key'] == event_key:
+                return event['name']
+    
+    # Try to get from TBA
+    try:
+        event_data = tba_client.get_event_info(event_key)
+        if event_data:
+            return event_data.get('name', event_key)
+    except:
+        pass
+    
+    # Fallback to event key
+    return event_key
 
 @app.route('/submit', methods=['POST'])
 @login_required
@@ -1475,8 +1544,12 @@ def submit():
     # Partial match column
     partial_match_status = "Yes" if partial_match else "No"
 
+    # Add event_key from the form data
+    event_key = data.get('event_key', 'Unknown Event')
+    event_name = get_event_name(event_key)  # We'll create this function
+
     data_row = [
-        name, team, match_number, submitted_time_display, auto_summary,
+        name, team, match_number, event_name, submitted_time_display, auto_summary,
         teleop_summary, offense_rating, defense_rating,
         endgame_summary, partial_match_status, notes
     ]
@@ -1520,7 +1593,7 @@ def submit():
         current_row += 1
 
         new_values.append([
-            "Scouter Name", "Team Number", "Match Number", "Submission Time",
+            "Scouter Name", "Team Number", "Match Number", "Event", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
             "Endgame Summary", "Partial Match Shutdown?", "Notes"
         ])
@@ -1571,7 +1644,7 @@ def submit():
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=f'{SHEET_NAME}!A1:K{len(new_values)}',
+            range=f'{SHEET_NAME}!A1:L{len(new_values)}',  # Changed from K to L
             valueInputOption='RAW',
             body={'values': new_values}
         ).execute()
