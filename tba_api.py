@@ -16,6 +16,26 @@ class TBAClient:
             print(f"TBA API Key loaded: {self.api_key[:10]}...")
         else:
             print("WARNING: TBA API Key not found or using placeholder!")
+    
+    def get_event_info(self, event_key):
+        """Get info about a specific event"""
+        try:
+            url = f'{self.base_url}/event/{event_key}'
+            response = requests.get(url, headers=self.headers, timeout=10)
+            
+            if response.status_code == 200:
+                event = response.json()
+                return {
+                    'key': event['key'],
+                    'name': event['name'],
+                    'start_date': event['start_date'],
+                    'end_date': event['end_date'],
+                    'location': f"{event.get('city', '')}, {event.get('state_prov', '')}"
+                }
+            return None
+        except Exception as e:
+            print(f"Error fetching event info for {event_key}: {e}")
+            return None
 
     def get_current_events(self):
         """Get current/recent events - filtered to show only relevant ones"""
