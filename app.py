@@ -93,8 +93,8 @@ if is_dev_mode():
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'OnseasonTest'  # Changed from 'TestingData'
-SHEET_ID = 843237674  # Changed from 1549733301
+SHEET_NAME = 'TestingData'
+SHEET_ID = 1549733301
 PIT_SHEET_NAME = 'TestingDataDev'
 PIT_SHEET_ID = 1892725645
 # ==============================
@@ -1426,30 +1426,6 @@ def home():
         return redirect('/admin')
     else:
         return redirect('/dashboard')
-    
-def get_event_name(event_key):
-    """Get friendly event name from event key"""
-    if not event_key or event_key == 'Unknown Event':
-        return 'Unknown Event'
-    
-    # Check if it's a manual event first
-    if is_manual_event(event_key):
-        from manual_matches import list_manual_events
-        manual_events = list_manual_events()
-        for event in manual_events:
-            if event['key'] == event_key:
-                return event['name']
-    
-    # Try to get from TBA
-    try:
-        event_data = tba_client.get_event_info(event_key)
-        if event_data:
-            return event_data.get('name', event_key)
-    except:
-        pass
-    
-    # Fallback to event key
-    return event_key
 
 @app.route('/submit', methods=['POST'])
 @login_required
@@ -1544,12 +1520,8 @@ def submit():
     # Partial match column
     partial_match_status = "Yes" if partial_match else "No"
 
-    # Add event_key from the form data
-    event_key = data.get('event_key', 'Unknown Event')
-    event_name = get_event_name(event_key)  # We'll create this function
-
     data_row = [
-        name, team, match_number, event_name, submitted_time_display, auto_summary,
+        name, team, match_number, submitted_time_display, auto_summary,
         teleop_summary, offense_rating, defense_rating,
         endgame_summary, partial_match_status, notes
     ]
@@ -1593,7 +1565,7 @@ def submit():
         current_row += 1
 
         new_values.append([
-            "Scouter Name", "Team Number", "Match Number", "Event", "Submission Time",
+            "Scouter Name", "Team Number", "Match Number", "Submission Time",
             "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
             "Endgame Summary", "Partial Match Shutdown?", "Notes"
         ])
@@ -1644,7 +1616,7 @@ def submit():
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=f'{SHEET_NAME}!A1:L{len(new_values)}',  # Changed from K to L
+            range=f'{SHEET_NAME}!A1:K{len(new_values)}',
             valueInputOption='RAW',
             body={'values': new_values}
         ).execute()
