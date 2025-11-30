@@ -1464,6 +1464,20 @@ def submit():
         except:
             return '-' if val is None or val == '' else str(val)
     
+    # Build offense/defense rating column
+    robot_role = teleop.get('robot_role', '')
+    offense_rating = clean_rating(teleop.get('offense_rating', '-'))
+    defense_rating = clean_rating(teleop.get('defense_rating', '-'))
+    
+    if robot_role == 'offense':
+        offense_defense_column = f"Offense (Rating: {offense_rating})"
+    elif robot_role == 'defense':
+        offense_defense_column = f"Defense (Rating: {defense_rating})"
+    elif robot_role == 'both':
+        offense_defense_column = f"Both (O:{offense_rating}, D:{defense_rating})"
+    else:
+        offense_defense_column = "-"
+    
     # Auto summary logic
     if auto_no_move:
         auto_summary = "Didn't move in auto"
@@ -1476,30 +1490,15 @@ def submit():
             f"Dropped:{auto_dropped_pieces}"
         )
 
-    # Teleop summary logic
+    # Teleop summary logic - ONLY scoring data
     if teleop_no_move:
         teleop_summary = "Didn't move in teleop"
     else:
         dropped_pieces = teleop.get('dropped_pieces', 0)
-        robot_role = teleop.get('robot_role', '')
-        
-        # Define ratings first (using clean_rating function)
-        offense_rating = clean_rating(teleop.get('offense_rating', '-'))
-        defense_rating = clean_rating(teleop.get('defense_rating', '-'))
-        
-        # Build role-specific rating display
-        role_display = ""
-        if robot_role == 'offense':
-            role_display = f" | Offense Only (Rating: {offense_rating})"
-        elif robot_role == 'defense':
-            role_display = f" | Defense Only (Rating: {defense_rating})"
-        elif robot_role == 'both':
-            role_display = f" | Both (O:{offense_rating}, D:{defense_rating})"
-        
         teleop_summary = (
             f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
             f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
-            f"Dropped:{dropped_pieces}{role_display}"
+            f"Dropped:{dropped_pieces}"
         )
 
     def clean_rating(val):
@@ -1542,7 +1541,7 @@ def submit():
 
     data_row = [
         name, team, match_number, submitted_time_display, auto_summary,
-        teleop_summary, offense_rating, defense_rating,
+        teleop_summary, offense_defense_column,
         endgame_summary, partial_match_status, notes
     ]
 
