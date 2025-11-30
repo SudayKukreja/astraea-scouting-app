@@ -1456,6 +1456,14 @@ def submit():
 
     auto_dropped_pieces = auto.get('dropped_pieces', 0)
     
+    # DEFINE clean_rating FUNCTION HERE (BEFORE IT'S USED)
+    def clean_rating(val):
+        try:
+            val_num = int(val)
+            return str(val_num) if val_num > 0 else '-'
+        except:
+            return '-' if val is None or val == '' else str(val)
+    
     # Auto summary logic
     if auto_no_move:
         auto_summary = "Didn't move in auto"
@@ -1474,6 +1482,10 @@ def submit():
     else:
         dropped_pieces = teleop.get('dropped_pieces', 0)
         robot_role = teleop.get('robot_role', '')
+        
+        # Define ratings first (using clean_rating function)
+        offense_rating = clean_rating(teleop.get('offense_rating', '-'))
+        defense_rating = clean_rating(teleop.get('defense_rating', '-'))
         
         # Build role-specific rating display
         role_display = ""
@@ -1496,9 +1508,6 @@ def submit():
             return str(val_num) if val_num > 0 else '-'
         except:
             return '-' if val is None or val == '' else str(val)
-
-    offense_rating = clean_rating(teleop.get('offense_rating', '-'))
-    defense_rating = clean_rating(teleop.get('defense_rating', '-'))
 
     # Endgame summary logic
     endgame_action = endgame.get('action', '').strip().lower()

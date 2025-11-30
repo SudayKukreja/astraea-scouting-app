@@ -77,36 +77,43 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
+    // Trigger endgame action display
     if (endgameAction && endgameAction.value === 'climb') {
       climbDepthLabel.classList.remove('hidden');
       climbSuccessLabel.classList.remove('hidden');
       climbParkedLabel.classList.remove('hidden');
     }
+    
+    // Trigger robot role rating fields display
+    if (robotRole && robotRole.value) {
+      robotRole.dispatchEvent(new Event('change'));
+    }
   }
 
+  // Robot role event listener
   if (robotRole) {
-  robotRole.addEventListener('change', () => {
-    const role = robotRole.value;
-    
-    if (role === 'offense') {
-      ratingFields.style.display = 'grid';
-      offenseRatingField.style.display = 'block';
-      defenseRatingField.style.display = 'none';
-      document.getElementById('defense_rating').value = '0';
-    } else if (role === 'defense') {
-      ratingFields.style.display = 'grid';
-      offenseRatingField.style.display = 'none';
-      defenseRatingField.style.display = 'block';
-      document.getElementById('offense_rating').value = '0';
-    } else if (role === 'both') {
-      ratingFields.style.display = 'grid';
-      offenseRatingField.style.display = 'block';
-      defenseRatingField.style.display = 'block';
-    } else {
-      ratingFields.style.display = 'none';
-    }
-  });
-}
+    robotRole.addEventListener('change', () => {
+      const role = robotRole.value;
+      
+      if (role === 'offense') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'block';
+        defenseRatingField.style.display = 'none';
+        document.getElementById('defense_rating').value = '0';
+      } else if (role === 'defense') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'none';
+        defenseRatingField.style.display = 'block';
+        document.getElementById('offense_rating').value = '0';
+      } else if (role === 'both') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'block';
+        defenseRatingField.style.display = 'block';
+      } else {
+        ratingFields.style.display = 'none';
+      }
+    });
+  }
 
   form.addEventListener('input', () => {
     const draft = new FormData(form);
@@ -185,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let tabErrors = [];
 
     const autoFields = ['auto_ll1', 'auto_l2', 'auto_l3', 'auto_l4', 'auto_processor', 'auto_barge'];
-    const teleopFields = ['teleop_ll1', 'teleop_l2', 'teleop_l3', 'teleop_l4', 'teleop_processor', 'teleop_barge', 'offense_rating', 'defense_rating'];
+    const teleopFields = ['teleop_ll1', 'teleop_l2', 'teleop_l3', 'teleop_l4', 'teleop_processor', 'teleop_barge', 'robot_role'];
     const endgameFields = ['endgame_action'];
 
     if (!autoFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && 
@@ -253,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         l4: getValue('teleop_l4') || 0,
         processor: getValue('teleop_processor') || 0,
         barge: getValue('teleop_barge') || 0,
-        robot_role: getValue('robot_role') || '',  // Add this
+        robot_role: getValue('robot_role') || '',
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
         no_move: getCheckbox('teleop_no_move'),
@@ -357,5 +364,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+  }
+
+  // Trigger robot role on page load if value exists
+  if (robotRole && robotRole.value) {
+    robotRole.dispatchEvent(new Event('change'));
   }
 });
