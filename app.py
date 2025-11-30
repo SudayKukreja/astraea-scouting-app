@@ -1501,13 +1501,6 @@ def submit():
             f"Dropped:{dropped_pieces}"
         )
 
-    def clean_rating(val):
-        try:
-            val_num = int(val)
-            return str(val_num) if val_num > 0 else '-'
-        except:
-            return '-' if val is None or val == '' else str(val)
-
     # Endgame summary logic
     endgame_action = endgame.get('action', '').strip().lower()
     if endgame_action == 'climb':
@@ -1570,10 +1563,10 @@ def submit():
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
 
         if current_row > 0:
-            new_values.append([''] * 11)
+            new_values.append([''] * 10)
             current_row += 1
 
-        new_values.append([f'Team {team_num}: {team_name}'] + [''] * 10)
+        new_values.append([f'Team {team_num}: {team_name}'] + [''] * 9)
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
@@ -1585,7 +1578,7 @@ def submit():
 
         new_values.append([
             "Scouter Name", "Team Number", "Match Number", "Submission Time",
-            "Auto Summary", "Teleop Summary", "Offense Rating", "Defense Rating",
+            "Auto Summary", "Teleop Summary", "Offense/Defense",
             "Endgame Summary", "Partial Match Shutdown?", "Notes"
         ])
         format_requests.append({
@@ -1599,7 +1592,7 @@ def submit():
 
         sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
         for entry in sorted_data:
-            is_partial_match = len(entry) > 9 and entry[9] == "Yes"
+            is_partial_match = len(entry) > 8 and entry[8] == "Yes"
             
             new_values.append(entry)
             
@@ -1610,8 +1603,8 @@ def submit():
                             "sheetId": SHEET_ID, 
                             "startRowIndex": current_row, 
                             "endRowIndex": current_row + 1,
-                            "startColumnIndex": 9,
-                            "endColumnIndex": 10
+                            "startColumnIndex": 8,
+                            "endColumnIndex": 9
                         },
                         "cell": {
                             "userEnteredFormat": {
@@ -1635,7 +1628,7 @@ def submit():
     if new_values:
         sheet.values().update(
             spreadsheetId=SPREADSHEET_ID,
-            range=f'{SHEET_NAME}!A1:K{len(new_values)}',
+            range=f'{SHEET_NAME}!A1:J{len(new_values)}',
             valueInputOption='RAW',
             body={'values': new_values}
         ).execute()
