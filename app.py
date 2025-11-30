@@ -385,11 +385,10 @@ def get_analytics_data():
                 submission_time = row[3] if len(row) > 3 else ''
                 auto_summary = row[4] if len(row) > 4 else ''
                 teleop_summary = row[5] if len(row) > 5 else ''
-                offense_rating = row[6] if len(row) > 6 else '0'
-                defense_rating = row[7] if len(row) > 7 else '0'
-                endgame_summary = row[8] if len(row) > 8 else ''
-                partial_match = row[9] if len(row) > 9 else 'No'
-                notes = row[10] if len(row) > 10 else ''
+                offense_defense_column = row[6] if len(row) > 6 else '-'
+                endgame_summary = row[7] if len(row) > 7 else ''
+                partial_match = row[8] if len(row) > 8 else 'No'
+                notes = row[9] if len(row) > 9 else ''
                 
                 # Skip if essential data is missing
                 if not scouter_name or not team_number or not match_number:
@@ -400,6 +399,9 @@ def get_analytics_data():
                 
                 # Parse teleop data from summary
                 teleop_data = parse_teleop_summary(teleop_summary)
+                
+                # Parse offense/defense from combined column
+                offense_defense_data = parse_offense_defense_column(offense_defense_column)
                 
                 # Parse endgame data
                 endgame_data = parse_endgame_summary(endgame_summary)
@@ -417,20 +419,22 @@ def get_analytics_data():
                     submission_datetime = datetime.now()
                 
                 # Create analytics entry
+                # Create analytics entry
                 analytics_entry = {
                     'team': team_number,
                     'match': int(match_number) if match_number.isdigit() else 0,
                     'scouterName': scouter_name,
                     'submissionTime': submission_datetime.isoformat(),
-                    'event': current_sheet_name,  # Use sheet name as event identifier
+                    'event': current_sheet_name,
                     'auto': {
                         'score': auto_score,
                         **auto_data
                     },
                     'teleop': {
                         'score': teleop_score,
-                        'offenseRating': safe_int(offense_rating),
-                        'defenseRating': safe_int(defense_rating),
+                        'offenseRating': offense_defense_data['offense_rating'],
+                        'defenseRating': offense_defense_data['defense_rating'],
+                        'robotRole': offense_defense_data['robot_role'],
                         **teleop_data
                     },
                     'endgame': {
@@ -497,6 +501,39 @@ def parse_auto_summary(summary):
             data[key] = int(match.group(1))
     
     return data
+
+def parse_offense_defense_column(column_text):
+    """Parse the combined offense/defense column to extract ratings"""
+    if not column_text or column_text == '-':
+        return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
+    
+    column_lower = column_text.lower()
+    
+    # Match patterns like "Offense (Rating: 4)", "Defense (Rating: 3)", "Both (O:4, D:2)"
+    if 'both' in column_lower:
+        offense_match = re.search(r'o:(\d+)', column_lower)
+        defense_match = re.search(r'd:(\d+)', column_lower)
+        return {
+            'robot_role': 'both',
+            'offense_rating': int(offense_match.group(1)) if offense_match else 0,
+            'defense_rating': int(defense_match.group(1)) if defense_match else 0
+        }
+    elif 'offense' in column_lower:
+        rating_match = re.search(r'rating:\s*(\d+)', column_lower)
+        return {
+            'robot_role': 'offense',
+            'offense_rating': int(rating_match.group(1)) if rating_match else 0,
+            'defense_rating': 0
+        }
+    elif 'defense' in column_lower:
+        rating_match = re.search(r'rating:\s*(\d+)', column_lower)
+        return {
+            'robot_role': 'defense',
+            'offense_rating': 0,
+            'defense_rating': int(rating_match.group(1)) if rating_match else 0
+        }
+    else:
+        return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
 
 def parse_teleop_summary(summary):
     """Parse teleop summary string into structured data"""
@@ -1500,6 +1537,13 @@ def submit():
             f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
             f"Dropped:{dropped_pieces}"
         )
+
+    def clean_rating(val):
+        try:
+            val_num = int(val)
+            return str(val_num) if val_num > 0 else '-'
+        except:
+            return '-' if val is None or val == '' else str(val)
 
     # Endgame summary logic
     endgame_action = endgame.get('action', '').strip().lower()

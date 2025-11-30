@@ -183,11 +183,47 @@ function calculateTeamStats(teamData) {
   const teleopScores = teamData.map(d => d.teleop.score);
   const avgTeleop = (teleopScores.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
   
-  const offenseRatings = teamData.map(d => d.teleop.offenseRating || 0);
-  const avgOffense = (offenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
-  
-  const defenseRatings = teamData.map(d => d.teleop.defenseRating || 0);
-  const avgDefense = (defenseRatings.reduce((a, b) => a + b, 0) / totalMatches).toFixed(1);
+  const roleCount = { offense: 0, defense: 0, both: 0, unknown: 0 };
+  let totalOffenseRating = 0;
+  let totalDefenseRating = 0;
+  let offenseCount = 0;
+  let defenseCount = 0;
+
+  teamData.forEach(d => {
+    const role = d.teleop.robotRole || 'unknown';
+    roleCount[role] = (roleCount[role] || 0) + 1;
+    
+    if (d.teleop.offenseRating > 0) {
+      totalOffenseRating += d.teleop.offenseRating;
+      offenseCount++;
+    }
+    
+    if (d.teleop.defenseRating > 0) {
+      totalDefenseRating += d.teleop.defenseRating;
+      defenseCount++;
+    }
+  });
+
+  const avgOffense = offenseCount > 0 ? (totalOffenseRating / offenseCount).toFixed(1) : 0;
+  const avgDefense = defenseCount > 0 ? (totalDefenseRating / defenseCount).toFixed(1) : 0;
+
+  // Determine primary role
+  let primaryRole = 'balanced';
+  const offensePercent = (roleCount.offense / totalMatches) * 100;
+  const defensePercent = (roleCount.defense / totalMatches) * 100;
+  const bothPercent = (roleCount.both / totalMatches) * 100;
+
+  if (offensePercent >= 70) {
+    primaryRole = 'offense-specialist';
+  } else if (defensePercent >= 70) {
+    primaryRole = 'defense-specialist';
+  } else if (bothPercent >= 50) {
+    primaryRole = 'versatile';
+  } else if (offensePercent > defensePercent) {
+    primaryRole = 'offense-focused';
+  } else if (defensePercent > offensePercent) {
+    primaryRole = 'defense-focused';
+  }
 
   // Enhanced endgame analysis
   const climbAttempts = teamData.filter(d => d.endgame.action === 'climb').length;
@@ -242,6 +278,11 @@ function calculateTeamStats(teamData) {
     avgTeleop,
     avgOffense,
     avgDefense,
+    roleCount,           // NEW
+    primaryRole,         // NEW
+    offensePercent,      // NEW
+    defensePercent,      // NEW
+    bothPercent,
     climbAttempts,
     successfulClimbs,
     failedClimbsWithPark,
@@ -293,6 +334,26 @@ function renderTeamAnalysis(team, teamData, stats) {
   // Smart endgame display
   let endgameDisplay = '';
   let endgameBadge = '';
+
+  let roleBadge = '';
+  let roleEmoji = ''; 
+
+  if (stats.primaryRole === 'offense-specialist') {
+  roleBadge = '<span class="info-badge" style="background: linear-gradient(135deg, #ef4444, #dc2626);">⚔️ Offense Specialist</span>';
+  roleEmoji = '⚔️';
+} else if (stats.primaryRole === 'defense-specialist') {
+  roleBadge = '<span class="info-badge" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">🛡️ Defense Specialist</span>';
+  roleEmoji = '🛡️';
+} else if (stats.primaryRole === 'versatile') {
+  roleBadge = '<span class="info-badge" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">🔄 Versatile</span>';
+  roleEmoji = '🔄';
+} else if (stats.primaryRole === 'offense-focused') {
+  roleBadge = '<span class="info-badge" style="background: linear-gradient(135deg, #f59e0b, #d97706);">⚔️ Offense-Focused</span>';
+  roleEmoji = '⚔️';
+} else if (stats.primaryRole === 'defense-focused') {
+  roleBadge = '<span class="info-badge" style="background: linear-gradient(135deg, #06b6d4, #0891b2);">🛡️ Defense-Focused</span>';
+  roleEmoji = '🛡️';
+}
   
   if (stats.climbStrategy === 'attempts') {
     endgameDisplay = `${stats.climbRate}%`;
@@ -317,6 +378,7 @@ function renderTeamAnalysis(team, teamData, stats) {
           ${performanceEmoji} Team ${team}
           <span class="performance-badge badge-${performanceColor}">${performanceLevel.toUpperCase()}</span>
           <span class="trend-indicator" title="${stats.trend} performance">${trendIcon}</span>
+          ${roleBadge}  <!-- ADD THIS LINE -->
           ${endgameBadge}
         </h2>
       </div>
@@ -397,6 +459,10 @@ function renderTeamAnalysis(team, teamData, stats) {
           <div class="breakdown-item">
             <span class="breakdown-label">✅ Reliability</span>
             <span class="breakdown-value">${((1 - stats.partialMatches / stats.totalMatches) * 100).toFixed(0)}%</span>
+          </div>
+          <div class="breakdown-item">
+            <span class="breakdown-label">🎭 Playstyle</span>
+            <span class="breakdown-value">${stats.primaryRole.toUpperCase().replace(/-/g, ' ')}</span>
           </div>
         </div>
         
@@ -549,17 +615,20 @@ function generateSmartSummary(team, stats) {
     summary += `⚠️ <strong>No endgame strategy</strong> observed. `;
   }
   
-  // Offensive/defensive role
-  if (stats.avgOffense >= 4) {
-    summary += `<strong>Dominant offensive threat</strong> (${stats.avgOffense}/5 rating). `;
-  } else if (stats.avgOffense >= 3) {
-    summary += `Solid offensive capabilities (${stats.avgOffense}/5). `;
-  } else if (stats.avgDefense >= 3) {
-    summary += `<strong>Defense-oriented</strong> playstyle (Defense: ${stats.avgDefense}/5). `;
+  if (stats.primaryRole === 'offense-specialist') {
+    summary += `<strong>⚔️ Pure offensive specialist</strong> (${stats.offensePercent.toFixed(0)}% offense matches, ${stats.avgOffense}/5 avg). `;
+  } else if (stats.primaryRole === 'defense-specialist') {
+    summary += `<strong>🛡️ Dedicated defense specialist</strong> (${stats.defensePercent.toFixed(0)}% defense matches, ${stats.avgDefense}/5 avg). `;
+  } else if (stats.primaryRole === 'versatile') {
+    summary += `<strong>🔄 Highly versatile</strong> - plays both roles (${stats.bothPercent.toFixed(0)}% dual-role matches). `;
+  } else if (stats.primaryRole === 'offense-focused') {
+    summary += `<strong>Offense-focused</strong> (${stats.offensePercent.toFixed(0)}% offense, avg ${stats.avgOffense}/5). `;
+  } else if (stats.primaryRole === 'defense-focused') {
+    summary += `<strong>Defense-focused</strong> (${stats.defensePercent.toFixed(0)}% defense, avg ${stats.avgDefense}/5). `;
   } else {
     summary += `Balanced playstyle. `;
   }
-  
+    
   // Reliability
   if (stats.partialMatches === 0) {
     summary += `<strong style="color: #10b981;">✅ Perfect reliability</strong> - no shutdowns.`;
