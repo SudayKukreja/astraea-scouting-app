@@ -65,7 +65,15 @@ async function loadAnalyticsData() {
     if (analyticsData.length === 0) {
       showNoDataMessage();
     } else {
-      populateFilters();
+      populateFilters();  // ✅ This already exists
+      
+      // ✅ ADD THIS: Clear the analysis container when switching sheets
+      document.getElementById('analysis-container').innerHTML = `
+        <div class="no-data">
+          <h3>👆 Select a team</h3>
+          <p>Choose a team from the dropdown above to see detailed performance metrics</p>
+        </div>
+      `;
     }
   } catch (error) {
     console.error('Error loading analytics data:', error);
