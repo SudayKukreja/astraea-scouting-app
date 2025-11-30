@@ -93,8 +93,8 @@ if is_dev_mode():
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'TestingData'
-SHEET_ID = 1549733301
+SHEET_NAME = 'TestingDataV2'
+SHEET_ID = 192205556
 PIT_SHEET_NAME = 'TestingDataDev'
 PIT_SHEET_ID = 1892725645
 # ==============================
