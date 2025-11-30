@@ -1,9 +1,3 @@
-"""
-Team 6897 Astraea Robotics - Scouter Account Data
-This file contains all the predefined scouter accounts for the team.
-Updated: October 2025
-"""
-
 import hashlib
 
 def hash_password(password):
@@ -84,12 +78,6 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Kevin Hang'
     },
-    'pyoussef': {
-        'username': 'pyoussef',
-        'password_hash': hash_password('Paul357'),
-        'role': 'scouter',
-        'name': 'Paul Youssef'
-    },
     'obarda': {
         'username': 'obarda',
         'password_hash': hash_password('Oz852'),
@@ -116,7 +104,7 @@ TEAM_SCOUTERS = {
     },
     'mbhuiyan': {
         'username': 'mbhuiyan',
-        'password_hash': hash_password('Mohammud654'),
+        'password_hash': hash_password('Mohammad654'),
         'role': 'scouter',
         'name': 'Mohammad Bhuiyan'
     },
@@ -125,12 +113,6 @@ TEAM_SCOUTERS = {
         'password_hash': hash_password('Gordon852'),
         'role': 'scouter',
         'name': 'Gordon He'
-    },
-    'aagarwal': {
-        'username': 'aagarwal',
-        'password_hash': hash_password('Aviral159'),
-        'role': 'scouter',
-        'name': 'Aviral Agarwal'
     },
     'skhanna': {
         'username': 'skhanna',
@@ -222,11 +204,11 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Kenny Shao'
     },
-    'mwatkkins': {
-        'username': 'mwatkkins',
+    'mwatkins': {
+        'username': 'mwatkins',
         'password_hash': hash_password('Mark369'),
         'role': 'scouter',
-        'name': 'Mark Watkkins'
+        'name': 'Mark Watkins'
     },
     'vgajawada': {
         'username': 'vgajawada',
@@ -300,17 +282,11 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Nathaniel Josiah'
     },
-    'eeristavi': {
-        'username': 'eeristavi',
-        'password_hash': hash_password('Elene963'),
-        'role': 'scouter',
-        'name': 'Elene Eristavi'
-    },
-    'kkalinkina': {
-        'username': 'kkalinkina',
+    'kkalinka': {
+        'username': 'kkalinka',
         'password_hash': hash_password('Katherine639'),
         'role': 'scouter',
-        'name': 'Katherine Kalinkina'
+        'name': 'Katherine Kalinka'
     },
     'amohan': {
         'username': 'amohan',
@@ -338,15 +314,9 @@ TEAM_SCOUTERS = {
     },
     'abarai': {
         'username': 'abarai',
-        'password_hash': hash_password('Alishu456'),
+        'password_hash': hash_password('Alisha456'),
         'role': 'scouter',
-        'name': 'Alishu Barai'
-    },
-    'psomani': {
-        'username': 'psomani',
-        'password_hash': hash_password('Pradyum951'),
-        'role': 'scouter',
-        'name': 'Pradyum Somani'
+        'name': 'Alisha Barai'
     },
     'gimranyi': {
         'username': 'gimranyi',
@@ -360,11 +330,35 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Aaradhya Vats'
     },
+    'psomani': {
+        'username': 'psomani',
+        'password_hash': hash_password('Pradyum951'),
+        'role': 'scouter',
+        'name': 'Pradyum Somani'
+    },
+    'srahim': {
+        'username': 'srahim',
+        'password_hash': hash_password('Samiha357'),
+        'role': 'scouter',
+        'name': 'Samiha Rahim'
+    },
+    'srani': {
+        'username': 'srani',
+        'password_hash': hash_password('Shrish174'),
+        'role': 'scouter',
+        'name': 'Shrish Rani'
+    },
     'smishra': {
         'username': 'smishra',
         'password_hash': hash_password('Shiven789'),
         'role': 'scouter',
         'name': 'Shiven Mishra'
+    },
+    'bisrael': {
+        'username': 'bisrael',
+        'password_hash': hash_password('Benjamin482'),
+        'role': 'scouter',
+        'name': 'Benjamin Israel'
     },
     
     # PROGRAMMING
@@ -416,6 +410,12 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Neel Choudhury'
     },
+    'lauren': {
+        'username': 'lauren',
+        'password_hash': hash_password('Lauren321'),
+        'role': 'scouter',
+        'name': 'Lauren'
+    },
     'jzeeshan': {
         'username': 'jzeeshan',
         'password_hash': hash_password('Jibrael789'),
@@ -442,12 +442,6 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Alison Yan'
     },
-    'nshah': {
-        'username': 'nshah',
-        'password_hash': hash_password('Nikita258'),
-        'role': 'scouter',
-        'name': 'Nikita Shah'
-    },
     'claury': {
         'username': 'claury',
         'password_hash': hash_password('Caitlyn528'),
@@ -460,11 +454,11 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Aathmika Dutta'
     },
-    'bdewoud': {
-        'username': 'bdewoud',
+    'bdawoud': {
+        'username': 'bdawoud',
         'password_hash': hash_password('Bebo741'),
         'role': 'scouter',
-        'name': 'Bebo Dewoud'
+        'name': 'Bebo Dawoud'
     },
     'spandya': {
         'username': 'spandya',
@@ -472,29 +466,53 @@ TEAM_SCOUTERS = {
         'role': 'scouter',
         'name': 'Snigdha Pandya'
     },
-    'rtawadros': {
-        'username': 'rtawadros',
-        'password_hash': hash_password('Rebbecca321'),
-        'role': 'scouter',
-        'name': 'Rebbecca Tawadros'
-    },
     'rkhatwani': {
         'username': 'rkhatwani',
         'password_hash': hash_password('Ryna654'),
         'role': 'scouter',
         'name': 'Ryna Khatwani'
     },
-    'azhang': {
-        'username': 'azhang',
-        'password_hash': hash_password('Aiyi987'),
+    'dzhang': {
+        'username': 'dzhang',
+        'password_hash': hash_password('David987'),
         'role': 'scouter',
-        'name': 'Aiyi Zhang'
+        'name': 'David Zhang'
     },
     'adaka': {
         'username': 'adaka',
         'password_hash': hash_password('Abhinaav135'),
         'role': 'scouter',
         'name': 'Abhinaav Daka'
+    },
+    'pyoussef': {
+        'username': 'pyoussef',
+        'password_hash': hash_password('Paul357'),
+        'role': 'scouter',
+        'name': 'Paul Youssef'
+    },
+    'rtawadros': {
+        'username': 'rtawadros',
+        'password_hash': hash_password('Rebbecca321'),
+        'role': 'scouter',
+        'name': 'Rebbecca Tawadros'
+    },
+    'eeristavi': {
+        'username': 'eeristavi',
+        'password_hash': hash_password('Elene963'),
+        'role': 'scouter',
+        'name': 'Elene Eristavi'
+    },
+    'khu': {
+        'username': 'khu',
+        'password_hash': hash_password('Kyle258'),
+        'role': 'scouter',
+        'name': 'Kyle Hu'
+    },
+    'lavenesh': {
+        'username': 'lavenesh',
+        'password_hash': hash_password('Lavenesh654'),
+        'role': 'scouter',
+        'name': 'Lavenesh'
     },
 }
 
@@ -512,14 +530,12 @@ PASSWORD_REFERENCE = {
     'Jameela Bhinderwala': 'Jameela823',
     'Adrita Chowdhury': 'Adrita951',
     'Kevin Hang': 'Kevin528',
-    'Paul Youssef': 'Paul357',
     'Oz Barda': 'Oz852',
     'Amruth Gani': 'Amruth482',
     'Oliver Grasberger-Dorman': 'Oliver369',
     'Andrew Rabinovich': 'Andrew396',
-    'Mohammud Bhuiyan': 'Mohammud654',
+    'Mohammad Bhuiyan': 'Mohammad654',
     'Gordon He': 'Gordon852',
-    'Aviral Agarwal': 'Aviral159',
     'Siddharth Khanna': 'Siddharth753',
     'Husain Kapasi': 'Husain147',
     'Francisco Nono': 'Francisco258',
@@ -535,7 +551,7 @@ PASSWORD_REFERENCE = {
     'Brandon Ruggiero': 'Brandon285',
     'Omar Abu-Zaydeh': 'Omar528',
     'Kenny Shao': 'Kenny741',
-    'Mark Watkkins': 'Mark369',
+    'Mark Watkins': 'Mark369',
     'Vedh Gajawada': 'Vedh852',
     'Nivedh Thayil': 'Nivedh456',
     'Andrew Vlha': 'Andrew951',
@@ -548,17 +564,19 @@ PASSWORD_REFERENCE = {
     'Shubham Dhall': 'Shubham147',
     'Prahlad Karanth': 'Prahlad258',
     'Nathaniel Josiah': 'Nathaniel417',
-    'Elene Eristavi': 'Elene963',
-    'Katherine Kalinkina': 'Katherine639',
+    'Katherine Kalinka': 'Katherine639',
     'Arnav Mohan': 'Arnav528',
     'Faiz Hussain': 'Faiz741',
     'Reva Verma': 'Reva369',
     'Adrian Chen': 'Adrian852',
-    'Alishu Barai': 'Alishu456',
-    'Pradyum Somani': 'Pradyum951',
+    'Alisha Barai': 'Alisha456',
     'Gabriel Imranyi': 'Gabriel123',
     'Aaradhya Vats': 'Aaradhya456',
+    'Pradyum Somani': 'Pradyum951',
+    'Samiha Rahim': 'Samiha357',
+    'Shrish Rani': 'Shrish174',
     'Shiven Mishra': 'Shiven789',
+    'Benjamin Israel': 'Benjamin482',
     
     # PROGRAMMING
     'Ritika Annamaneni': 'Ritika741',
@@ -569,21 +587,25 @@ PASSWORD_REFERENCE = {
     'Jivin Sharma': 'Jivin174',
     'Arjun Srinivasan': 'Arjun482',
     'Neel Choudhury': 'Neel654',
+    'Lauren': 'Lauren321',
     'Jibrael Zeeshan': 'Jibrael789',
     
     # BUSINESS
     'Carina Castillo': 'Carina963',
     'Jack Leber': 'Jack417',
     'Alison Yan': 'Alison147',
-    'Nikita Shah': 'Nikita258',
     'Caitlyn Laury': 'Caitlyn528',
     'Aathmika Dutta': 'Aathmika639',
-    'Bebo Dewoud': 'Bebo741',
+    'Bebo Dawoud': 'Bebo741',
     'Snigdha Pandya': 'Snigdha852',
-    'Rebbecca Tawadros': 'Rebbecca321',
     'Ryna Khatwani': 'Ryna654',
-    'Aiyi Zhang': 'Aiyi987',
+    'David Zhang': 'David987',
     'Abhinaav Daka': 'Abhinaav135',
+    'Paul Youssef': 'Paul357',
+    'Rebbecca Tawadros': 'Rebbecca321',
+    'Elene Eristavi': 'Elene963',
+    'Kyle Hu': 'Kyle258',
+    'Lavenesh': 'Lavenesh654',
 }
 
 def get_team_scouters():
@@ -605,28 +627,29 @@ def print_credentials():
             'Arjun Debnath', 'Brooklyn Kienle', 'Sohum Bhardwaj', 'Suday Kukreja',
             'Ruby Portnoy', 'Yashvi Parikh', 'Lakshya Singla', 'Nandan Mudakalli',
             'Aahana Dalvi', 'Jameela Bhinderwala', 'Adrita Chowdhury', 'Kevin Hang',
-            'Paul Youssef', 'Oz Barda', 'Amruth Gani', 'Oliver Grasberger-Dorman',
-            'Andrew Rabinovich', 'Mohammad Bhuiyan', 'Gordon He', 'Aviral Agarwal',
-            'Siddharth Khanna', 'Husain Kapasi', 'Francisco Nono', 'Joel Georgi',
-            'Jivraj Singh', 'Yash Bhatnagar', 'Ihsan Shebeer Salam', 'Aditya Naren',
-            'Swarit Gupta', 'Ishan Dasgupta', 'Zahi Obaidulla', 'Thomas Sorial',
-            'Brandon Ruggiero', 'Omar Abu-Zaydeh', 'Kenny Shao', 'Mark Watkkins',
-            'Vedh Gajawada', 'Nivedh Thayil', 'Andrew Vlha', 'Skyler Chen',
-            'Zain Arshad', 'Noah Jin', 'Akum Kang', 'Sebastian Eoon',
-            'Ahaan Awasthi', 'Shubham Dhall', 'Prahlad Karanth', 'Nathaniel Josiah',
-            'Elene Eristavi', 'Katherine Kalinkina', 'Arnav Mohan', 'Faiz Hussain',
-            'Reva Verma', 'Adrian Chen', 'Alishu Barai', 'Pradyum Somani', 'Gabriel Imranyi', 
-            'Aaradhya Vats', 'Shiven Mishra'
+            'Oz Barda', 'Amruth Gani', 'Oliver Grasberger-Dorman', 'Andrew Rabinovich',
+            'Mohammad Bhuiyan', 'Gordon He', 'Siddharth Khanna', 'Husain Kapasi',
+            'Francisco Nono', 'Joel Georgi', 'Jivraj Singh', 'Yash Bhatnagar',
+            'Ihsan Shebeer Salam', 'Aditya Naren', 'Swarit Gupta', 'Ishan Dasgupta',
+            'Zahi Obaidulla', 'Thomas Sorial', 'Brandon Ruggiero', 'Omar Abu-Zaydeh',
+            'Kenny Shao', 'Mark Watkins', 'Vedh Gajawada', 'Nivedh Thayil',
+            'Andrew Vlha', 'Skyler Chen', 'Zain Arshad', 'Noah Jin',
+            'Akum Kang', 'Sebastian Eoon', 'Ahaan Awasthi', 'Shubham Dhall',
+            'Prahlad Karanth', 'Nathaniel Josiah', 'Katherine Kalinka', 'Arnav Mohan',
+            'Faiz Hussain', 'Reva Verma', 'Adrian Chen', 'Alisha Barai',
+            'Gabriel Imranyi', 'Aaradhya Vats', 'Pradyum Somani', 'Samiha Rahim',
+            'Shrish Rani', 'Shiven Mishra', 'Benjamin Israel'
         ],
         'PROGRAMMING': [
             'Ritika Annamaneni', 'Anshika Pradhan', 'Katherine Wang', 'Rafaela Sepulveda',
             'Divyashree Balaraman', 'Jivin Sharma', 'Arjun Srinivasan', 'Neel Choudhury',
-            'Jibrael Zeeshan'
+            'Lauren', 'Jibrael Zeeshan'
         ],
         'BUSINESS': [
-            'Carina Castillo', 'Jack Leber', 'Alison Yan', 'Nikita Shah',
-            'Caitlyn Laury', 'Aathmika Dutta', 'Bebo Dewoud', 'Snigdha Pandya', 
-            'Rebbecca Tawadros', 'Ryna Khatwani', 'Aiyi Zhang', 'Abhinaav Daka'
+            'Carina Castillo', 'Jack Leber', 'Alison Yan', 'Caitlyn Laury',
+            'Aathmika Dutta', 'Bebo Dawoud', 'Snigdha Pandya', 'Ryna Khatwani',
+            'David Zhang', 'Abhinaav Daka', 'Paul Youssef', 'Rebbecca Tawadros',
+            'Elene Eristavi', 'Kyle Hu', 'Lavenesh'
         ]
     }
     
