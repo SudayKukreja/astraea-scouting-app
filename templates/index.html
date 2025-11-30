@@ -136,16 +136,27 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label for="offense_rating">Offense Rating (0–5)</label>
-                <input type="number" id="offense_rating" name="offense_rating" value="0" min="0" max="5">
-              </div>
-              <div class="form-group">
-                <label for="defense_rating">Defense Rating (0–5)</label>
-                <input type="number" id="defense_rating" name="defense_rating" value="0" min="0" max="5">
+                <label for="robot_role">Robot Role</label>
+                <select id="robot_role" name="robot_role" required>
+                  <option value="">Select Role</option>
+                  <option value="offense">Offense Only</option>
+                  <option value="defense">Defense Only</option>
+                  <option value="both">Both Offense & Defense</option>
+                </select>
               </div>
               <div class="form-group">
                 <label for="dropped_pieces">Game Pieces Dropped</label>
                 <input type="number" id="dropped_pieces" name="dropped_pieces" value="0" min="0">
+              </div>    
+            </div>
+            <div class="form-row" id="rating_fields" style="display: none;">
+              <div class="form-group" id="offense_rating_field">
+                <label for="offense_rating">Offense Rating (0–5)</label>
+                <input type="number" id="offense_rating" name="offense_rating" value="0" min="0" max="5">
+              </div>
+              <div class="form-group" id="defense_rating_field">
+                <label for="defense_rating">Defense Rating (0–5)</label>
+                <input type="number" id="defense_rating" name="defense_rating" value="0" min="0" max="5">
               </div>
             </div>
           </div>

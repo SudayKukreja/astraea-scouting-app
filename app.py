@@ -1473,10 +1473,21 @@ def submit():
         teleop_summary = "Didn't move in teleop"
     else:
         dropped_pieces = teleop.get('dropped_pieces', 0)
+        robot_role = teleop.get('robot_role', '')
+        
+        # Build role-specific rating display
+        role_display = ""
+        if robot_role == 'offense':
+            role_display = f" | Offense Only (Rating: {offense_rating})"
+        elif robot_role == 'defense':
+            role_display = f" | Defense Only (Rating: {defense_rating})"
+        elif robot_role == 'both':
+            role_display = f" | Both (O:{offense_rating}, D:{defense_rating})"
+        
         teleop_summary = (
             f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
             f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
-            f"Dropped:{dropped_pieces}"
+            f"Dropped:{dropped_pieces}{role_display}"
         )
 
     def clean_rating(val):

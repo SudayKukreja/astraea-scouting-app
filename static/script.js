@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const climbDepthLabel = document.getElementById('climb_depth_label');
   const climbSuccessLabel = document.getElementById('climb_success_label');
   const climbParkedLabel = document.getElementById('climb_parked_label');
+  const robotRole = document.getElementById('robot_role');
+  const ratingFields = document.getElementById('rating_fields');
+  const offenseRatingField = document.getElementById('offense_rating_field');
+  const defenseRatingField = document.getElementById('defense_rating_field');
 
   const backBtn = document.getElementById('back-btn');
   if (backBtn) {
@@ -79,6 +83,30 @@ document.addEventListener('DOMContentLoaded', () => {
       climbParkedLabel.classList.remove('hidden');
     }
   }
+
+  if (robotRole) {
+  robotRole.addEventListener('change', () => {
+    const role = robotRole.value;
+    
+    if (role === 'offense') {
+      ratingFields.style.display = 'grid';
+      offenseRatingField.style.display = 'block';
+      defenseRatingField.style.display = 'none';
+      document.getElementById('defense_rating').value = '0';
+    } else if (role === 'defense') {
+      ratingFields.style.display = 'grid';
+      offenseRatingField.style.display = 'none';
+      defenseRatingField.style.display = 'block';
+      document.getElementById('offense_rating').value = '0';
+    } else if (role === 'both') {
+      ratingFields.style.display = 'grid';
+      offenseRatingField.style.display = 'block';
+      defenseRatingField.style.display = 'block';
+    } else {
+      ratingFields.style.display = 'none';
+    }
+  });
+}
 
   form.addEventListener('input', () => {
     const draft = new FormData(form);
@@ -225,6 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         l4: getValue('teleop_l4') || 0,
         processor: getValue('teleop_processor') || 0,
         barge: getValue('teleop_barge') || 0,
+        robot_role: getValue('robot_role') || '',  // Add this
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
         no_move: getCheckbox('teleop_no_move'),

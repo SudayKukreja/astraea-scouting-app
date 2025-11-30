@@ -1,6 +1,6 @@
-const CACHE_NAME = 'astraea-cache-20251129-131033'; // Updated version
-const STATIC_CACHE = 'astraea-static-v20251129-131033';
-const DYNAMIC_CACHE = 'astraea-dynamic-v20251129-131033';
+const CACHE_NAME = 'astraea-cache-20251129-192037'; // Updated version
+const STATIC_CACHE = 'astraea-static-v20251129-192037';
+const DYNAMIC_CACHE = 'astraea-dynamic-v20251129-192037';
 
 // Essential files for offline functionality
 const STATIC_ASSETS = [
