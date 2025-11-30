@@ -49,6 +49,9 @@ async function loadSheets() {
 
 async function loadAnalyticsData() {
   try {
+    // ✅ ADD THIS: Clear old data first
+    analyticsData = [];
+    
     const selectedSheet = document.getElementById('sheet-filter').value;
     let url = '/api/admin/analytics/data';
     if (selectedSheet) {
@@ -65,9 +68,9 @@ async function loadAnalyticsData() {
     if (analyticsData.length === 0) {
       showNoDataMessage();
     } else {
-      populateFilters();  // ✅ This already exists
+      populateFilters();
       
-      // ✅ ADD THIS: Clear the analysis container when switching sheets
+      // Clear the analysis container when switching sheets
       document.getElementById('analysis-container').innerHTML = `
         <div class="no-data">
           <h3>👆 Select a team</h3>
