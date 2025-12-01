@@ -373,22 +373,27 @@ def get_analytics_data():
             if len(row) > 0 and row[0] == 'Scouter Name':
                 continue
                 
-            # Skip rows that don't have enough data
-            if len(row) < 10:
+            # ✅ FIX: Only require minimum essential columns (first 4)
+            # Changed from len(row) < 10 to len(row) < 4
+            if len(row) < 4:
                 continue
                 
-            # Parse the data row
+            # Parse the data row with safe defaults for missing columns
             try:
-                scouter_name = row[0] if len(row) > 0 else ''
-                team_number = row[1] if len(row) > 1 else current_team or ''
-                match_number = row[2] if len(row) > 2 else ''
-                submission_time = row[3] if len(row) > 3 else ''
-                auto_summary = row[4] if len(row) > 4 else ''
-                teleop_summary = row[5] if len(row) > 5 else ''
-                offense_defense_column = row[6] if len(row) > 6 else '-'
-                endgame_summary = row[7] if len(row) > 7 else ''
-                partial_match = row[8] if len(row) > 8 else 'No'
-                notes = row[9] if len(row) > 9 else ''
+                # Helper function to safely get column value
+                def get_col(row, index, default=''):
+                    return row[index] if len(row) > index else default
+                
+                scouter_name = get_col(row, 0)
+                team_number = get_col(row, 1) or current_team or ''
+                match_number = get_col(row, 2)
+                submission_time = get_col(row, 3)
+                auto_summary = get_col(row, 4)
+                teleop_summary = get_col(row, 5)
+                offense_defense_column = get_col(row, 6, '-')
+                endgame_summary = get_col(row, 7)
+                partial_match = get_col(row, 8, 'No')
+                notes = get_col(row, 9, '')  # ✅ Default to empty string if missing
                 
                 # Skip if essential data is missing
                 if not scouter_name or not team_number or not match_number:
@@ -419,7 +424,6 @@ def get_analytics_data():
                     submission_datetime = datetime.now()
                 
                 # Create analytics entry
-                # Create analytics entry
                 analytics_entry = {
                     'team': team_number,
                     'match': int(match_number) if match_number.isdigit() else 0,
@@ -442,7 +446,7 @@ def get_analytics_data():
                         **endgame_data
                     },
                     'totalScore': total_score,
-                    'notes': notes,
+                    'notes': notes,  # ✅ Will be empty string if missing, not cause error
                     'partialMatch': partial_match.lower() == 'yes'
                 }
                 
