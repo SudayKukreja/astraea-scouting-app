@@ -93,8 +93,8 @@ if is_dev_mode():
 # === CONFIGURATIONS AREA =====
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 SPREADSHEET_ID = '16nYGy_cVkEWtsRl64S5dlRn45wMLqSfFvHA8z7jjJc8'
-SHEET_NAME = 'TestingDataV2'
-SHEET_ID = 192205556
+SHEET_NAME = 'RebuiltTestV1'  # Changed from 'TestingDataV2'
+SHEET_ID = 1685353109  # Changed from 192205556
 PIT_SHEET_NAME = 'TestingDataDev'
 PIT_SHEET_ID = 1892725645
 # ==============================
@@ -547,47 +547,55 @@ def parse_teleop_summary(summary):
 def parse_endgame_summary(summary):
     """Parse endgame summary for REBUILT"""
     if not summary or "Didn't Climb" in summary:
-        return {'climb': 'none', 'tower_level': ''}
+        return {
+            'climb': 'none', 
+            'tower_level': '',
+            'climb_successful': False
+        }
     
-    # Parse: "TOWER Climbed - L2 (20pts)"
+    # Parse: "TOWER Climbed - L2 (MID RUNG) (20pts) - ✓ SUCCESSFUL"
     if 'TOWER Climbed' in summary:
-        climb = 'climbed'
+        climb_successful = '✓ SUCCESSFUL' in summary
         
-        if 'L1' in summary:
+        if 'L1' in summary or 'LOW RUNG' in summary:
             tower_level = 'level1'
-        elif 'L2' in summary:
+        elif 'L2' in summary or 'MID RUNG' in summary:
             tower_level = 'level2'
-        elif 'L3' in summary:
+        elif 'L3' in summary or 'HIGH RUNG' in summary:
             tower_level = 'level3'
         else:
             tower_level = ''
         
-        return {'climb': climb, 'tower_level': tower_level}
+        return {
+            'climb': 'climbed', 
+            'tower_level': tower_level,
+            'climb_successful': climb_successful
+        }
     
-    return {'climb': 'none', 'tower_level': ''}
+    return {
+        'climb': 'none', 
+        'tower_level': '',
+        'climb_successful': False
+    }
 
 # Updated calculate_endgame_score function
 def calculate_endgame_score(endgame_data):
-    """Calculate endgame score based on REEFSCAPE official scoring"""
-    action = endgame_data.get('action', '').lower()
+    """Calculate endgame score for REBUILT (Table 6-4)"""
+    climb = endgame_data.get('climb', 'none')
+    climb_successful = endgame_data.get('climb_successful', False)
     
-    if action == 'climb':
-        if endgame_data.get('climbSuccessful', False):
-            climb_depth = endgame_data.get('climbDepth', '').lower()
-            if climb_depth == 'deep':
-                return 12  # Deep CAGE = 12 points
-            elif climb_depth == 'shallow':
-                return 6   # Shallow CAGE = 6 points
-            else:
-                return 6   # Default to shallow if depth unknown
-        elif endgame_data.get('climbParked', False):
-            return 2   # Failed climb but parked = 2 points
-        else:
-            return 0   # Failed climb, no park = 0 points
-    elif action == 'park':
-        return 2  # PARK in BARGE ZONE = 2 points
+    # Only award points if climb was successful
+    if climb == 'climbed' and climb_successful:
+        tower_level = endgame_data.get('tower_level', '').lower()
+        
+        if tower_level == 'level1':
+            return 10  # LEVEL 1 = 10 points
+        elif tower_level == 'level2':
+            return 20  # LEVEL 2 = 20 points
+        elif tower_level == 'level3':
+            return 30  # LEVEL 3 = 30 points
     
-    return 0  # No endgame action = 0 points
+    return 0
 
 def calculate_auto_score(auto_data):
     """Calculate auto score for REBUILT (Table 6-4)"""
@@ -1369,13 +1377,13 @@ def get_sheet_config():
     """Get the appropriate sheet configuration based on dev mode"""
     if is_dev_user():
         return {
-            'SHEET_NAME': 'TestingDataDev',  # 'TestingDataDev'
+            'SHEET_NAME': 'TestingDataDev',
             'SHEET_ID': 1892725645
         }
     else:
         return {
-            'SHEET_NAME': 'TestingData',  # 'TestingData'
-            'SHEET_ID': 1549733301
+            'SHEET_NAME': 'RebuiltTestV1',  # Changed from 'TestingData'
+            'SHEET_ID': 1685353109  # Changed from 1549733301
         }
 
 # =============================================================================
@@ -1484,17 +1492,22 @@ def submit():
 
     # ENDGAME SUMMARY
     climb_status = endgame.get('climb', 'none')
-    
-    if climb_status == 'climbed':
-        tower_level = endgame.get('tower_level', '').strip().lower()
+    climb_successful = endgame.get('climb_successful', False)
+
+    if climb_status == 'none' or not climb_status:
+        endgame_summary = "Didn't Climb"
+    elif climb_status in ['level1', 'level2', 'level3']:
+        # Determine level name and points
+        level_info = {
+            'level1': ('L1 (LOW RUNG)', '10pts'),
+            'level2': ('L2 (MID RUNG)', '20pts'),
+            'level3': ('L3 (HIGH RUNG)', '30pts')
+        }
         
-        level_name = {
-            'level1': 'L1 (10pts)',
-            'level2': 'L2 (20pts)',
-            'level3': 'L3 (30pts)'
-        }.get(tower_level, 'Unknown Level')
+        level_name, points = level_info.get(climb_status, ('Unknown Level', '0pts'))
+        success_status = "✓ SUCCESSFUL" if climb_successful else "✗ FAILED"
         
-        endgame_summary = f"TOWER Climbed - {level_name}"
+        endgame_summary = f"TOWER Climbed - {level_name} ({points}) - {success_status}"
     else:
         endgame_summary = "Didn't Climb"
 

@@ -161,22 +161,24 @@
 
             <div class="form-group">
               <label for="endgame_climb">TOWER Climb</label>
-              <select id="endgame_climb" name="endgame_climb">
+              <select id="endgame_climb" name="endgame_climb" required>
+                <option value="">Select Climb Status</option>
                 <option value="none">Didn't Climb</option>
-                <option value="climbed">Climbed Successfully</option>
-              </select>
-            </div>
-
-            <div class="form-group" id="tower_level_field" style="display: none;">
-              <label for="tower_level">TOWER Level Reached</label>
-              <select id="tower_level" name="tower_level">
-                <option value="">Select Level</option>
                 <option value="level1">LEVEL 1 (LOW RUNG - 10pts)</option>
                 <option value="level2">LEVEL 2 (MID RUNG - 20pts)</option>
                 <option value="level3">LEVEL 3 (HIGH RUNG - 30pts)</option>
               </select>
             </div>
+
+            <!-- NEW: Climb success checkbox (only shows when a level is selected) -->
+            <div class="form-group" id="climb_success_field" style="display: none;">
+              <div class="checkbox-group">
+                <input type="checkbox" id="climb_successful" name="climb_successful">
+                <label for="climb_successful">✓ Climb was successful</label>
+              </div>
+            </div>
           </div>
+
 
           <!-- Notes Section -->
           <div class="form-section">
