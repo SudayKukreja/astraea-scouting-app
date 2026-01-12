@@ -23,22 +23,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ========== COUNTER BUTTON FUNCTIONALITY ==========
   const counterButtons = document.querySelectorAll('.counter-btn');
-  
+
   counterButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const targetId = btn.getAttribute('data-target');
       const input = document.getElementById(targetId);
       const currentValue = parseInt(input.value) || 0;
-      
+
       if (btn.classList.contains('plus')) {
         input.value = currentValue + 1;
       } else if (btn.classList.contains('minus')) {
         input.value = Math.max(0, currentValue - 1);
       }
-      
-      // Save to draft
+
       saveDraft();
+    });
+  });
+
+  // ========== NEW: Allow manual typing in counter inputs ==========
+  const counterInputs = document.querySelectorAll('.counter-group input[type="number"]');
+
+  counterInputs.forEach(input => {
+    // Remove readonly to allow typing
+    input.removeAttribute('readonly');
+
+    // Validate on input
+    input.addEventListener('input', (e) => {
+      let value = parseInt(e.target.value);
+
+      if (isNaN(value) || value < 0) {
+        e.target.value = 0;
+      }
+
+      saveDraft();
+    });
+
+    // Validate on blur
+    input.addEventListener('blur', (e) => {
+      let value = parseInt(e.target.value);
+
+      if (isNaN(value) || value < 0) {
+        e.target.value = 0;
+      }
     });
   });
 
@@ -58,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (robotRole) {
     robotRole.addEventListener('change', () => {
       const role = robotRole.value;
-      
+
       if (role === 'offense') {
         ratingFields.style.display = 'grid';
         offenseRatingField.style.display = 'block';
@@ -138,13 +165,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     }
-    
-    // Trigger endgame climb display
+
     if (endgameClimb && endgameClimb.value === 'climbed') {
       towerLevelField.style.display = 'block';
     }
-    
-    // Trigger robot role rating fields display
+
     if (robotRole && robotRole.value) {
       robotRole.dispatchEvent(new Event('change'));
     }
@@ -222,26 +247,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tabErrors = [];
 
-    // Validate Auto
     const autoFuelScored = parseInt(getValue('auto_fuel_scored')) || 0;
     const autoFuelMissed = parseInt(getValue('auto_fuel_missed')) || 0;
     const autoNoMove = getCheckbox('auto_no_move');
-    
+
     if (autoFuelScored === 0 && autoFuelMissed === 0 && !autoNoMove && !getCheckbox('auto_left_zone')) {
       tabErrors.push({ tab: 'auto', message: 'Please fill out something in Autonomous tab' });
     }
 
-    // Validate Teleop
     const teleopFuelScored = parseInt(getValue('teleop_fuel_scored')) || 0;
     const teleopFuelMissed = parseInt(getValue('teleop_fuel_missed')) || 0;
     const teleopNoMove = getCheckbox('teleop_no_move');
     const robotRoleValue = getValue('robot_role');
-    
+
     if (teleopFuelScored === 0 && teleopFuelMissed === 0 && !teleopNoMove && !robotRoleValue) {
       tabErrors.push({ tab: 'teleop', message: 'Please fill out something in Teleop tab' });
     }
 
-    // Validate Endgame
     if (!getValue('endgame_climb')) {
       tabErrors.push({ tab: 'endgame', message: 'Please select Endgame action' });
       showError(document.getElementById('endgame_climb'), 'Required');
@@ -350,7 +372,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Trigger robot role on page load if value exists
   if (robotRole && robotRole.value) {
     robotRole.dispatchEvent(new Event('change'));
   }
