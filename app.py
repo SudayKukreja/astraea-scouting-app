@@ -1447,10 +1447,11 @@ def submit():
         auto_fuel = auto.get('fuel_scored', 0)
         auto_missed = auto.get('fuel_missed', 0)
         left_zone = auto.get('left_zone', False)
+        intake_src = auto.get('intake_source', 'none')
         
         leave_text = ", LEFT ZONE" if left_zone else ""
-        auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{leave_text}"
-        auto_intake_source = data.get('auto', {}).get('intake_source', 'none')
+        intake_text = f", Source: {intake_src.upper()}" if intake_src != 'none' else ""
+        auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{leave_text}{intake_text}"
 
 
     # TELEOP SUMMARY
