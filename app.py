@@ -1450,6 +1450,8 @@ def submit():
         
         leave_text = ", LEFT ZONE" if left_zone else ""
         auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{leave_text}"
+        auto_intake_source = data.get('auto', {}).get('intake_source', 'none')
+
 
     # TELEOP SUMMARY
     if teleop_no_move:
@@ -1459,6 +1461,8 @@ def submit():
         teleop_missed = teleop.get('fuel_missed', 0)
         can_bump = teleop.get('can_cross_bump', False)
         can_trench = teleop.get('can_cross_trench', False)
+        intake_src = teleop.get('primary_intake_source', 'none')
+        shooter_rating = teleop.get('shooter_reliability', 0)
         
         mobility = []
         if can_bump:
@@ -1467,7 +1471,9 @@ def submit():
             mobility.append("TRENCH")
         
         mobility_text = f", Mobility: {'/'.join(mobility)}" if mobility else ""
-        teleop_summary = f"FUEL: {teleop_fuel} scored, {teleop_missed} missed{mobility_text}"
+        intake_text = f", Intake: {intake_src.upper()}" if intake_src != 'none' else ""
+        shooter_text = f", Shooter: {shooter_rating}/10"
+        teleop_summary = f"FUEL: {teleop_fuel} scored, {teleop_missed} missed{mobility_text}{intake_text}{shooter_text}"
 
     # OFFENSE/DEFENSE COLUMN
     def clean_rating(val):

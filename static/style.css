@@ -655,3 +655,18 @@ input, select, textarea {
         font-size: 1.1rem;
     }
 }
+
+/* Small helper text styling */
+small {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Number input for ratings */
+input[type="number"][max="10"] {
+  text-align: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}

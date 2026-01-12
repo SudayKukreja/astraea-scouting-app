@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formWarning = document.getElementById('form-warning');
   const spinner = document.getElementById('submit-spinner');
   const endgameClimb = document.getElementById('endgame_climb');
+  const climbSuccessField = document.getElementById('climb_success_field');
   const towerLevelField = document.getElementById('tower_level_field');
   const robotRole = document.getElementById('robot_role');
   const ratingFields = document.getElementById('rating_fields');
@@ -41,14 +42,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ========== NEW: Allow manual typing in counter inputs ==========
+  // ========== Allow manual typing in counter inputs ==========
   const counterInputs = document.querySelectorAll('.counter-group input[type="number"]');
 
   counterInputs.forEach(input => {
-    // Remove readonly to allow typing
     input.removeAttribute('readonly');
 
-    // Validate on input
     input.addEventListener('input', (e) => {
       let value = parseInt(e.target.value);
 
@@ -59,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
       saveDraft();
     });
 
-    // Validate on blur
     input.addEventListener('blur', (e) => {
       let value = parseInt(e.target.value);
 
@@ -69,15 +67,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // ========== ENDGAME CLIMB HANDLER ==========
-  if (endgameClimb) {
+  // ========== ENDGAME CLIMB HANDLER - FIXED ==========
+  if (endgameClimb && climbSuccessField) {
     endgameClimb.addEventListener('change', () => {
-      if (endgameClimb.value === 'climbed') {
-        towerLevelField.style.display = 'block';
+      const climbValue = endgameClimb.value;
+      
+      // Show climb success field if any climb level is selected
+      if (climbValue && climbValue !== 'none' && climbValue !== '') {
+        climbSuccessField.style.display = 'block';
       } else {
-        towerLevelField.style.display = 'none';
-        document.getElementById('tower_level').value = '';
+        climbSuccessField.style.display = 'none';
+        // Uncheck the checkbox when hiding
+        const climbSuccessCheckbox = document.getElementById('climb_successful');
+        if (climbSuccessCheckbox) {
+          climbSuccessCheckbox.checked = false;
+        }
       }
+      
+      saveDraft();
     });
   }
 
@@ -103,6 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         ratingFields.style.display = 'none';
       }
+      
+      saveDraft();
     });
   }
 
@@ -152,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
   }
 
+  // ========== LOAD SAVED DRAFT ==========
   const savedDraft = localStorage.getItem('scoutDraft');
   if (savedDraft) {
     const draftObj = JSON.parse(savedDraft);
@@ -166,10 +176,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    if (endgameClimb && endgameClimb.value === 'climbed') {
-      towerLevelField.style.display = 'block';
+    // Trigger endgame climb change to show/hide climb success field
+    if (endgameClimb && endgameClimb.value) {
+      endgameClimb.dispatchEvent(new Event('change'));
     }
 
+    // Trigger robot role change
     if (robotRole && robotRole.value) {
       robotRole.dispatchEvent(new Event('change'));
     }
@@ -226,9 +238,18 @@ document.addEventListener('DOMContentLoaded', () => {
     sendQueuedSubmissions();
   });
 
-  // ========== FORM SUBMISSION ==========
+  // ========== FORM SUBMISSION - FIXED ==========
+  let isSubmitting = false; // Prevent double submissions
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring duplicate submission');
+      return;
+    }
+    
     clearErrors();
 
     const getValue = id => document.getElementById(id)?.value.trim();
@@ -277,10 +298,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Set submitting flag
+    isSubmitting = true;
+    
     spinner.style.display = 'block';
     formWarning.style.display = 'block';
     formWarning.style.color = '#2563eb';
-    formWarning.textContent = 'Submitting... This may take a few seconds, please wait.';
+    formWarning.textContent = 'Submitting... Please wait.';
     submitBtn.disabled = true;
 
     const responseTimeField = document.getElementById('response_time');
@@ -303,7 +327,8 @@ document.addEventListener('DOMContentLoaded', () => {
         fuel_scored: parseInt(getValue('auto_fuel_scored')) || 0,
         fuel_missed: parseInt(getValue('auto_fuel_missed')) || 0,
         left_zone: getCheckbox('auto_left_zone'),
-        no_move: getCheckbox('auto_no_move')
+        no_move: getCheckbox('auto_no_move'),
+        intake_source: getValue('auto_intake_source') || 'none'
       },
       teleop: {
         fuel_scored: parseInt(getValue('teleop_fuel_scored')) || 0,
@@ -313,11 +338,13 @@ document.addEventListener('DOMContentLoaded', () => {
         defense_rating: getValue('defense_rating') || '-',
         can_cross_bump: getCheckbox('can_cross_bump'),
         can_cross_trench: getCheckbox('can_cross_trench'),
-        no_move: getCheckbox('teleop_no_move')
+        no_move: getCheckbox('teleop_no_move'),
+        primary_intake_source: getValue('teleop_intake_source') || 'none',
+        shooter_reliability: parseInt(getValue('shooter_reliability')) || 0
       },
       endgame: {
         climb: getValue('endgame_climb') || 'none',
-        tower_level: getValue('tower_level') || ''
+        climb_successful: getCheckbox('climb_successful') || false
       },
       notes: getValue('notes') || '',
       response_time: responseTimeField.value,
@@ -333,46 +360,52 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (res.ok) {
-        alert('Scout report submitted successfully!');
-        form.reset();
+        // Clear draft immediately
         localStorage.removeItem('scoutDraft');
-
-        tabs.forEach(b => b.classList.remove('active'));
-        tabs[0].classList.add('active');
-        tabContents.forEach(t => t.classList.remove('active'));
-        tabContents[0].classList.add('active');
-
-        towerLevelField.style.display = 'none';
-        formWarning.style.display = 'none';
-
+        
+        // Show success message briefly
+        alert('Scout report submitted successfully!');
+        
+        // Redirect to dashboard
         window.location.href = '/dashboard?completed=true';
       } else {
+        // Reset flag on error
+        isSubmitting = false;
+        
         formWarning.style.display = 'block';
         formWarning.style.color = '#b33';
         formWarning.textContent = 'Error submitting report. Please try again.';
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
       }
     } catch (err) {
-      saveOffline(data);
-      alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online.');
-      form.reset();
-      localStorage.removeItem('scoutDraft');
-
-      tabs.forEach(b => b.classList.remove('active'));
-      tabs[0].classList.add('active');
-      tabContents.forEach(t => t.classList.remove('active'));
-      tabContents[0].classList.add('active');
-
-      towerLevelField.style.display = 'none';
-      formWarning.style.display = 'none';
-
-      window.location.href = '/dashboard?completed=true';
-    } finally {
-      spinner.style.display = 'none';
-      submitBtn.disabled = false;
+      console.error('Submission error:', err);
+      
+      // Check if actually offline
+      if (!navigator.onLine) {
+        saveOffline(data);
+        localStorage.removeItem('scoutDraft');
+        alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online.');
+        window.location.href = '/dashboard?completed=true';
+      } else {
+        // Network error but not offline - reset and show error
+        isSubmitting = false;
+        formWarning.style.display = 'block';
+        formWarning.style.color = '#b33';
+        formWarning.textContent = 'Network error. Please check your connection and try again.';
+        spinner.style.display = 'none';
+        submitBtn.disabled = false;
+      }
     }
   });
 
+  // Trigger initial state for robot role if draft loaded
   if (robotRole && robotRole.value) {
     robotRole.dispatchEvent(new Event('change'));
+  }
+  
+  // Trigger initial state for endgame climb if draft loaded
+  if (endgameClimb && endgameClimb.value) {
+    endgameClimb.dispatchEvent(new Event('change'));
   }
 });

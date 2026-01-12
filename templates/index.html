@@ -84,6 +84,16 @@
               <input type="checkbox" id="auto_no_move" name="auto_no_move">
               <label for="auto_no_move">Did not move in Auto</label>
             </div>
+            <h3 class="section-subtitle">Intake Source</h3>
+            <div class="form-group">
+              <label for="auto_intake_source">Primary FUEL Source</label>
+              <select id="auto_intake_source" name="auto_intake_source">
+                <option value="none">None / Field Center</option>
+                <option value="preload">Pre-loaded FUEL</option>
+                <option value="depot">DEPOT</option>
+                <option value="human_player">Human Player Station</option>
+              </select>
+            </div>
           </div>
 
           <!-- Teleop Tab -->
@@ -124,6 +134,25 @@
               <input type="checkbox" id="teleop_no_move" name="teleop_no_move">
               <label for="teleop_no_move">Did not move in Teleop</label>
             </div>
+
+            <h3 class="section-subtitle">Intake & Shooting</h3>
+              <div class="form-group">
+                <label for="teleop_intake_source">Primary FUEL Source</label>
+                <select id="teleop_intake_source" name="teleop_intake_source">
+                  <option value="none">Field Center Only</option>
+                  <option value="depot">DEPOT</option>
+                  <option value="human_player">Human Player Station (OUTPOST)</option>
+                  <option value="mixed">Mixed Sources</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="shooter_reliability">Shooter Reliability (1-10)</label>
+                <input type="number" id="shooter_reliability" name="shooter_reliability" value="5" min="1" max="10">
+                <small style="color: var(--text-muted); font-size: 0.85rem; display: block; margin-top: 0.5rem;">
+                  1 = Very unreliable, 10 = Perfect accuracy
+                </small>
+              </div>
 
             <h3 class="section-subtitle">Robot Performance</h3>
             <div class="form-group">
@@ -170,22 +199,21 @@
               </select>
             </div>
 
-            <!-- NEW: Climb success checkbox (only shows when a level is selected) -->
+            <!-- Climb success checkbox (shows when a climb level is selected) -->
             <div class="form-group" id="climb_success_field" style="display: none;">
               <div class="checkbox-group">
                 <input type="checkbox" id="climb_successful" name="climb_successful">
                 <label for="climb_successful">✓ Climb was successful</label>
               </div>
             </div>
-          </div>
 
-
-          <!-- Notes Section -->
-          <div class="form-section">
-            <h2 class="section-title">Notes About Match</h2>
-            <div class="form-group">
-              <label for="notes">Notes</label>
-              <textarea id="notes" name="notes" placeholder="Any additional observations about the robot's performance..."></textarea>
+            <!-- Notes Section -->
+            <div class="form-section">
+              <h2 class="section-title">Notes About Match</h2>
+              <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" placeholder="Any additional observations about the robot's performance..."></textarea>
+              </div>
             </div>
           </div>
 
@@ -335,7 +363,5 @@
     document.body.style.paddingTop = '40px';
   }
 </script>
-</body>
-</html>
 </body>
 </html>
