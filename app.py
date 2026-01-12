@@ -473,38 +473,23 @@ def safe_int(value, default=0):
         return default
 
 def parse_auto_summary(summary):
-    """Parse auto summary string into structured data"""
-    if not summary:
-        return {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    """Parse auto summary for REBUILT"""
+    if not summary or "Didn't move" in summary:
+        return {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False}
     
-    data = {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    data = {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False}
     
-    if "Didn't move in auto" in summary:
-        return data
-    elif "Only moved forward" in summary:
-        # Extract dropped pieces if present
-        dropped_match = re.search(r'Dropped:(\d+)', summary)
-        if dropped_match:
-            data['droppedPieces'] = int(dropped_match.group(1))
-        return data
+    # Parse: "FUEL: 3 scored, 1 missed, LEFT ZONE"
+    fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
+    if fuel_match:
+        data['fuel_scored'] = int(fuel_match.group(1))
+        data['fuel_missed'] = int(fuel_match.group(2))
     
-    # Parse scoring data: "L1:2, L2:1, L3:0, L4:1, P:1, B:0, Dropped:1"
-    patterns = {
-        'll1': r'L1:(\d+)',
-        'l2': r'L2:(\d+)',
-        'l3': r'L3:(\d+)',
-        'l4': r'L4:(\d+)',
-        'processor': r'P:(\d+)',
-        'barge': r'B:(\d+)',
-        'droppedPieces': r'Dropped:(\d+)'
-    }
-    
-    for key, pattern in patterns.items():
-        match = re.search(pattern, summary)
-        if match:
-            data[key] = int(match.group(1))
+    if 'LEFT ZONE' in summary:
+        data['left_zone'] = True
     
     return data
+    
 
 def parse_offense_defense_column(column_text):
     """Parse the combined offense/defense column to extract ratings"""
@@ -540,73 +525,46 @@ def parse_offense_defense_column(column_text):
         return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
 
 def parse_teleop_summary(summary):
-    """Parse teleop summary string into structured data"""
-    if not summary:
-        return {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    """Parse teleop summary for REBUILT"""
+    if not summary or "Didn't move" in summary:
+        return {'fuel_scored': 0, 'fuel_missed': 0, 'can_cross_bump': False, 'can_cross_trench': False}
     
-    data = {'ll1': 0, 'l2': 0, 'l3': 0, 'l4': 0, 'processor': 0, 'barge': 0, 'droppedPieces': 0}
+    data = {'fuel_scored': 0, 'fuel_missed': 0, 'can_cross_bump': False, 'can_cross_trench': False}
     
-    if "Didn't move in teleop" in summary:
-        return data
+    # Parse: "FUEL: 12 scored, 3 missed, Mobility: BUMP/TRENCH"
+    fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
+    if fuel_match:
+        data['fuel_scored'] = int(fuel_match.group(1))
+        data['fuel_missed'] = int(fuel_match.group(2))
     
-    # Parse scoring data: "L1:5, L2:3, L3:1, L4:0, P:2, B:1, Dropped:2"
-    patterns = {
-        'll1': r'L1:(\d+)',
-        'l2': r'L2:(\d+)',
-        'l3': r'L3:(\d+)',
-        'l4': r'L4:(\d+)',
-        'processor': r'P:(\d+)',
-        'barge': r'B:(\d+)',
-        'droppedPieces': r'Dropped:(\d+)'
-    }
-    
-    for key, pattern in patterns.items():
-        match = re.search(pattern, summary)
-        if match:
-            data[key] = int(match.group(1))
+    if 'BUMP' in summary:
+        data['can_cross_bump'] = True
+    if 'TRENCH' in summary:
+        data['can_cross_trench'] = True
     
     return data
 
 def parse_endgame_summary(summary):
-    """Parse endgame summary string into structured data"""
-    if not summary:
-        return {'action': 'did not park/climb', 'climbDepth': '', 'climbSuccessful': False, 'climbParked': False}
+    """Parse endgame summary for REBUILT"""
+    if not summary or "Didn't Climb" in summary:
+        return {'climb': 'none', 'tower_level': ''}
     
-    summary_lower = summary.lower()
+    # Parse: "TOWER Climbed - L2 (20pts)"
+    if 'TOWER Climbed' in summary:
+        climb = 'climbed'
+        
+        if 'L1' in summary:
+            tower_level = 'level1'
+        elif 'L2' in summary:
+            tower_level = 'level2'
+        elif 'L3' in summary:
+            tower_level = 'level3'
+        else:
+            tower_level = ''
+        
+        return {'climb': climb, 'tower_level': tower_level}
     
-    # Check for "did not park/climb" first to avoid false positives
-    if 'did not park/climb' in summary_lower or 'did not park' in summary_lower:
-        return {
-            'action': 'did not park/climb',
-            'climbDepth': '',
-            'climbSuccessful': False,
-            'climbParked': False
-        }
-    elif 'park' in summary_lower and 'climb' not in summary_lower:
-        return {
-            'action': 'park',
-            'climbDepth': '',
-            'climbSuccessful': False,
-            'climbParked': False
-        }
-    elif 'climb' in summary_lower:
-        action = 'climb'
-        climb_depth = 'shallow' if 'shallow' in summary_lower else 'deep' if 'deep' in summary_lower else 'unknown'
-        climb_successful = 'success' in summary_lower
-        climb_parked = 'failed but parked' in summary_lower or 'parked' in summary_lower
-        return {
-            'action': action,
-            'climbDepth': climb_depth,
-            'climbSuccessful': climb_successful,
-            'climbParked': climb_parked
-        }
-    else:
-        return {
-            'action': 'did not park/climb',
-            'climbDepth': '',
-            'climbSuccessful': False,
-            'climbParked': False
-        }
+    return {'climb': 'none', 'tower_level': ''}
 
 # Updated calculate_endgame_score function
 def calculate_endgame_score(endgame_data):
@@ -632,60 +590,42 @@ def calculate_endgame_score(endgame_data):
     return 0  # No endgame action = 0 points
 
 def calculate_auto_score(auto_data):
-    """Calculate auto score based on REEFSCAPE official scoring"""
+    """Calculate auto score for REBUILT (Table 6-4)"""
     score = 0
     
-    # CORAL scoring in AUTO (from Table 6-2)
-    score += auto_data.get('ll1', 0) * 3   # L1 (trough) = 3 points
-    score += auto_data.get('l2', 0) * 4    # L2 BRANCH = 4 points  
-    score += auto_data.get('l3', 0) * 6    # L3 BRANCH = 6 points
-    score += auto_data.get('l4', 0) * 7    # L4 BRANCH = 7 points
+    # FUEL scored in HUB = 1 point each
+    score += auto_data.get('fuel_scored', 0) * 1
     
-    # ALGAE scoring in AUTO (from Table 6-2)
-    score += auto_data.get('processor', 0) * 6  # PROCESSOR = 6 points
-    score += auto_data.get('barge', 0) * 4      # NET = 4 points (assuming barge refers to NET)
-    
-    # Note: LEAVE points (3 points) are not included here as they're tracked separately
-    # Note: Dropped pieces don't score negatively in official rules
+    # LEAVE points (3 points) - if robot left ALLIANCE ZONE
+    if auto_data.get('left_zone', False):
+        score += 3
     
     return score
 
 def calculate_teleop_score(teleop_data):
-    """Calculate teleop score based on REEFSCAPE official scoring"""
+    """Calculate teleop score for REBUILT (Table 6-4)"""
     score = 0
     
-    # CORAL scoring in TELEOP (from Table 6-2)
-    score += teleop_data.get('ll1', 0) * 2   # L1 (trough) = 2 points
-    score += teleop_data.get('l2', 0) * 3    # L2 BRANCH = 3 points
-    score += teleop_data.get('l3', 0) * 4    # L3 BRANCH = 4 points  
-    score += teleop_data.get('l4', 0) * 5    # L4 BRANCH = 5 points
-    
-    # ALGAE scoring in TELEOP (from Table 6-2)
-    score += teleop_data.get('processor', 0) * 6  # PROCESSOR = 6 points
-    score += teleop_data.get('barge', 0) * 4      # NET = 4 points (assuming barge refers to NET)
-    
-    # Note: Dropped pieces don't score negatively in official rules
-    # Note: Offense/Defense ratings are subjective and don't contribute to match points
+    # FUEL scored in HUB = 1 point each
+    score += teleop_data.get('fuel_scored', 0) * 1
     
     return score
 
 def calculate_endgame_score(endgame_data):
-    """Calculate endgame score based on REEFSCAPE official scoring"""
-    action = endgame_data.get('action', '').lower()
+    """Calculate endgame score for REBUILT (Table 6-4)"""
+    climb = endgame_data.get('climb', 'none')
     
-    if action == 'climb' and endgame_data.get('climbSuccessful', False):
-        climb_depth = endgame_data.get('climbDepth', '').lower()
-        if climb_depth == 'deep':
-            return 12  # Deep CAGE = 12 points (from Table 6-2)
-        elif climb_depth == 'shallow':
-            return 6   # Shallow CAGE = 6 points (from Table 6-2)
-        else:
-            # If depth is unknown but climb was successful, assume shallow
-            return 6
-    elif action == 'park':
-        return 2  # PARK in BARGE ZONE = 2 points (from Table 6-2)
+    if climb == 'climbed':
+        tower_level = endgame_data.get('tower_level', '').lower()
+        
+        if tower_level == 'level1':
+            return 10  # LEVEL 1 = 10 points
+        elif tower_level == 'level2':
+            return 20  # LEVEL 2 = 20 points
+        elif tower_level == 'level3':
+            return 30  # LEVEL 3 = 30 points
     
-    return 0  # No endgame action = 0 points
+    return 0
 
 # Additional function to calculate other potential scores
 def calculate_additional_scores(auto_data, teleop_data, endgame_data):
@@ -1481,8 +1421,6 @@ def submit():
 
     timestamp_us = now.isoformat(timespec='microseconds')
     unique_suffix = uuid4().hex[:8]
-    submitted_time_internal = f"{timestamp_us}_{unique_suffix}"
-
     submitted_time_display = now.strftime("%m/%d/%Y %I:%M:%S %p")
 
     auto = data.get('auto', {})
@@ -1491,13 +1429,39 @@ def submit():
     notes = data.get('notes', '').strip()
 
     auto_no_move = auto.get('no_move', False)
-    auto_only_moved = auto.get('only_moved', False)
     teleop_no_move = teleop.get('no_move', False)
-    partial_match = data.get('partial_match', False) 
+    partial_match = data.get('partial_match', False)
 
-    auto_dropped_pieces = auto.get('dropped_pieces', 0)
-    
-    # DEFINE clean_rating FUNCTION HERE (BEFORE IT'S USED)
+    # AUTO SUMMARY
+    if auto_no_move:
+        auto_summary = "Didn't move in auto"
+    else:
+        auto_fuel = auto.get('fuel_scored', 0)
+        auto_missed = auto.get('fuel_missed', 0)
+        left_zone = auto.get('left_zone', False)
+        
+        leave_text = ", LEFT ZONE" if left_zone else ""
+        auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{leave_text}"
+
+    # TELEOP SUMMARY
+    if teleop_no_move:
+        teleop_summary = "Didn't move in teleop"
+    else:
+        teleop_fuel = teleop.get('fuel_scored', 0)
+        teleop_missed = teleop.get('fuel_missed', 0)
+        can_bump = teleop.get('can_cross_bump', False)
+        can_trench = teleop.get('can_cross_trench', False)
+        
+        mobility = []
+        if can_bump:
+            mobility.append("BUMP")
+        if can_trench:
+            mobility.append("TRENCH")
+        
+        mobility_text = f", Mobility: {'/'.join(mobility)}" if mobility else ""
+        teleop_summary = f"FUEL: {teleop_fuel} scored, {teleop_missed} missed{mobility_text}"
+
+    # OFFENSE/DEFENSE COLUMN
     def clean_rating(val):
         try:
             val_num = int(val)
@@ -1505,7 +1469,6 @@ def submit():
         except:
             return '-' if val is None or val == '' else str(val)
     
-    # Build offense/defense rating column
     robot_role = teleop.get('robot_role', '')
     offense_rating = clean_rating(teleop.get('offense_rating', '-'))
     defense_rating = clean_rating(teleop.get('defense_rating', '-'))
@@ -1518,64 +1481,22 @@ def submit():
         offense_defense_column = f"Both (O:{offense_rating}, D:{defense_rating})"
     else:
         offense_defense_column = "-"
+
+    # ENDGAME SUMMARY
+    climb_status = endgame.get('climb', 'none')
     
-    # Auto summary logic
-    if auto_no_move:
-        auto_summary = "Didn't move in auto"
-    elif auto_only_moved:
-        auto_summary = f"Only moved forward (no scoring), Dropped:{auto_dropped_pieces}"
+    if climb_status == 'climbed':
+        tower_level = endgame.get('tower_level', '').strip().lower()
+        
+        level_name = {
+            'level1': 'L1 (10pts)',
+            'level2': 'L2 (20pts)',
+            'level3': 'L3 (30pts)'
+        }.get(tower_level, 'Unknown Level')
+        
+        endgame_summary = f"TOWER Climbed - {level_name}"
     else:
-        auto_summary = (
-            f"L1:{auto.get('ll1', 0)}, L2:{auto.get('l2', 0)}, L3:{auto.get('l3', 0)}, "
-            f"L4:{auto.get('l4', 0)}, P:{auto.get('processor', 0)}, B:{auto.get('barge', 0)}, "
-            f"Dropped:{auto_dropped_pieces}"
-        )
-
-    # Teleop summary logic - ONLY scoring data
-    if teleop_no_move:
-        teleop_summary = "Didn't move in teleop"
-    else:
-        dropped_pieces = teleop.get('dropped_pieces', 0)
-        teleop_summary = (
-            f"L1:{teleop.get('ll1', 0)}, L2:{teleop.get('l2', 0)}, L3:{teleop.get('l3', 0)}, "
-            f"L4:{teleop.get('l4', 0)}, P:{teleop.get('processor', 0)}, B:{teleop.get('barge', 0)}, "
-            f"Dropped:{dropped_pieces}"
-        )
-
-    def clean_rating(val):
-        try:
-            val_num = int(val)
-            return str(val_num) if val_num > 0 else '-'
-        except:
-            return '-' if val is None or val == '' else str(val)
-
-    # Endgame summary logic
-    endgame_action = endgame.get('action', '').strip().lower()
-    if endgame_action == 'climb':
-        climb_depth = endgame.get('climb_depth', '').strip().lower()
-        climb_successful = endgame.get('climb_successful', False)
-        climb_parked = endgame.get('climb_parked', False)
-
-        if climb_depth == 'shallow':
-            climb_type = "Shallow climb"
-        elif climb_depth == 'deep':
-            climb_type = "Deep climb"
-        else:
-            climb_type = "Climb"
-
-        if climb_successful:
-            endgame_summary = f"{climb_type} - Success"
-        elif climb_parked:
-            endgame_summary = f"{climb_type} - Failed but Parked"
-        else:
-            endgame_summary = f"{climb_type} - Failed"
-    
-    elif endgame_action == 'park':
-        endgame_summary = "Park"
-    elif endgame_action == 'did not park/climb':
-        endgame_summary = "Did Not Park/Climb"
-    else:
-        endgame_summary = "None"
+        endgame_summary = "Didn't Climb"
 
     # Partial match column
     partial_match_status = "Yes" if partial_match else "No"
@@ -1586,6 +1507,12 @@ def submit():
         endgame_summary, partial_match_status, notes
     ]
 
+    # Get sheet config
+    sheet_config = get_sheet_config()
+    SHEET_NAME = sheet_config['SHEET_NAME']
+    SHEET_ID = sheet_config['SHEET_ID']
+
+    # Read existing data
     result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
     all_values = result.get('values', [])
 
@@ -1649,7 +1576,7 @@ def submit():
                     "repeatCell": {
                         "range": {
                             "sheetId": SHEET_ID, 
-                            "startRowIndex": current_row, 
+                            "startRowIndex": current_row,
                             "endRowIndex": current_row + 1,
                             "startColumnIndex": 8,
                             "endColumnIndex": 9

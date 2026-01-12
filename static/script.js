@@ -5,10 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = form.querySelector('button[type="submit"]');
   const formWarning = document.getElementById('form-warning');
   const spinner = document.getElementById('submit-spinner');
-  const endgameAction = document.getElementById('endgame_action');
-  const climbDepthLabel = document.getElementById('climb_depth_label');
-  const climbSuccessLabel = document.getElementById('climb_success_label');
-  const climbParkedLabel = document.getElementById('climb_parked_label');
+  const endgameClimb = document.getElementById('endgame_climb');
+  const towerLevelField = document.getElementById('tower_level_field');
   const robotRole = document.getElementById('robot_role');
   const ratingFields = document.getElementById('rating_fields');
   const offenseRatingField = document.getElementById('offense_rating_field');
@@ -18,16 +16,70 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backBtn) {
     backBtn.addEventListener('click', () => {
       if (confirm('Are you sure you want to go back? Any unsaved changes will be lost.')) {
-        const referrer = document.referrer;
-        if (referrer && referrer.includes('/dashboard')) {
-          window.location.href = '/dashboard';
-        } else {
-          window.location.href = '/dashboard';
-        }
+        window.location.href = '/dashboard';
       }
     });
   }
 
+  // ========== COUNTER BUTTON FUNCTIONALITY ==========
+  const counterButtons = document.querySelectorAll('.counter-btn');
+  
+  counterButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = btn.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      const currentValue = parseInt(input.value) || 0;
+      
+      if (btn.classList.contains('plus')) {
+        input.value = currentValue + 1;
+      } else if (btn.classList.contains('minus')) {
+        input.value = Math.max(0, currentValue - 1);
+      }
+      
+      // Save to draft
+      saveDraft();
+    });
+  });
+
+  // ========== ENDGAME CLIMB HANDLER ==========
+  if (endgameClimb) {
+    endgameClimb.addEventListener('change', () => {
+      if (endgameClimb.value === 'climbed') {
+        towerLevelField.style.display = 'block';
+      } else {
+        towerLevelField.style.display = 'none';
+        document.getElementById('tower_level').value = '';
+      }
+    });
+  }
+
+  // ========== ROBOT ROLE HANDLER ==========
+  if (robotRole) {
+    robotRole.addEventListener('change', () => {
+      const role = robotRole.value;
+      
+      if (role === 'offense') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'block';
+        defenseRatingField.style.display = 'none';
+        document.getElementById('defense_rating').value = '0';
+      } else if (role === 'defense') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'none';
+        defenseRatingField.style.display = 'block';
+        document.getElementById('offense_rating').value = '0';
+      } else if (role === 'both') {
+        ratingFields.style.display = 'grid';
+        offenseRatingField.style.display = 'block';
+        defenseRatingField.style.display = 'block';
+      } else {
+        ratingFields.style.display = 'none';
+      }
+    });
+  }
+
+  // ========== TAB SWITCHING ==========
   function clearErrors() {
     formWarning.style.display = 'none';
     formWarning.textContent = '';
@@ -63,6 +115,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // ========== DRAFT SAVING ==========
+  function saveDraft() {
+    const draft = new FormData(form);
+    const draftObj = {};
+    draft.forEach((value, key) => {
+      draftObj[key] = value;
+    });
+    localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
+  }
+
   const savedDraft = localStorage.getItem('scoutDraft');
   if (savedDraft) {
     const draftObj = JSON.parse(savedDraft);
@@ -77,11 +139,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Trigger endgame action display
-    if (endgameAction && endgameAction.value === 'climb') {
-      climbDepthLabel.classList.remove('hidden');
-      climbSuccessLabel.classList.remove('hidden');
-      climbParkedLabel.classList.remove('hidden');
+    // Trigger endgame climb display
+    if (endgameClimb && endgameClimb.value === 'climbed') {
+      towerLevelField.style.display = 'block';
     }
     
     // Trigger robot role rating fields display
@@ -90,40 +150,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Robot role event listener
-  if (robotRole) {
-    robotRole.addEventListener('change', () => {
-      const role = robotRole.value;
-      
-      if (role === 'offense') {
-        ratingFields.style.display = 'grid';
-        offenseRatingField.style.display = 'block';
-        defenseRatingField.style.display = 'none';
-        document.getElementById('defense_rating').value = '0';
-      } else if (role === 'defense') {
-        ratingFields.style.display = 'grid';
-        offenseRatingField.style.display = 'none';
-        defenseRatingField.style.display = 'block';
-        document.getElementById('offense_rating').value = '0';
-      } else if (role === 'both') {
-        ratingFields.style.display = 'grid';
-        offenseRatingField.style.display = 'block';
-        defenseRatingField.style.display = 'block';
-      } else {
-        ratingFields.style.display = 'none';
-      }
-    });
-  }
+  form.addEventListener('input', saveDraft);
 
-  form.addEventListener('input', () => {
-    const draft = new FormData(form);
-    const draftObj = {};
-    draft.forEach((value, key) => {
-      draftObj[key] = value;
-    });
-    localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
-  });
-
+  // ========== TIMING TRACKING ==========
   let firstInputTime = null;
   function recordFirstInputTime() {
     if (!firstInputTime) {
@@ -135,6 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('input', recordFirstInputTime, { once: true });
   });
 
+  // ========== OFFLINE QUEUE ==========
   function saveOffline(data) {
     let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
     queue.push(data);
@@ -171,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sendQueuedSubmissions();
   });
 
+  // ========== FORM SUBMISSION ==========
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     clearErrors();
@@ -191,25 +222,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tabErrors = [];
 
-    const autoFields = ['auto_ll1', 'auto_l2', 'auto_l3', 'auto_l4', 'auto_processor', 'auto_barge'];
-    const teleopFields = ['teleop_ll1', 'teleop_l2', 'teleop_l3', 'teleop_l4', 'teleop_processor', 'teleop_barge', 'robot_role'];
-    const endgameFields = ['endgame_action'];
-
-    if (!autoFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && 
-        !getCheckbox('auto_no_move') && 
-        !getCheckbox('auto_only_moved')) {
+    // Validate Auto
+    const autoFuelScored = parseInt(getValue('auto_fuel_scored')) || 0;
+    const autoFuelMissed = parseInt(getValue('auto_fuel_missed')) || 0;
+    const autoNoMove = getCheckbox('auto_no_move');
+    
+    if (autoFuelScored === 0 && autoFuelMissed === 0 && !autoNoMove && !getCheckbox('auto_left_zone')) {
       tabErrors.push({ tab: 'auto', message: 'Please fill out something in Autonomous tab' });
-      autoFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
     }
 
-    if (!teleopFields.some(id => getValue(id) !== '' && getValue(id) !== '0') && !getCheckbox('teleop_no_move')) {
+    // Validate Teleop
+    const teleopFuelScored = parseInt(getValue('teleop_fuel_scored')) || 0;
+    const teleopFuelMissed = parseInt(getValue('teleop_fuel_missed')) || 0;
+    const teleopNoMove = getCheckbox('teleop_no_move');
+    const robotRoleValue = getValue('robot_role');
+    
+    if (teleopFuelScored === 0 && teleopFuelMissed === 0 && !teleopNoMove && !robotRoleValue) {
       tabErrors.push({ tab: 'teleop', message: 'Please fill out something in Teleop tab' });
-      teleopFields.forEach(id => showError(document.getElementById(id), 'Expected input'));
     }
 
-    if (!getValue('endgame_action')) {
-      tabErrors.push({ tab: 'endgame', message: 'Please select an Endgame action' });
-      showError(document.getElementById('endgame_action'), 'Required');
+    // Validate Endgame
+    if (!getValue('endgame_climb')) {
+      tabErrors.push({ tab: 'endgame', message: 'Please select Endgame action' });
+      showError(document.getElementById('endgame_climb'), 'Required');
     }
 
     if (!formValid || tabErrors.length > 0) {
@@ -243,34 +278,24 @@ document.addEventListener('DOMContentLoaded', () => {
       match: getValue('match'),
       assignment_key: assignmentKey,
       auto: {
-        ll1: getValue('auto_ll1') || 0,
-        l2: getValue('auto_l2') || 0,
-        l3: getValue('auto_l3') || 0,
-        l4: getValue('auto_l4') || 0,
-        processor: getValue('auto_processor') || 0,
-        barge: getValue('auto_barge') || 0,
-        dropped_pieces: parseInt(getValue('auto_dropped_pieces')) || 0,
-        no_move: getCheckbox('auto_no_move'),
-        only_moved: getCheckbox('auto_only_moved')
+        fuel_scored: parseInt(getValue('auto_fuel_scored')) || 0,
+        fuel_missed: parseInt(getValue('auto_fuel_missed')) || 0,
+        left_zone: getCheckbox('auto_left_zone'),
+        no_move: getCheckbox('auto_no_move')
       },
       teleop: {
-        ll1: getValue('teleop_ll1') || 0,
-        l2: getValue('teleop_l2') || 0,
-        l3: getValue('teleop_l3') || 0,
-        l4: getValue('teleop_l4') || 0,
-        processor: getValue('teleop_processor') || 0,
-        barge: getValue('teleop_barge') || 0,
+        fuel_scored: parseInt(getValue('teleop_fuel_scored')) || 0,
+        fuel_missed: parseInt(getValue('teleop_fuel_missed')) || 0,
         robot_role: getValue('robot_role') || '',
         offense_rating: getValue('offense_rating') || '-',
         defense_rating: getValue('defense_rating') || '-',
-        no_move: getCheckbox('teleop_no_move'),
-        dropped_pieces: parseInt(getValue('dropped_pieces')) || 0
+        can_cross_bump: getCheckbox('can_cross_bump'),
+        can_cross_trench: getCheckbox('can_cross_trench'),
+        no_move: getCheckbox('teleop_no_move')
       },
       endgame: {
-        action: getValue('endgame_action') || '',
-        climb_depth: getValue('climb_depth') || '',
-        climb_successful: getCheckbox('climb_successful'),
-        climb_parked: getCheckbox('climb_parked')
+        climb: getValue('endgame_climb') || 'none',
+        tower_level: getValue('tower_level') || ''
       },
       notes: getValue('notes') || '',
       response_time: responseTimeField.value,
@@ -295,10 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabContents.forEach(t => t.classList.remove('active'));
         tabContents[0].classList.add('active');
 
-        climbDepthLabel.classList.add('hidden');
-        climbSuccessLabel.classList.add('hidden');
-        climbParkedLabel.classList.add('hidden');
-
+        towerLevelField.style.display = 'none';
         formWarning.style.display = 'none';
 
         window.location.href = '/dashboard?completed=true';
@@ -318,10 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
       tabContents.forEach(t => t.classList.remove('active'));
       tabContents[0].classList.add('active');
 
-      climbDepthLabel.classList.add('hidden');
-      climbSuccessLabel.classList.add('hidden');
-      climbParkedLabel.classList.add('hidden');
-
+      towerLevelField.style.display = 'none';
       formWarning.style.display = 'none';
 
       window.location.href = '/dashboard?completed=true';
@@ -330,41 +349,6 @@ document.addEventListener('DOMContentLoaded', () => {
       submitBtn.disabled = false;
     }
   });
-
-  if (endgameAction) {
-    endgameAction.addEventListener('change', () => {
-      if (endgameAction.value === 'climb') {
-        climbDepthLabel.classList.remove('hidden');
-        climbSuccessLabel.classList.remove('hidden');
-        climbParkedLabel.classList.remove('hidden');
-      } else {
-        climbDepthLabel.classList.add('hidden');
-        climbSuccessLabel.classList.add('hidden');
-        climbParkedLabel.classList.add('hidden');
-        const climbDepthInput = document.getElementById('climb_depth');
-        const climbSuccessfulInput = document.getElementById('climb_successful');
-        const climbParkedInput = document.getElementById('climb_parked');
-        climbDepthInput.value = '';
-        climbSuccessfulInput.checked = false;
-        climbParkedInput.checked = false;
-
-        const savedDraft = localStorage.getItem('scoutDraft');
-        if (savedDraft) {
-          const draftObj = JSON.parse(savedDraft);
-          if ('climb_depth' in draftObj) {
-            delete draftObj.climb_depth;
-          }
-          if ('climb_successful' in draftObj) {
-            delete draftObj.climb_successful;
-          }
-          if ('climb_parked' in draftObj) {
-            delete draftObj.climb_parked;
-          }
-          localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
-        }
-      }
-    });
-  }
 
   // Trigger robot role on page load if value exists
   if (robotRole && robotRole.value) {

@@ -55,100 +55,87 @@
           <!-- Auto Tab -->
           <div id="auto" class="tab-content active">
             <h2 class="section-title">Autonomous Period</h2>
-            <div class="form-row quarters">
-              <div class="form-group">
-                <label for="auto_ll1">L1</label>
-                <input type="number" id="auto_ll1" name="auto_ll1" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="auto_l2">L2</label>
-                <input type="number" id="auto_l2" name="auto_l2" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="auto_l3">L3</label>
-                <input type="number" id="auto_l3" name="auto_l3" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="auto_l4">L4</label>
-                <input type="number" id="auto_l4" name="auto_l4" value="0" min="0">
+            
+            <div class="form-group">
+              <label for="auto_fuel_scored">FUEL Scored in HUB</label>
+              <div class="counter-group">
+                <button type="button" class="counter-btn minus" data-target="auto_fuel_scored">−</button>
+                <input type="number" id="auto_fuel_scored" name="auto_fuel_scored" value="0" min="0" readonly>
+                <button type="button" class="counter-btn plus" data-target="auto_fuel_scored">+</button>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="auto_processor">Processor</label>
-                <input type="number" id="auto_processor" name="auto_processor" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="auto_barge">Barge</label>
-                <input type="number" id="auto_barge" name="auto_barge" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="auto_dropped_pieces">Game Pieces Dropped</label>
-                <input type="number" id="auto_dropped_pieces" name="auto_dropped_pieces" value="0" min="0">
+
+            <div class="form-group">
+              <label for="auto_fuel_missed">FUEL Missed</label>
+              <div class="counter-group">
+                <button type="button" class="counter-btn minus" data-target="auto_fuel_missed">−</button>
+                <input type="number" id="auto_fuel_missed" name="auto_fuel_missed" value="0" min="0" readonly>
+                <button type="button" class="counter-btn plus" data-target="auto_fuel_missed">+</button>
               </div>
             </div>
+
             <h3 class="section-subtitle">Mobility</h3>
+            <div class="checkbox-group">
+              <input type="checkbox" id="auto_left_zone" name="auto_left_zone">
+              <label for="auto_left_zone">Left ALLIANCE ZONE</label>
+            </div>
+            
             <div class="checkbox-group">
               <input type="checkbox" id="auto_no_move" name="auto_no_move">
               <label for="auto_no_move">Did not move in Auto</label>
-            </div>
-            <div class="checkbox-group">
-              <input type="checkbox" id="auto_only_moved" name="auto_only_moved">
-              <label for="auto_only_moved">Robot only moved forward (no scoring)</label>
             </div>
           </div>
 
           <!-- Teleop Tab -->
           <div id="teleop" class="tab-content">
             <h2 class="section-title">Teleoperated Period</h2>
-            <div class="form-row quarters">
-              <div class="form-group">
-                <label for="teleop_ll1">L1</label>
-                <input type="number" id="teleop_ll1" name="teleop_ll1" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="teleop_l2">L2</label>
-                <input type="number" id="teleop_l2" name="teleop_l2" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="teleop_l3">L3</label>
-                <input type="number" id="teleop_l3" name="teleop_l3" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="teleop_l4">L4</label>
-                <input type="number" id="teleop_l4" name="teleop_l4" value="0" min="0">
+            
+            <div class="form-group">
+              <label for="teleop_fuel_scored">FUEL Scored in HUB</label>
+              <div class="counter-group">
+                <button type="button" class="counter-btn minus" data-target="teleop_fuel_scored">−</button>
+                <input type="number" id="teleop_fuel_scored" name="teleop_fuel_scored" value="0" min="0" readonly>
+                <button type="button" class="counter-btn plus" data-target="teleop_fuel_scored">+</button>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="teleop_processor">Processor</label>
-                <input type="number" id="teleop_processor" name="teleop_processor" value="0" min="0">
-              </div>
-              <div class="form-group">
-                <label for="teleop_barge">Barge</label>
-                <input type="number" id="teleop_barge" name="teleop_barge" value="0" min="0">
+
+            <div class="form-group">
+              <label for="teleop_fuel_missed">FUEL Missed</label>
+              <div class="counter-group">
+                <button type="button" class="counter-btn minus" data-target="teleop_fuel_missed">−</button>
+                <input type="number" id="teleop_fuel_missed" name="teleop_fuel_missed" value="0" min="0" readonly>
+                <button type="button" class="counter-btn plus" data-target="teleop_fuel_missed">+</button>
               </div>
             </div>
+
             <h3 class="section-subtitle">Mobility</h3>
+            <div class="form-row">
+              <div class="checkbox-group">
+                <input type="checkbox" id="can_cross_bump" name="can_cross_bump">
+                <label for="can_cross_bump">Can cross BUMP</label>
+              </div>
+              <div class="checkbox-group">
+                <input type="checkbox" id="can_cross_trench" name="can_cross_trench">
+                <label for="can_cross_trench">Can cross TRENCH</label>
+              </div>
+            </div>
+
             <div class="checkbox-group">
               <input type="checkbox" id="teleop_no_move" name="teleop_no_move">
               <label for="teleop_no_move">Did not move in Teleop</label>
             </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="robot_role">Robot Role</label>
-                <select id="robot_role" name="robot_role" required>
-                  <option value="">Select Role</option>
-                  <option value="offense">Offense Only</option>
-                  <option value="defense">Defense Only</option>
-                  <option value="both">Both Offense & Defense</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="dropped_pieces">Game Pieces Dropped</label>
-                <input type="number" id="dropped_pieces" name="dropped_pieces" value="0" min="0">
-              </div>    
+
+            <h3 class="section-subtitle">Robot Performance</h3>
+            <div class="form-group">
+              <label for="robot_role">Robot Role</label>
+              <select id="robot_role" name="robot_role" required>
+                <option value="">Select Role</option>
+                <option value="offense">Offense Only</option>
+                <option value="defense">Defense Only</option>
+                <option value="both">Both Offense & Defense</option>
+              </select>
             </div>
+
             <div class="form-row" id="rating_fields" style="display: none;">
               <div class="form-group" id="offense_rating_field">
                 <label for="offense_rating">Offense Rating (0–5)</label>
@@ -164,38 +151,30 @@
           <!-- Endgame Tab -->
           <div id="endgame" class="tab-content">
             <h2 class="section-title">Endgame</h2>
+            
             <div class="form-section">
               <div class="checkbox-group">
                 <input type="checkbox" id="partial_match" name="partial_match">
                 <label for="partial_match">Robot only played partial match</label>
               </div>
             </div>
+
             <div class="form-group">
-              <label for="endgame_action">Endgame Action</label>
-              <select id="endgame_action" name="endgame_action">
-                <option value="">Select Action</option>
-                <option value="climb">Climb</option>
-                <option value="park">Park</option>
-                <option value="did not park/climb">Did Not Park/Climb</option>
+              <label for="endgame_climb">TOWER Climb</label>
+              <select id="endgame_climb" name="endgame_climb">
+                <option value="none">Didn't Climb</option>
+                <option value="climbed">Climbed Successfully</option>
               </select>
             </div>
-            <div class="endgame-options">
-              <div class="form-group hidden" id="climb_depth_label">
-                <label for="climb_depth">Climb Depth</label>
-                <select id="climb_depth" name="climb_depth">
-                  <option value="">Select Climb Type</option>
-                  <option value="shallow">Shallow</option>
-                  <option value="deep">Deep</option>
-                </select>
-              </div>
-              <div class="checkbox-group hidden" id="climb_success_label">
-                <input type="checkbox" id="climb_successful" name="climb_successful">
-                <label for="climb_successful">Climb was successful</label>
-              </div>
-              <div class="checkbox-group hidden" id="climb_parked_label">
-                <input type="checkbox" id="climb_parked" name="climb_parked">
-                <label for="climb_parked">Failed climb but robot parked</label>
-              </div>
+
+            <div class="form-group" id="tower_level_field" style="display: none;">
+              <label for="tower_level">TOWER Level Reached</label>
+              <select id="tower_level" name="tower_level">
+                <option value="">Select Level</option>
+                <option value="level1">LEVEL 1 (LOW RUNG - 10pts)</option>
+                <option value="level2">LEVEL 2 (MID RUNG - 20pts)</option>
+                <option value="level3">LEVEL 3 (HIGH RUNG - 30pts)</option>
+              </select>
             </div>
           </div>
 

@@ -598,3 +598,60 @@ input, select, textarea {
         font-size: 1.5rem;
     }
 }
+
+/* Counter Button Styles */
+.counter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.counter-btn {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+}
+
+.counter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.5);
+    background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
+}
+
+.counter-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.counter-group input[type="number"] {
+    flex: 1;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    min-width: 80px;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 480px) {
+    .counter-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.25rem;
+    }
+    
+    .counter-group input[type="number"] {
+        font-size: 1.1rem;
+    }
+}
