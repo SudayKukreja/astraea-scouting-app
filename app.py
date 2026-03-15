@@ -478,114 +478,74 @@ def safe_int(value, default=0):
         return default
 
 def parse_auto_summary(summary):
-    """Parse auto summary for REBUILT"""
-    if not summary or "Didn't move" in summary:
-        return {
-            'fuel_scored': 0,
-            'fuel_missed': 0,
-            'left_zone': False,
-            'intake_source': 'none'
-        }
-    
-    data = {
-        'fuel_scored': 0,
-        'fuel_missed': 0,
-        'left_zone': False,
-        'intake_source': 'none'
-    }
-    
-    # Parse: "FUEL: 3 scored, 1 missed, LEFT ZONE, Source: DEPOT"
+    """Parse auto summary for REBUILT 2026"""
+    if not summary or "Didn't move in auto" in summary:
+        return {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False,
+                'no_move': True, 'moved_no_score': False, 'auto_climb': False,
+                'collect_sources': []}
+    if 'Moved but no scoring' in summary:
+        return {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False,
+                'no_move': False, 'moved_no_score': True, 'auto_climb': False,
+                'collect_sources': []}
+    data = {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False,
+            'no_move': False, 'moved_no_score': False, 'auto_climb': False,
+            'collect_sources': []}
     fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
     if fuel_match:
         data['fuel_scored'] = int(fuel_match.group(1))
         data['fuel_missed'] = int(fuel_match.group(2))
-    
-    if 'LEFT ZONE' in summary:
-        data['left_zone'] = True
-    
-    # Parse intake source
-    source_match = re.search(r'Source: (\w+)', summary)
-    if source_match:
-        data['intake_source'] = source_match.group(1).lower()
-    
+    data['auto_climb'] = 'AUTO CLIMB: YES' in summary
+    collect_match = re.search(r'Collected: ([\w\s,]+?)(?:, AUTO|$)', summary)
+    if collect_match:
+        data['collect_sources'] = [s.strip().lower() for s in collect_match.group(1).split(',') if s.strip()]
     return data
-    
 
 def parse_offense_defense_column(column_text):
-    """Parse the combined offense/defense column to extract ratings"""
+    """Parse the combined offense/defense column for REBUILT 2026"""
     if not column_text or column_text == '-':
         return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
-    
-    column_lower = column_text.lower()
-    
-    # Match patterns like "Offense (Rating: 4)", "Defense (Rating: 3)", "Both (O:4, D:2)"
-    if 'both' in column_lower:
-        offense_match = re.search(r'o:(\d+)', column_lower)
-        defense_match = re.search(r'd:(\d+)', column_lower)
-        return {
-            'robot_role': 'both',
-            'offense_rating': int(offense_match.group(1)) if offense_match else 0,
-            'defense_rating': int(defense_match.group(1)) if defense_match else 0
-        }
-    elif 'offense' in column_lower:
-        rating_match = re.search(r'rating:\s*(\d+)', column_lower)
-        return {
-            'robot_role': 'offense',
-            'offense_rating': int(rating_match.group(1)) if rating_match else 0,
-            'defense_rating': 0
-        }
-    elif 'defense' in column_lower:
-        rating_match = re.search(r'rating:\s*(\d+)', column_lower)
-        return {
-            'robot_role': 'defense',
-            'offense_rating': 0,
-            'defense_rating': int(rating_match.group(1)) if rating_match else 0
-        }
-    else:
-        return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
+    s = column_text.strip()
+    s_lower = s.lower()
+    if s_lower.startswith('mix'):
+        om = re.search(r'O:(\d+)', s)
+        dm = re.search(r'D:(\d+)', s)
+        return {'robot_role': 'mix',
+                'offense_rating': int(om.group(1)) if om else 0,
+                'defense_rating': int(dm.group(1)) if dm else 0}
+    elif s_lower.startswith('offense'):
+        m = re.search(r'Rating:\s*(\d+)', s)
+        return {'robot_role': 'offense',
+                'offense_rating': int(m.group(1)) if m else 0,
+                'defense_rating': 0}
+    elif s_lower.startswith('defense'):
+        m = re.search(r'Rating:\s*(\d+)', s)
+        return {'robot_role': 'defense',
+                'offense_rating': 0,
+                'defense_rating': int(m.group(1)) if m else 0}
+    elif s_lower == 'feeder':
+        return {'robot_role': 'feeder', 'offense_rating': 0, 'defense_rating': 0}
+    return {'robot_role': 'unknown', 'offense_rating': 0, 'defense_rating': 0}
 
 def parse_teleop_summary(summary):
-    """Parse teleop summary for REBUILT"""
-    if not summary or "Didn't move" in summary:
-        return {
-            'fuel_scored': 0,
-            'fuel_missed': 0,
-            'can_cross_bump': False,
-            'can_cross_trench': False,
-            'primary_intake_source': 'none',
-            'shooter_reliability': 0
-        }
-    
-    data = {
-        'fuel_scored': 0,
-        'fuel_missed': 0,
-        'can_cross_bump': False,
-        'can_cross_trench': False,
-        'primary_intake_source': 'none',
-        'shooter_reliability': 0
-    }
-    
-    # Parse: "FUEL: 12 scored, 3 missed, Mobility: BUMP/TRENCH, Intake: DEPOT, Shooter: 8/10"
+    """Parse teleop summary for REBUILT 2026"""
+    if not summary or "Didn't move in teleop" in summary:
+        return {'fuel_scored': 0, 'fuel_missed': 0, 'no_move': True,
+                'can_cross_bump': False, 'can_cross_trench': False,
+                'collect_sources': []}
+    data = {'fuel_scored': 0, 'fuel_missed': 0, 'no_move': False,
+            'can_cross_bump': False, 'can_cross_trench': False,
+            'collect_sources': []}
     fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
     if fuel_match:
         data['fuel_scored'] = int(fuel_match.group(1))
         data['fuel_missed'] = int(fuel_match.group(2))
-    
     if 'BUMP' in summary:
         data['can_cross_bump'] = True
     if 'TRENCH' in summary:
         data['can_cross_trench'] = True
-    
-    # Parse intake source
-    intake_match = re.search(r'Intake: (\w+)', summary)
-    if intake_match:
-        data['primary_intake_source'] = intake_match.group(1).lower()
-    
-    # Parse shooter reliability
-    shooter_match = re.search(r'Shooter: (\d+)/10', summary)
-    if shooter_match:
-        data['shooter_reliability'] = int(shooter_match.group(1))
-    
+    collect_match = re.search(r'Collected: ([\w\s,]+?)(?:\s*$)', summary)
+    if collect_match:
+        data['collect_sources'] = [s.strip().lower() for s in collect_match.group(1).split(',') if s.strip()]
     return data
 
 def parse_endgame_summary(summary):
@@ -621,63 +581,22 @@ def parse_endgame_summary(summary):
         'climb_successful': False
     }
 
-# Updated calculate_endgame_score function
-def calculate_endgame_score(endgame_data):
-    """Calculate endgame score for REBUILT (Table 6-4)"""
-    climb = endgame_data.get('climb', 'none')
-    climb_successful = endgame_data.get('climb_successful', False)
-    
-    # Only award points if climb was successful
-    if climb == 'climbed' and climb_successful:
-        tower_level = endgame_data.get('tower_level', '').lower()
-        
-        if tower_level == 'level1':
-            return 10  # LEVEL 1 = 10 points
-        elif tower_level == 'level2':
-            return 20  # LEVEL 2 = 20 points
-        elif tower_level == 'level3':
-            return 30  # LEVEL 3 = 30 points
-    
-    return 0
-
 def calculate_auto_score(auto_data):
-    """Calculate auto score for REBUILT (Table 6-4)"""
-    score = 0
-    
-    # FUEL scored in HUB = 1 point each
-    score += auto_data.get('fuel_scored', 0) * 1
-    
-    # LEFT ZONE points (3 points bonus)
-    if auto_data.get('left_zone', False):
-        score += 3
-    
+    """Calculate auto score for REBUILT 2026 - 1pt/fuel, 15pts for L1 climb"""
+    score = auto_data.get('fuel_scored', 0) * 1
+    if auto_data.get('auto_climb'):
+        score += 15
     return score
 
 def calculate_teleop_score(teleop_data):
-    """Calculate teleop score for REBUILT (Table 6-4)"""
-    score = 0
-    
-    # FUEL scored in HUB = 1 point each
-    score += teleop_data.get('fuel_scored', 0) * 1
-    
-    return score
+    """Calculate teleop fuel score only (endgame handled separately)"""
+    return teleop_data.get('fuel_scored', 0) * 1
 
 def calculate_endgame_score(endgame_data):
-    """Calculate endgame score for REBUILT (Table 6-4)"""
-    action = endgame_data.get('action', 'none')
-    climb_successful = endgame_data.get('climb_successful', False)
-    
-    # Only award points if climb was successful
-    if action == 'climb' and climb_successful:
-        tower_level = endgame_data.get('tower_level', '').lower()
-        
-        if tower_level == 'level1':
-            return 10  # LEVEL 1 = 10 points
-        elif tower_level == 'level2':
-            return 20  # LEVEL 2 = 20 points
-        elif tower_level == 'level3':
-            return 30  # LEVEL 3 = 30 points
-    
+    """Calculate endgame score for REBUILT 2026 (L1=10, L2=20, L3=30)"""
+    if endgame_data.get('action') == 'climb' and endgame_data.get('climb_successful'):
+        level = endgame_data.get('tower_level', '').lower()
+        return {'level1': 10, 'level2': 20, 'level3': 30}.get(level, 0)
     return 0
 
 # Additional function to calculate other potential scores
@@ -695,117 +614,15 @@ def calculate_additional_scores(auto_data, teleop_data, endgame_data):
     
     return additional_score
 
-# =============================================================================
-# STATBOTICS ROUTES
-# =============================================================================
-
-@app.route('/match-predictor')
-@admin_required
-def match_predictor_page():
-    """Serve the match predictor page"""
-    return render_template('match_predictor.html')
-
-
-@app.route('/api/admin/predict-matches')
-@admin_required
-def predict_event_matches():
-    """Get match predictions for an event and team"""
-    event_key = request.args.get('event')
-    team_number = request.args.get('team')
-    
-    if not event_key:
-        return jsonify({'error': 'Event key required'}), 400
-    
-    if not statbotics_predictor:
-        return jsonify({'error': 'Statbotics API not available'}), 503
-    
-    try:
-        # Get matches from TBA
-        from manual_matches import is_manual_event, get_manual_event_matches
-        
-        if is_manual_event(event_key):
-            matches = get_manual_event_matches(event_key)
-        else:
-            matches = tba_client.get_event_matches(event_key)
-            if not matches:
-                return jsonify({'error': 'No matches found for event'}), 404
-        
-        # Extract year from event key
-        year = int(event_key[:4])
-        
-        # ✅ FIX: Collect ALL unique teams first
-        all_teams = set()
-        for match in matches:
-            red_teams = [int(t.replace('frc', '')) for t in match['red_teams']]
-            blue_teams = [int(t.replace('frc', '')) for t in match['blue_teams']]
-            all_teams.update(red_teams)
-            all_teams.update(blue_teams)
-        
-        print(f"📊 Found {len(all_teams)} unique teams in event {event_key}")
-        
-        # ✅ FIX: Preload ALL team EPAs in ONE batch call
-        statbotics_predictor.preload_team_epas(all_teams, year)
-        
-        print(f"🎯 Predicting outcomes for {len(matches)} matches...")
-        
-        predictions = []
-        
-        for match in matches:
-            # Get teams as integers
-            red_teams = [int(t.replace('frc', '')) for t in match['red_teams']]
-            blue_teams = [int(t.replace('frc', '')) for t in match['blue_teams']]
-            
-            # Predict match outcome (now uses cached EPAs - super fast!)
-            prediction = statbotics_predictor.predict_match(red_teams, blue_teams, year)
-            
-            # Determine if selected team is in this match
-            team_alliance = None
-            if team_number:
-                team_num = int(team_number)
-                if team_num in red_teams:
-                    team_alliance = 'red'
-                elif team_num in blue_teams:
-                    team_alliance = 'blue'
-            
-            # Only include matches where the team plays (if team specified)
-            if team_number and not team_alliance:
-                continue
-            
-            # Determine predicted outcome for the team
-            if team_alliance:
-                if team_alliance == prediction['predicted_winner']:
-                    predicted_result = 'WIN'
-                    win_probability = prediction[f'{team_alliance}_win_prob']
-                else:
-                    predicted_result = 'LOSS'
-                    win_probability = prediction[f'{team_alliance}_win_prob']
-            else:
-                predicted_result = None
-                win_probability = None
-            
-            predictions.append({
-                'match_number': match['match_number'],
-                'match_key': match.get('key', f"{event_key}_qm{match['match_number']}"),
-                'red_teams': red_teams,
-                'blue_teams': blue_teams,
-                'team_alliance': team_alliance,
-                'predicted_result': predicted_result,
-                'win_probability': win_probability,
-                'prediction': prediction
-            })
-        
-        # Sort by match number
-        predictions.sort(key=lambda x: x['match_number'])
-        
-        print(f"✅ Successfully predicted {len(predictions)} matches")
-        
-        return jsonify(predictions)
-        
-    except Exception as e:
-        print(f"❌ Error predicting matches: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+def estimate_rp(alliance_data):
+    """Estimate ranking points for 3-robot alliance"""
+    total_fuel = sum(
+        r.get('auto', {}).get('fuel_scored', 0) + r.get('teleop', {}).get('fuel_scored', 0)
+        for r in alliance_data
+    )
+    tower_pts = sum(r.get('endgame', {}).get('score', 0) for r in alliance_data)
+    tower_pts += sum(15 for r in alliance_data if r.get('auto', {}).get('auto_climb'))
+    return (1 if total_fuel >= 100 else 0) + (1 if total_fuel >= 360 else 0) + (1 if tower_pts >= 50 else 0)
 
 # =============================================================================
 # DEV MODE ROUTES
