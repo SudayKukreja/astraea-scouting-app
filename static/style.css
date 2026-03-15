@@ -23,9 +23,7 @@
     --radius-xl: 16px;
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
     margin: 0;
@@ -42,23 +40,19 @@ body {
 
 @keyframes backgroundShift {
     0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+    50%       { background-position: 100% 50%; }
 }
-
 @keyframes logoFloat {
     0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-5px); }
+    50%       { transform: translateY(-5px); }
 }
-
 @keyframes fadeInUp {
     from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
+/* ==================== LAYOUT ==================== */
 .app-container {
     min-height: 100vh;
     display: flex;
@@ -67,7 +61,6 @@ body {
     padding: 1rem;
     position: relative;
 }
-
 .app-container::before {
     content: '';
     position: absolute;
@@ -75,9 +68,8 @@ body {
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
     pointer-events: none;
 }
-
 .container {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255,255,255,0.95);
     backdrop-filter: blur(20px);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-xl);
@@ -85,17 +77,17 @@ body {
     width: 100%;
     position: relative;
     z-index: 1;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255,255,255,0.2);
 }
 
+/* ==================== HEADER ==================== */
 .app-header {
     text-align: center;
     padding: 2.5rem 3rem 2rem;
-    background: linear-gradient(135deg, var(--surface-blue) 0%, rgba(255, 255, 255, 0.8) 100%);
+    background: linear-gradient(135deg, var(--surface-blue) 0%, rgba(255,255,255,0.8) 100%);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     border-bottom: 1px solid var(--border-color);
 }
-
 .logo, .logo-img {
     width: 80px;
     height: 80px;
@@ -107,22 +99,13 @@ body {
     animation: logoFloat 3s ease-in-out infinite;
     transition: box-shadow 0.3s ease;
 }
-
 .logo {
     background: linear-gradient(135deg, var(--primary-blue) 0%, var(--accent-blue) 100%);
     font-size: 3rem;
-    box-shadow: 0 12px 20px -5px rgba(37, 99, 235, 0.7);
+    box-shadow: 0 12px 20px -5px rgba(37,99,235,0.7);
 }
-
-.logo-img {
-    display: block;
-    box-shadow: var(--shadow-lg);
-}
-
-.logo:hover {
-    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.9), 0 0 15px 4px rgba(96, 165, 250, 0.6);
-}
-
+.logo-img { display: block; box-shadow: var(--shadow-lg); }
+.logo:hover { box-shadow: 0 15px 30px -5px rgba(37,99,235,0.9), 0 0 15px 4px rgba(96,165,250,0.6); }
 .app-title {
     font-size: 2rem;
     font-weight: 700;
@@ -133,25 +116,38 @@ body {
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
+.app-subtitle { font-size: 0.9rem; color: var(--text-muted); margin: 0; font-weight: 500; }
 
-.app-subtitle {
+.scout-info {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    text-align: center;
+}
+.scout-info p { color: rgba(255,255,255,0.9); margin-bottom: 12px; font-size: 0.9rem; }
+.header-actions { display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.back-link, .back-btn {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
     font-size: 0.9rem;
-    color: var(--text-muted);
-    margin: 0;
-    font-weight: 500;
+    transition: all 0.2s;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.3);
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+}
+.back-btn { background: none; cursor: pointer; font-family: inherit; }
+.back-link:hover, .back-btn:hover {
+    color: white;
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-1px);
 }
 
-.app-content {
-    padding: 2rem 3rem 3rem;
-}
-
-.form-section {
-    margin-bottom: 2rem;
-}
-
-.form-section:last-child {
-    margin-bottom: 0;
-}
+/* ==================== CONTENT / FORM ==================== */
+.app-content { padding: 2rem 3rem 3rem; }
+.form-section { margin-bottom: 2rem; }
+.form-section:last-child { margin-bottom: 0; }
 
 .section-title {
     font-size: 1.1rem;
@@ -162,7 +158,6 @@ body {
     align-items: center;
     gap: 0.5rem;
 }
-
 .section-title::before {
     content: '';
     width: 4px;
@@ -170,21 +165,23 @@ body {
     background: linear-gradient(135deg, var(--primary-blue), var(--accent-blue));
     border-radius: 2px;
 }
-
-.form-group {
-    margin-bottom: 1.5rem;
+.section-subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 1.5rem 0 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--primary-blue);
 }
 
+.form-group { margin-bottom: 1.5rem; }
 .form-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
-
-.form-row.quarters {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
+.form-row.quarters { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 
 label {
     display: block;
@@ -194,6 +191,15 @@ label {
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.025em;
+}
+
+/* used for labels that should NOT be uppercase */
+.field-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
 }
 
 input[type="text"],
@@ -209,33 +215,27 @@ textarea {
     color: var(--text-primary);
     font-size: 1rem;
     font-weight: 500;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
     appearance: none;
     box-sizing: border-box;
+    font-family: inherit;
 }
-
 input[type="text"]:focus,
 input[type="number"]:focus,
 select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
     transform: translateY(-1px);
 }
-
 input[type="text"]:hover,
 input[type="number"]:hover,
 select:hover,
-textarea:hover {
-    border-color: var(--accent-blue);
-}
+textarea:hover { border-color: var(--accent-blue); }
+textarea { resize: vertical; min-height: 100px; }
 
-textarea {
-    resize: vertical;
-    min-height: 100px;
-}
-
+/* ==================== CHECKBOX GROUP ==================== */
 .checkbox-group {
     position: relative;
     display: flex;
@@ -248,20 +248,8 @@ textarea {
     border: 2px solid transparent;
     transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
-
-.checkbox-group:hover {
-    border-color: var(--primary-blue-dark);
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.15);
-}
-
-.checkbox-group input[type="checkbox"] {
-    position: absolute;
-    opacity: 0;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
+.checkbox-group:hover { border-color: var(--primary-blue-dark); box-shadow: 0 0 8px rgba(37,99,235,0.15); }
+.checkbox-group input[type="checkbox"] { position: absolute; opacity: 0; width: 20px; height: 20px; cursor: pointer; }
 .checkbox-group label {
     position: relative;
     padding-left: 30px;
@@ -274,7 +262,6 @@ textarea {
     display: inline-block;
     line-height: 1.2;
 }
-
 .checkbox-group label::before {
     content: "";
     position: absolute;
@@ -289,12 +276,7 @@ textarea {
     box-sizing: border-box;
     transition: background-color 0.2s, border-color 0.2s;
 }
-
-.checkbox-group input[type="checkbox"]:checked + label::before {
-    background: var(--primary-blue);
-    border-color: var(--primary-blue);
-}
-
+.checkbox-group input[type="checkbox"]:checked + label::before { background: var(--primary-blue); border-color: var(--primary-blue); }
 .checkbox-group label::after {
     content: "";
     position: absolute;
@@ -308,20 +290,54 @@ textarea {
     transform: translateY(-50%) rotate(45deg);
     transition: opacity 0.2s;
 }
+.checkbox-group input[type="checkbox"]:checked + label::after { opacity: 1; }
+.checkbox-group label:hover::before { border-color: var(--primary-blue-dark); }
 
-.checkbox-group input[type="checkbox"]:checked + label::after {
+/* ==================== MULTI-SELECT CHECKBOXES ==================== */
+.multi-check-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+.multi-check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: var(--background-blue);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+.multi-check-item:hover { border-color: var(--primary-blue); }
+/* visible checkbox inside multi-check — override the hidden style from .checkbox-group */
+.multi-check-item input[type="checkbox"] {
+    position: static;
     opacity: 1;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-blue);
+    cursor: pointer;
 }
-
-.checkbox-group label:hover::before {
-    border-color: var(--primary-blue-dark);
+.multi-check-item label {
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: normal;
+    margin: 0;
+    padding-left: 0;
+    color: var(--text-primary);
 }
+.multi-check-item label::before,
+.multi-check-item label::after { display: none !important; }
+.multi-check-item:has(input:checked) { background: var(--primary-blue); border-color: var(--primary-blue); }
+.multi-check-item:has(input:checked) label { color: white; }
 
-.checkbox-group input[type="checkbox"]:focus + label::before {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-}
-
+/* ==================== TABS ==================== */
 .tabs {
     display: flex;
     gap: 0.5rem;
@@ -331,7 +347,6 @@ textarea {
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
 }
-
 .tab-btn {
     flex: 1;
     background: transparent;
@@ -342,25 +357,13 @@ textarea {
     padding: 0.875rem 1.5rem;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: box-shadow 0.25s ease, background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: box-shadow 0.25s ease, background-color 0.2s cubic-bezier(0.4,0,0.2,1);
     text-transform: uppercase;
     letter-spacing: 0.025em;
     position: relative;
 }
-
-.tab-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
-    color: var(--primary-blue);
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
-}
-
-.tab-btn.active {
-    background: white;
-    color: var(--primary-blue);
-    box-shadow: var(--shadow-sm);
-    transform: translateY(-1px);
-}
-
+.tab-btn:hover { background: rgba(59,130,246,0.1); color: var(--primary-blue); box-shadow: 0 0 8px rgba(37,99,235,0.3); }
+.tab-btn.active { background: white; color: var(--primary-blue); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .tab-btn.active::after {
     content: '';
     position: absolute;
@@ -373,20 +376,89 @@ textarea {
     border-right: 6px solid transparent;
     border-top: 6px solid white;
 }
+.tab-content { display: none; animation: fadeInUp 0.3s cubic-bezier(0.4,0,0.2,1) forwards; }
+.tab-content.active { display: block; }
 
-.tab-content {
-    display: none;
-    animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* ==================== COUNTER — number on top, ALL buttons below ==================== */
+.counter-group {
+    display: flex;
+    flex-direction: column;  /* stack vertically */
+    align-items: center;
+    gap: 10px;
+    margin-top: 0.5rem;
 }
 
-.tab-content.active {
-    display: block;
+/* The big number display */
+.counter-display {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    min-width: 90px;
+    text-align: center;
+    padding: 10px 20px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+    box-shadow: var(--shadow-sm);
 }
 
-.endgame-options {
-    margin-top: 1rem;
+/* ALL six buttons on one row below the number */
+.counter-buttons {
+    display: flex;
+    flex-direction: row;   /* horizontal */
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: nowrap;     /* keep them on one line */
 }
 
+.counter-btn {
+    padding: 10px 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 46px;
+    white-space: nowrap;
+}
+.counter-btn.minus {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(239,68,68,0.3);
+}
+.counter-btn.plus {
+    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+    color: white;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.3);
+}
+.counter-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+.counter-btn:active { transform: translateY(0); }
+
+/* ==================== YES/NO TOGGLE ==================== */
+.yes-no-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+.yes-no-btn {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: white;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    font-family: inherit;
+}
+.yes-no-btn:hover { border-color: var(--primary-blue); }
+.yes-no-btn.selected-yes { background: linear-gradient(135deg,#10b981,#059669); border-color: #10b981; color: white; }
+.yes-no-btn.selected-no  { background: linear-gradient(135deg,#ef4444,#dc2626); border-color: #ef4444; color: white; }
+
+/* ==================== SUBMIT BUTTON ==================== */
 .submit-btn {
     width: 100%;
     background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
@@ -397,61 +469,31 @@ textarea {
     padding: 1.25rem 2rem;
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
     text-transform: uppercase;
     letter-spacing: 0.025em;
-    box-shadow: 0 8px 15px rgba(37, 99, 235, 0.5);
+    box-shadow: 0 8px 15px rgba(37,99,235,0.5);
     position: relative;
     overflow: hidden;
 }
-
 .submit-btn::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
     transition: left 0.5s;
 }
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 0 15px 4px rgba(37,99,235,0.7); background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%); }
+.submit-btn:hover::before { left: 100%; }
+.submit-btn:active { transform: translateY(0); }
 
-.submit-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px 4px rgba(37, 99, 235, 0.7);
-    background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
-}
-
-.submit-btn:hover::before {
-    left: 100%;
-}
-
-.submit-btn:active {
-    transform: translateY(0);
-}
-
-.hidden {
-    display: none !important;
-}
-
-.rating-group {
-    display: flex;
-    gap: 1rem;
-}
-
-.rating-item {
-    flex: 1;
-}
-
-.rating-item label {
-    font-size: 0.75rem;
-    margin-bottom: 0.25rem;
-}
-
+/* ==================== MISC ==================== */
+.hidden { display: none !important; }
 .spinner {
     width: 24px;
     height: 24px;
-    border: 4px solid rgba(37, 99, 235, 0.3);
+    border: 4px solid rgba(37,99,235,0.3);
     border-top-color: #2563eb;
     border-radius: 50%;
     animation: spin 1s linear infinite;
@@ -459,214 +501,59 @@ textarea {
     display: inline-block;
     vertical-align: middle;
 }
+.form-warning { color: #b33; margin-bottom: 10px; }
+small { display: block; margin-top: 0.25rem; font-size: 0.85rem; color: var(--text-muted); }
 
-/* Responsive Design */
+/* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
-    .app-container {
-        padding: 0.5rem;
-    }
-
-    .app-header {
-        padding: 2rem 2rem 1.5rem;
-    }
-
-    .app-content {
-        padding: 1.5rem 2rem 2.5rem;
-    }
-
-    .app-title {
-        font-size: 1.75rem;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .form-row.quarters {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .tabs {
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .tab-btn {
-        text-align: left;
-        justify-content: flex-start;
-    }
-
-    .tab-btn.active::after {
-        display: none;
-    }
+    .app-container { padding: 0.5rem; }
+    .app-header { padding: 2rem 2rem 1.5rem; }
+    .app-content { padding: 1.5rem 2rem 2.5rem; }
+    .app-title { font-size: 1.75rem; }
+    .form-row { grid-template-columns: 1fr; gap: 1rem; }
+    .form-row.quarters { grid-template-columns: repeat(2,1fr); }
+    .tabs { flex-direction: column; gap: 0.25rem; }
+    .tab-btn { text-align: left; }
+    .tab-btn.active::after { display: none; }
+    .header-actions { flex-direction: column; gap: 8px; }
+    .back-link, .back-btn { width: 100%; text-align: center; }
+    /* allow counter buttons to wrap on small tablets */
+    .counter-buttons { flex-wrap: wrap; }
 }
 
 @media (max-width: 480px) {
-    .app-header {
-        padding: 1.5rem 1.5rem 1rem;
-    }
-
-    .app-content {
-        padding: 1rem 1.5rem 2rem;
-        padding-bottom: 80px;
-    }
-
-    .app-title {
-        font-size: 1.5rem;
-    }
-
-    .logo {
-        width: 60px;
-        height: 60px;
-        font-size: 2rem;
-    }
-
-    .form-row.quarters {
-        grid-template-columns: 1fr;
-    }
-
+    .app-header { padding: 1.5rem 1.5rem 1rem; }
+    .app-content { padding: 1rem 1.5rem 2rem; padding-bottom: 80px; }
+    .app-title { font-size: 1.5rem; }
+    .logo { width: 60px; height: 60px; font-size: 2rem; }
+    .form-row.quarters { grid-template-columns: 1fr; }
     .submit-btn {
         font-size: 1.1rem;
         padding: 1.5rem 2rem;
         position: fixed;
-        bottom: 10px;
-        left: 10px;
-        right: 10px;
+        bottom: 10px; left: 10px; right: 10px;
         z-index: 999;
         border-radius: var(--radius-md);
     }
-
-    .checkbox-group {
-        gap: 1rem;
-        padding: 1.25rem;
-    }
-
-    .tabs {
-        flex-direction: row;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        gap: 0.5rem;
-    }
-
-    .tab-btn {
-        flex: 0 0 auto;
-        min-width: 100px;
-        white-space: nowrap;
-        text-align: center;
-    }
-
-    .tab-btn.active::after {
-        display: block;
-    }
+    .checkbox-group { gap: 1rem; padding: 1.25rem; }
+    .tabs { flex-direction: row; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.5rem; }
+    .tab-btn { flex: 0 0 auto; min-width: 100px; white-space: nowrap; text-align: center; }
+    .tab-btn.active::after { display: block; }
+    /* smaller counter buttons on phones */
+    .counter-btn { padding: 8px 10px; font-size: 12px; min-width: 38px; }
+    .counter-display { font-size: 1.8rem; padding: 8px 14px; }
+    .multi-check-group { gap: 6px; }
+    .multi-check-item { padding: 8px 12px; }
 }
 
-html, body {
-    max-width: 100%;
-    overflow-x: hidden;
-}
-
-input, select, textarea {
-    font-size: 16px;
-}
-
-.tabs {
-    scroll-snap-type: x mandatory;
-}
-
-.tab-btn {
-    scroll-snap-align: start;
-}
+html, body { max-width: 100%; overflow-x: hidden; }
+input, select, textarea { font-size: 16px; }
+.tabs { scroll-snap-type: x mandatory; }
+.tab-btn { scroll-snap-align: start; }
 
 @media (max-width: 375px) {
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 0.75rem;
-    }
-
-    .app-content {
-        padding: 0.75rem 1rem 6rem;
-    }
-
-    .submit-btn {
-        padding: 1.25rem 1rem;
-    }
-
-    .logo {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-    }
-}
-
-/* Counter Button Styles */
-.counter-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.counter-btn {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
-    border: none;
-    border-radius: var(--radius-md);
-    color: white;
-    font-size: 1.5rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
-}
-
-.counter-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.5);
-    background: linear-gradient(135deg, var(--primary-blue-light) 0%, var(--primary-blue) 100%);
-}
-
-.counter-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
-}
-
-.counter-group input[type="number"] {
-    flex: 1;
-    text-align: center;
-    font-size: 1.25rem;
-    font-weight: 700;
-    min-width: 80px;
-}
-
-/* Mobile responsive adjustments */
-@media (max-width: 480px) {
-    .counter-btn {
-        width: 44px;
-        height: 44px;
-        font-size: 1.25rem;
-    }
-    
-    .counter-group input[type="number"] {
-        font-size: 1.1rem;
-    }
-}
-
-/* Small helper text styling */
-small {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-/* Number input for ratings */
-input[type="number"][max="10"] {
-  text-align: center;
-  font-weight: 600;
-  font-size: 1.1rem;
+    .form-row { grid-template-columns: 1fr; gap: 0.75rem; }
+    .app-content { padding: 0.75rem 1rem 6rem; }
+    .submit-btn { padding: 1.25rem 1rem; }
+    .logo { width: 50px; height: 50px; font-size: 1.5rem; }
 }

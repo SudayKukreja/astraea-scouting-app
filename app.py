@@ -113,7 +113,7 @@ except Exception as e:
     statbotics_predictor = None
 
 def analyze_team_performance(matches):
-    """Analyze team performance data to create structured insights for AI"""
+    """Analyze team performance data for REBUILT game"""
     if not matches:
         return {}
     
@@ -130,56 +130,57 @@ def analyze_team_performance(matches):
     
     best_score = max(total_scores) if total_scores else 0
     worst_score = min(total_scores) if total_scores else 0
-    best_match = matches[total_scores.index(best_score)].get('match', 'Unknown') if total_scores else 'Unknown'
-    worst_match = matches[total_scores.index(worst_score)].get('match', 'Unknown') if total_scores else 'Unknown'
     
     # Consistency calculation
     if len(total_scores) > 1:
         variance = sum((score - avg_total_score) ** 2 for score in total_scores) / len(total_scores)
         std_dev = variance ** 0.5
-        if std_dev < 10:
+        if std_dev < 5:
             consistency_rating = "Very Consistent"
-        elif std_dev < 20:
+        elif std_dev < 10:
             consistency_rating = "Moderately Consistent"
         else:
             consistency_rating = "Inconsistent"
     else:
         consistency_rating = "Insufficient Data"
     
-    # Game piece analysis
-    auto_breakdown = analyze_scoring_breakdown(matches, 'auto')
-    teleop_breakdown = analyze_scoring_breakdown(matches, 'teleop')
+    # FUEL analysis
+    total_fuel_scored = sum(match.get('auto', {}).get('fuel_scored', 0) + 
+                           match.get('teleop', {}).get('fuel_scored', 0) 
+                           for match in matches)
+    total_fuel_missed = sum(match.get('auto', {}).get('fuel_missed', 0) + 
+                           match.get('teleop', {}).get('fuel_missed', 0) 
+                           for match in matches)
     
-    # Dropped pieces
-    dropped_pieces = []
-    for match in matches:
-        auto_dropped = match.get('auto', {}).get('droppedPieces', 0)
-        teleop_dropped = match.get('teleop', {}).get('droppedPieces', 0)
-        dropped_pieces.append(auto_dropped + teleop_dropped)
+    avg_fuel_scored = total_fuel_scored / total_matches if total_matches > 0 else 0
+    avg_fuel_missed = total_fuel_missed / total_matches if total_matches > 0 else 0
     
-    avg_dropped_pieces = sum(dropped_pieces) / len(dropped_pieces) if dropped_pieces else 0
+    fuel_accuracy = (total_fuel_scored / (total_fuel_scored + total_fuel_missed) * 100) if (total_fuel_scored + total_fuel_missed) > 0 else 0
     
-    # Ratings
-    offense_ratings = [match.get('teleop', {}).get('offenseRating', 0) for match in matches]
-    defense_ratings = [match.get('teleop', {}).get('defenseRating', 0) for match in matches]
+    # Mobility analysis
+    left_zone_count = sum(1 for match in matches if match.get('auto', {}).get('left_zone', False))
+    can_cross_bump = sum(1 for match in matches if match.get('teleop', {}).get('can_cross_bump', False))
+    can_cross_trench = sum(1 for match in matches if match.get('teleop', {}).get('can_cross_trench', False))
+    
+    # Offense/Defense ratings
+    offense_ratings = [match.get('teleop', {}).get('offenseRating', 0) for match in matches if match.get('teleop', {}).get('offenseRating', 0) > 0]
+    defense_ratings = [match.get('teleop', {}).get('defenseRating', 0) for match in matches if match.get('teleop', {}).get('defenseRating', 0) > 0]
+    
     avg_offense_rating = sum(offense_ratings) / len(offense_ratings) if offense_ratings else 0
     avg_defense_rating = sum(defense_ratings) / len(defense_ratings) if defense_ratings else 0
     
-    # Endgame analysis
+    # Endgame analysis (TOWER climbing)
     climb_attempts = sum(1 for match in matches if match.get('endgame', {}).get('action') == 'climb')
     successful_climbs = sum(1 for match in matches 
                           if match.get('endgame', {}).get('action') == 'climb' 
-                          and match.get('endgame', {}).get('climbSuccessful', False))
+                          and match.get('endgame', {}).get('climb_successful', False))
     
     climb_success_rate = (successful_climbs / climb_attempts * 100) if climb_attempts > 0 else 0
     
-    # Endgame preference
-    endgame_actions = [match.get('endgame', {}).get('action', 'none') for match in matches]
-    endgame_counts = {}
-    for action in endgame_actions:
-        endgame_counts[action] = endgame_counts.get(action, 0) + 1
-    
-    endgame_preference = max(endgame_counts, key=endgame_counts.get) if endgame_counts else 'Unknown'
+    # Tower level distribution
+    level1_climbs = sum(1 for match in matches if match.get('endgame', {}).get('tower_level') == 'level1' and match.get('endgame', {}).get('climb_successful', False))
+    level2_climbs = sum(1 for match in matches if match.get('endgame', {}).get('tower_level') == 'level2' and match.get('endgame', {}).get('climb_successful', False))
+    level3_climbs = sum(1 for match in matches if match.get('endgame', {}).get('tower_level') == 'level3' and match.get('endgame', {}).get('climb_successful', False))
     
     # Performance trend
     if total_matches >= 4:
@@ -200,23 +201,27 @@ def analyze_team_performance(matches):
     
     return {
         'total_matches': total_matches,
-        'avg_total_score': avg_total_score,
-        'avg_auto_score': avg_auto_score,
-        'avg_teleop_score': avg_teleop_score,
+        'avg_total_score': round(avg_total_score, 1),
+        'avg_auto_score': round(avg_auto_score, 1),
+        'avg_teleop_score': round(avg_teleop_score, 1),
         'best_score': best_score,
         'worst_score': worst_score,
-        'best_match': best_match,
-        'worst_match': worst_match,
         'consistency_rating': consistency_rating,
-        'auto_breakdown': auto_breakdown,
-        'teleop_breakdown': teleop_breakdown,
-        'avg_dropped_pieces': avg_dropped_pieces,
-        'avg_offense_rating': avg_offense_rating,
-        'avg_defense_rating': avg_defense_rating,
+        'std_dev': round(variance ** 0.5, 1) if len(total_scores) > 1 else 0,
+        'avg_fuel_scored': round(avg_fuel_scored, 1),
+        'avg_fuel_missed': round(avg_fuel_missed, 1),
+        'fuel_accuracy': round(fuel_accuracy, 1),
+        'left_zone_percent': round((left_zone_count / total_matches) * 100, 0) if total_matches > 0 else 0,
+        'can_cross_bump_percent': round((can_cross_bump / total_matches) * 100, 0) if total_matches > 0 else 0,
+        'can_cross_trench_percent': round((can_cross_trench / total_matches) * 100, 0) if total_matches > 0 else 0,
+        'avg_offense_rating': round(avg_offense_rating, 1),
+        'avg_defense_rating': round(avg_defense_rating, 1),
         'climb_attempts': climb_attempts,
         'successful_climbs': successful_climbs,
-        'climb_success_rate': climb_success_rate,
-        'endgame_preference': endgame_preference,
+        'climb_success_rate': round(climb_success_rate, 1),
+        'level1_climbs': level1_climbs,
+        'level2_climbs': level2_climbs,
+        'level3_climbs': level3_climbs,
         'performance_trend': performance_trend,
         'partial_matches': partial_matches
     }
@@ -475,11 +480,21 @@ def safe_int(value, default=0):
 def parse_auto_summary(summary):
     """Parse auto summary for REBUILT"""
     if not summary or "Didn't move" in summary:
-        return {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False}
+        return {
+            'fuel_scored': 0,
+            'fuel_missed': 0,
+            'left_zone': False,
+            'intake_source': 'none'
+        }
     
-    data = {'fuel_scored': 0, 'fuel_missed': 0, 'left_zone': False}
+    data = {
+        'fuel_scored': 0,
+        'fuel_missed': 0,
+        'left_zone': False,
+        'intake_source': 'none'
+    }
     
-    # Parse: "FUEL: 3 scored, 1 missed, LEFT ZONE"
+    # Parse: "FUEL: 3 scored, 1 missed, LEFT ZONE, Source: DEPOT"
     fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
     if fuel_match:
         data['fuel_scored'] = int(fuel_match.group(1))
@@ -487,6 +502,11 @@ def parse_auto_summary(summary):
     
     if 'LEFT ZONE' in summary:
         data['left_zone'] = True
+    
+    # Parse intake source
+    source_match = re.search(r'Source: (\w+)', summary)
+    if source_match:
+        data['intake_source'] = source_match.group(1).lower()
     
     return data
     
@@ -527,11 +547,25 @@ def parse_offense_defense_column(column_text):
 def parse_teleop_summary(summary):
     """Parse teleop summary for REBUILT"""
     if not summary or "Didn't move" in summary:
-        return {'fuel_scored': 0, 'fuel_missed': 0, 'can_cross_bump': False, 'can_cross_trench': False}
+        return {
+            'fuel_scored': 0,
+            'fuel_missed': 0,
+            'can_cross_bump': False,
+            'can_cross_trench': False,
+            'primary_intake_source': 'none',
+            'shooter_reliability': 0
+        }
     
-    data = {'fuel_scored': 0, 'fuel_missed': 0, 'can_cross_bump': False, 'can_cross_trench': False}
+    data = {
+        'fuel_scored': 0,
+        'fuel_missed': 0,
+        'can_cross_bump': False,
+        'can_cross_trench': False,
+        'primary_intake_source': 'none',
+        'shooter_reliability': 0
+    }
     
-    # Parse: "FUEL: 12 scored, 3 missed, Mobility: BUMP/TRENCH"
+    # Parse: "FUEL: 12 scored, 3 missed, Mobility: BUMP/TRENCH, Intake: DEPOT, Shooter: 8/10"
     fuel_match = re.search(r'FUEL: (\d+) scored, (\d+) missed', summary)
     if fuel_match:
         data['fuel_scored'] = int(fuel_match.group(1))
@@ -542,13 +576,23 @@ def parse_teleop_summary(summary):
     if 'TRENCH' in summary:
         data['can_cross_trench'] = True
     
+    # Parse intake source
+    intake_match = re.search(r'Intake: (\w+)', summary)
+    if intake_match:
+        data['primary_intake_source'] = intake_match.group(1).lower()
+    
+    # Parse shooter reliability
+    shooter_match = re.search(r'Shooter: (\d+)/10', summary)
+    if shooter_match:
+        data['shooter_reliability'] = int(shooter_match.group(1))
+    
     return data
 
 def parse_endgame_summary(summary):
     """Parse endgame summary for REBUILT"""
     if not summary or "Didn't Climb" in summary:
         return {
-            'climb': 'none', 
+            'action': 'none',
             'tower_level': '',
             'climb_successful': False
         }
@@ -557,23 +601,22 @@ def parse_endgame_summary(summary):
     if 'TOWER Climbed' in summary:
         climb_successful = '✓ SUCCESSFUL' in summary
         
+        tower_level = ''
         if 'L1' in summary or 'LOW RUNG' in summary:
             tower_level = 'level1'
         elif 'L2' in summary or 'MID RUNG' in summary:
             tower_level = 'level2'
         elif 'L3' in summary or 'HIGH RUNG' in summary:
             tower_level = 'level3'
-        else:
-            tower_level = ''
         
         return {
-            'climb': 'climbed', 
+            'action': 'climb',
             'tower_level': tower_level,
             'climb_successful': climb_successful
         }
     
     return {
-        'climb': 'none', 
+        'action': 'none',
         'tower_level': '',
         'climb_successful': False
     }
@@ -604,7 +647,7 @@ def calculate_auto_score(auto_data):
     # FUEL scored in HUB = 1 point each
     score += auto_data.get('fuel_scored', 0) * 1
     
-    # LEAVE points (3 points) - if robot left ALLIANCE ZONE
+    # LEFT ZONE points (3 points bonus)
     if auto_data.get('left_zone', False):
         score += 3
     
@@ -621,9 +664,11 @@ def calculate_teleop_score(teleop_data):
 
 def calculate_endgame_score(endgame_data):
     """Calculate endgame score for REBUILT (Table 6-4)"""
-    climb = endgame_data.get('climb', 'none')
+    action = endgame_data.get('action', 'none')
+    climb_successful = endgame_data.get('climb_successful', False)
     
-    if climb == 'climbed':
+    # Only award points if climb was successful
+    if action == 'climb' and climb_successful:
         tower_level = endgame_data.get('tower_level', '').lower()
         
         if tower_level == 'level1':
@@ -1416,124 +1461,122 @@ def home():
     else:
         return redirect('/dashboard')
 
+# Replace the entire @app.route('/submit') function in app.py with this:
+
 @app.route('/submit', methods=['POST'])
 @login_required
 def submit():
     data = request.json
 
-    name = data.get('name', '').strip()
-    team = str(data.get('team', '')).strip()
+    name         = data.get('name', '').strip()
+    team         = str(data.get('team', '')).strip()
     match_number = data.get('match', '').strip()
-    est = timezone(timedelta(hours=-4))
-    now = datetime.now(est)
+    est          = timezone(timedelta(hours=-4))
+    now          = datetime.now(est)
 
-    timestamp_us = now.isoformat(timespec='microseconds')
-    unique_suffix = uuid4().hex[:8]
     submitted_time_display = now.strftime("%m/%d/%Y %I:%M:%S %p")
 
-    auto = data.get('auto', {})
-    teleop = data.get('teleop', {})
+    auto    = data.get('auto', {})
+    teleop  = data.get('teleop', {})
     endgame = data.get('endgame', {})
-    notes = data.get('notes', '').strip()
+    notes   = data.get('notes', '').strip()
 
-    auto_no_move = auto.get('no_move', False)
-    teleop_no_move = teleop.get('no_move', False)
-    partial_match = data.get('partial_match', False)
+    auto_no_move      = auto.get('no_move', False)
+    auto_moved_no_score = auto.get('moved_no_score', False)
+    teleop_no_move    = teleop.get('no_move', False)
+    partial_match     = data.get('partial_match', False)
 
-    # AUTO SUMMARY
+    # ---- AUTO SUMMARY ----
     if auto_no_move:
         auto_summary = "Didn't move in auto"
+    elif auto_moved_no_score:
+        auto_summary = "Moved but no scoring in auto"
     else:
-        auto_fuel = auto.get('fuel_scored', 0)
+        auto_fuel   = auto.get('fuel_scored', 0)
         auto_missed = auto.get('fuel_missed', 0)
-        left_zone = auto.get('left_zone', False)
-        intake_src = auto.get('intake_source', 'none')
-        
-        leave_text = ", LEFT ZONE" if left_zone else ""
-        intake_text = f", Source: {intake_src.upper()}" if intake_src != 'none' else ""
-        auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{leave_text}{intake_text}"
+        auto_climb  = auto.get('auto_climb', 'no')
+        sources     = auto.get('collect_sources', [])
 
+        sources_text = f", Collected: {', '.join(s.upper() for s in sources)}" if sources else ""
+        climb_text   = ", AUTO CLIMB: YES" if auto_climb == 'yes' else ""
 
-    # TELEOP SUMMARY
+        auto_summary = f"FUEL: {auto_fuel} scored, {auto_missed} missed{sources_text}{climb_text}"
+
+    # ---- TELEOP SUMMARY ----
     if teleop_no_move:
         teleop_summary = "Didn't move in teleop"
     else:
-        teleop_fuel = teleop.get('fuel_scored', 0)
+        teleop_fuel   = teleop.get('fuel_scored', 0)
         teleop_missed = teleop.get('fuel_missed', 0)
-        can_bump = teleop.get('can_cross_bump', False)
-        can_trench = teleop.get('can_cross_trench', False)
-        intake_src = teleop.get('primary_intake_source', 'none')
-        shooter_rating = teleop.get('shooter_reliability', 0)
-        
-        mobility = []
-        if can_bump:
-            mobility.append("BUMP")
-        if can_trench:
-            mobility.append("TRENCH")
-        
-        mobility_text = f", Mobility: {'/'.join(mobility)}" if mobility else ""
-        intake_text = f", Intake: {intake_src.upper()}" if intake_src != 'none' else ""
-        shooter_text = f", Shooter: {shooter_rating}/10"
-        teleop_summary = f"FUEL: {teleop_fuel} scored, {teleop_missed} missed{mobility_text}{intake_text}{shooter_text}"
+        can_bump      = teleop.get('can_cross_bump', False)
+        can_trench    = teleop.get('can_cross_trench', False)
+        sources       = teleop.get('collect_sources', [])
 
-    # OFFENSE/DEFENSE COLUMN
+        mobility = []
+        if can_bump:   mobility.append("BUMP")
+        if can_trench: mobility.append("TRENCH")
+
+        mobility_text = f", Mobility: {'/'.join(mobility)}" if mobility else ""
+        sources_text  = f", Collected: {', '.join(s.upper() for s in sources)}" if sources else ""
+
+        teleop_summary = f"FUEL: {teleop_fuel} scored, {teleop_missed} missed{mobility_text}{sources_text}"
+
+    # ---- OFFENSE/DEFENSE COLUMN ----
     def clean_rating(val):
         try:
-            val_num = int(val)
-            return str(val_num) if val_num > 0 else '-'
+            n = int(val)
+            return str(n) if n > 0 else '-'
         except:
             return '-' if val is None or val == '' else str(val)
-    
-    robot_role = teleop.get('robot_role', '')
+
+    robot_role     = teleop.get('robot_role', '')
     offense_rating = clean_rating(teleop.get('offense_rating', '-'))
     defense_rating = clean_rating(teleop.get('defense_rating', '-'))
-    
+
     if robot_role == 'offense':
         offense_defense_column = f"Offense (Rating: {offense_rating})"
     elif robot_role == 'defense':
         offense_defense_column = f"Defense (Rating: {defense_rating})"
-    elif robot_role == 'both':
-        offense_defense_column = f"Both (O:{offense_rating}, D:{defense_rating})"
+    elif robot_role == 'feeder':
+        offense_defense_column = "Feeder"
+    elif robot_role == 'mix':
+        offense_defense_column = f"Mix (O:{offense_rating}, D:{defense_rating})"
     else:
         offense_defense_column = "-"
 
-    # ENDGAME SUMMARY
-    climb_status = endgame.get('climb', 'none')
+    # ---- ENDGAME SUMMARY ----
+    climb_status     = endgame.get('climb', 'none')
     climb_successful = endgame.get('climb_successful', False)
 
-    if climb_status == 'none' or not climb_status:
+    if not climb_status or climb_status == 'none':
         endgame_summary = "Didn't Climb"
     elif climb_status in ['level1', 'level2', 'level3']:
-        # Determine level name and points
         level_info = {
-            'level1': ('L1 (LOW RUNG)', '10pts'),
-            'level2': ('L2 (MID RUNG)', '20pts'),
-            'level3': ('L3 (HIGH RUNG)', '30pts')
+            'level1': ('L1 (LOW RUNG)',  '10pts'),
+            'level2': ('L2 (MID RUNG)',  '20pts'),
+            'level3': ('L3 (HIGH RUNG)', '30pts'),
         }
-        
-        level_name, points = level_info.get(climb_status, ('Unknown Level', '0pts'))
-        success_status = "✓ SUCCESSFUL" if climb_successful else "✗ FAILED"
-        
-        endgame_summary = f"TOWER Climbed - {level_name} ({points}) - {success_status}"
+        level_name, points = level_info[climb_status]
+        success_text = "✓ SUCCESSFUL" if climb_successful else "✗ FAILED"
+        endgame_summary = f"TOWER Climbed - {level_name} ({points}) - {success_text}"
     else:
         endgame_summary = "Didn't Climb"
 
-    # Partial match column
     partial_match_status = "Yes" if partial_match else "No"
 
     data_row = [
-        name, team, match_number, submitted_time_display, auto_summary,
-        teleop_summary, offense_defense_column,
+        name, team, match_number, submitted_time_display,
+        auto_summary, teleop_summary, offense_defense_column,
         endgame_summary, partial_match_status, notes
     ]
 
-    # Get sheet config
+    # ---- SHEET CONFIG ----
     sheet_config = get_sheet_config()
-    SHEET_NAME = sheet_config['SHEET_NAME']
-    SHEET_ID = sheet_config['SHEET_ID']
+    SHEET_NAME   = sheet_config['SHEET_NAME']
+    SHEET_ID     = sheet_config['SHEET_ID']
 
-    # Read existing data
-    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
+    # ---- READ EXISTING DATA ----
+    result     = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
     all_values = result.get('values', [])
 
     teams_data = {}
@@ -1550,9 +1593,9 @@ def submit():
 
     sheet.values().clear(spreadsheetId=SPREADSHEET_ID, range=f'{SHEET_NAME}!A1:Z1000').execute()
 
-    new_values = []
+    new_values      = []
     format_requests = []
-    current_row = 0
+    current_row     = 0
 
     for team_num in sorted(teams_data.keys(), key=int):
         team_name = TEAM_NAMES.get(team_num, "Unknown Team")
@@ -1565,7 +1608,7 @@ def submit():
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 14}}},
+                "cell":  {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 14}}},
                 "fields": "userEnteredFormat.textFormat"
             }
         })
@@ -1579,27 +1622,29 @@ def submit():
         format_requests.append({
             "repeatCell": {
                 "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                "cell": {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 11}}},
+                "cell":  {"userEnteredFormat": {"textFormat": {"bold": True, "fontSize": 11}}},
                 "fields": "userEnteredFormat.textFormat"
             }
         })
         current_row += 1
 
-        sorted_data = sorted(teams_data[team_num], key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0)
+        sorted_data = sorted(
+            teams_data[team_num],
+            key=lambda x: int(x[2]) if len(x) > 2 and str(x[2]).isdigit() else 0
+        )
         for entry in sorted_data:
-            is_partial_match = len(entry) > 8 and entry[8] == "Yes"
-            
+            is_partial = len(entry) > 8 and entry[8] == "Yes"
             new_values.append(entry)
-            
-            if is_partial_match:
+
+            if is_partial:
                 format_requests.append({
                     "repeatCell": {
                         "range": {
-                            "sheetId": SHEET_ID, 
-                            "startRowIndex": current_row,
-                            "endRowIndex": current_row + 1,
+                            "sheetId": SHEET_ID,
+                            "startRowIndex":    current_row,
+                            "endRowIndex":      current_row + 1,
                             "startColumnIndex": 8,
-                            "endColumnIndex": 9
+                            "endColumnIndex":   9
                         },
                         "cell": {
                             "userEnteredFormat": {
@@ -1614,7 +1659,7 @@ def submit():
                 format_requests.append({
                     "repeatCell": {
                         "range": {"sheetId": SHEET_ID, "startRowIndex": current_row, "endRowIndex": current_row + 1},
-                        "cell": {"userEnteredFormat": {"textFormat": {"bold": False}}},
+                        "cell":  {"userEnteredFormat": {"textFormat": {"bold": False}}},
                         "fields": "userEnteredFormat.textFormat"
                     }
                 })
@@ -1635,8 +1680,7 @@ def submit():
         ).execute()
 
     if 'current_assignment' in session:
-        assignment_key = session['current_assignment']
-        mark_assignment_completed(assignment_key)
+        mark_assignment_completed(session['current_assignment'])
         session.pop('current_assignment', None)
 
     return jsonify({'status': 'success'})

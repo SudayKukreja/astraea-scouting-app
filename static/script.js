@@ -1,89 +1,55 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const tabs = document.querySelectorAll('.tab-btn');
+  const tabs        = document.querySelectorAll('.tab-btn');
   const tabContents = document.querySelectorAll('.tab-content');
-  const form = document.getElementById('scout-form');
-  const submitBtn = form.querySelector('button[type="submit"]');
+  const form        = document.getElementById('scout-form');
+  const submitBtn   = form.querySelector('button[type="submit"]');
   const formWarning = document.getElementById('form-warning');
-  const spinner = document.getElementById('submit-spinner');
-  const endgameClimb = document.getElementById('endgame_climb');
+  const spinner     = document.getElementById('submit-spinner');
+  const endgameClimb      = document.getElementById('endgame_climb');
   const climbSuccessField = document.getElementById('climb_success_field');
-  const towerLevelField = document.getElementById('tower_level_field');
-  const robotRole = document.getElementById('robot_role');
-  const ratingFields = document.getElementById('rating_fields');
+  const robotRole         = document.getElementById('robot_role');
+  const ratingFields      = document.getElementById('rating_fields');
   const offenseRatingField = document.getElementById('offense_rating_field');
   const defenseRatingField = document.getElementById('defense_rating_field');
 
+  // Back button
   const backBtn = document.getElementById('back-btn');
   if (backBtn) {
     backBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to go back? Any unsaved changes will be lost.')) {
+      if (confirm('Are you sure you want to go back? Unsaved changes will be lost.')) {
         window.location.href = '/dashboard';
       }
     });
   }
 
-  // ========== COUNTER BUTTON FUNCTIONALITY ==========
-  const counterButtons = document.querySelectorAll('.counter-btn');
-
-  counterButtons.forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  // ========== COUNTER BUTTONS ==========
+  // Each button has data-target (hidden input id) and data-amount (positive or negative int)
+  document.querySelectorAll('.counter-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
       e.preventDefault();
-      const targetId = btn.getAttribute('data-target');
-      const input = document.getElementById(targetId);
-      const currentValue = parseInt(input.value) || 0;
-
-      if (btn.classList.contains('plus')) {
-        input.value = currentValue + 1;
-      } else if (btn.classList.contains('minus')) {
-        input.value = Math.max(0, currentValue - 1);
-      }
-
+      const targetId  = btn.getAttribute('data-target');
+      const amount    = parseInt(btn.getAttribute('data-amount'), 10) || 0;
+      const hidden    = document.getElementById(targetId);
+      const display   = document.getElementById(targetId + '_display');
+      if (!hidden) return;
+      const newVal = Math.max(0, (parseInt(hidden.value, 10) || 0) + amount);
+      hidden.value = newVal;
+      if (display) display.textContent = newVal;
       saveDraft();
     });
   });
 
-  // ========== Allow manual typing in counter inputs ==========
-  const counterInputs = document.querySelectorAll('.counter-group input[type="number"]');
-
-  counterInputs.forEach(input => {
-    input.removeAttribute('readonly');
-
-    input.addEventListener('input', (e) => {
-      let value = parseInt(e.target.value);
-
-      if (isNaN(value) || value < 0) {
-        e.target.value = 0;
-      }
-
-      saveDraft();
-    });
-
-    input.addEventListener('blur', (e) => {
-      let value = parseInt(e.target.value);
-
-      if (isNaN(value) || value < 0) {
-        e.target.value = 0;
-      }
-    });
-  });
-
-  // ========== ENDGAME CLIMB HANDLER - FIXED ==========
+  // ========== ENDGAME CLIMB HANDLER ==========
   if (endgameClimb && climbSuccessField) {
     endgameClimb.addEventListener('change', () => {
-      const climbValue = endgameClimb.value;
-      
-      // Show climb success field if any climb level is selected
-      if (climbValue && climbValue !== 'none' && climbValue !== '') {
+      const v = endgameClimb.value;
+      if (v && v !== 'none') {
         climbSuccessField.style.display = 'block';
       } else {
         climbSuccessField.style.display = 'none';
-        // Uncheck the checkbox when hiding
-        const climbSuccessCheckbox = document.getElementById('climb_successful');
-        if (climbSuccessCheckbox) {
-          climbSuccessCheckbox.checked = false;
-        }
+        const cb = document.getElementById('climb_successful');
+        if (cb) cb.checked = false;
       }
-      
       saveDraft();
     });
   }
@@ -92,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (robotRole) {
     robotRole.addEventListener('change', () => {
       const role = robotRole.value;
-
       if (role === 'offense') {
         ratingFields.style.display = 'grid';
         offenseRatingField.style.display = 'block';
@@ -103,19 +68,36 @@ document.addEventListener('DOMContentLoaded', () => {
         offenseRatingField.style.display = 'none';
         defenseRatingField.style.display = 'block';
         document.getElementById('offense_rating').value = '0';
-      } else if (role === 'both') {
+      } else if (role === 'mix') {
         ratingFields.style.display = 'grid';
         offenseRatingField.style.display = 'block';
         defenseRatingField.style.display = 'block';
       } else {
+        // feeder or empty
         ratingFields.style.display = 'none';
+        document.getElementById('offense_rating').value = '0';
+        document.getElementById('defense_rating').value = '0';
       }
-      
       saveDraft();
     });
   }
 
   // ========== TAB SWITCHING ==========
+  function switchToTab(tabId) {
+    tabs.forEach(b => b.classList.remove('active'));
+    tabContents.forEach(t => t.classList.remove('active'));
+    const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+    const content = document.getElementById(tabId);
+    if (btn) btn.classList.add('active');
+    if (content) content.classList.add('active');
+  }
+
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchToTab(btn.getAttribute('data-tab'));
+    });
+  });
+
   function clearErrors() {
     formWarning.style.display = 'none';
     formWarning.textContent = '';
@@ -123,289 +105,252 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelectorAll('.error-input').forEach(el => el.classList.remove('error-input'));
   }
 
-  function showError(el, msg) {
+  function showFieldError(el, msg) {
     el.classList.add('error-input');
-    const errorSpan = document.createElement('span');
-    errorSpan.className = 'error-msg';
-    errorSpan.style.color = '#b33';
-    errorSpan.style.fontSize = '0.9rem';
-    errorSpan.textContent = msg;
-    el.parentNode.appendChild(errorSpan);
+    const span = document.createElement('span');
+    span.className = 'error-msg';
+    span.style.cssText = 'color:#b33;font-size:0.9rem;display:block;margin-top:4px;';
+    span.textContent = msg;
+    el.parentNode.appendChild(span);
   }
 
-  function switchToTab(tabId) {
-    tabs.forEach(b => b.classList.remove('active'));
-    tabContents.forEach(t => t.classList.remove('active'));
-    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-    document.getElementById(tabId).classList.add('active');
-  }
+  // ========== DRAFT SAVE / LOAD ==========
+  const COUNTER_IDS = ['auto_fuel_scored','auto_fuel_missed','teleop_fuel_scored','teleop_fuel_missed'];
 
-  tabs.forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabs.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const target = btn.getAttribute('data-tab');
-      tabContents.forEach(tab => tab.classList.remove('active'));
-      document.getElementById(target).classList.add('active');
-    });
-  });
-
-  // ========== DRAFT SAVING ==========
   function saveDraft() {
-    const draft = new FormData(form);
-    const draftObj = {};
-    draft.forEach((value, key) => {
-      draftObj[key] = value;
+    const draft = {};
+    // save counters
+    COUNTER_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) draft[id] = el.value;
     });
-    localStorage.setItem('scoutDraft', JSON.stringify(draftObj));
+    // save all visible form values
+    new FormData(form).forEach((v, k) => { draft[k] = v; });
+    // save checkboxes explicitly (FormData skips unchecked)
+    form.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      draft[cb.name] = cb.checked ? 'on' : 'off';
+    });
+    // save auto climb hidden value
+    const ac = document.getElementById('auto_climb');
+    if (ac) draft['auto_climb'] = ac.value;
+    localStorage.setItem('scoutDraft', JSON.stringify(draft));
   }
 
-  // ========== LOAD SAVED DRAFT ==========
-  const savedDraft = localStorage.getItem('scoutDraft');
-  if (savedDraft) {
-    const draftObj = JSON.parse(savedDraft);
-    for (const [key, value] of Object.entries(draftObj)) {
-      const el = document.getElementsByName(key)[0];
-      if (el) {
+  function loadDraft() {
+    const raw = localStorage.getItem('scoutDraft');
+    if (!raw) return;
+    try {
+      const d = JSON.parse(raw);
+      // restore counters
+      COUNTER_IDS.forEach(id => {
+        if (d[id] !== undefined) {
+          const hidden  = document.getElementById(id);
+          const display = document.getElementById(id + '_display');
+          if (hidden)  hidden.value = d[id];
+          if (display) display.textContent = d[id];
+        }
+      });
+      // restore other inputs
+      Object.entries(d).forEach(([key, value]) => {
+        const el = form.querySelector(`[name="${key}"]`);
+        if (!el) return;
         if (el.type === 'checkbox') {
           el.checked = value === 'on' || value === true;
-        } else {
+        } else if (el.type !== 'hidden') {
           el.value = value;
         }
-      }
-    }
-
-    // Trigger endgame climb change to show/hide climb success field
-    if (endgameClimb && endgameClimb.value) {
-      endgameClimb.dispatchEvent(new Event('change'));
-    }
-
-    // Trigger robot role change
-    if (robotRole && robotRole.value) {
-      robotRole.dispatchEvent(new Event('change'));
-    }
+      });
+      // restore auto climb buttons
+      const acVal = d['auto_climb'];
+      if (acVal === 'yes') setAutoClimb(true);
+      else if (acVal === 'no') setAutoClimb(false);
+      // trigger dependent UI
+      if (endgameClimb && endgameClimb.value) endgameClimb.dispatchEvent(new Event('change'));
+      if (robotRole && robotRole.value)       robotRole.dispatchEvent(new Event('change'));
+    } catch(e) { console.error('Draft load error:', e); }
   }
 
-  form.addEventListener('input', saveDraft);
+  loadDraft();
+  form.addEventListener('input',  saveDraft);
+  form.addEventListener('change', saveDraft);
 
-  // ========== TIMING TRACKING ==========
+  // ========== TIMING ==========
   let firstInputTime = null;
-  function recordFirstInputTime() {
-    if (!firstInputTime) {
-      firstInputTime = Date.now();
-    }
-  }
-
   form.querySelectorAll('input, select, textarea').forEach(el => {
-    el.addEventListener('input', recordFirstInputTime, { once: true });
+    el.addEventListener('input', () => { if (!firstInputTime) firstInputTime = Date.now(); }, { once: true });
   });
 
   // ========== OFFLINE QUEUE ==========
   function saveOffline(data) {
-    let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-    queue.push(data);
-    localStorage.setItem('offlineQueue', JSON.stringify(queue));
+    const q = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+    q.push(data);
+    localStorage.setItem('offlineQueue', JSON.stringify(q));
   }
-
-  async function sendQueuedSubmissions() {
-    let queue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
-    if (!queue.length) return;
-
-    for (let i = 0; i < queue.length; i++) {
+  async function sendQueued() {
+    let q = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
+    if (!q.length) return;
+    for (let i = 0; i < q.length; i++) {
       try {
-        const res = await fetch('/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(queue[i])
-        });
-        if (res.ok) {
-          queue.splice(i, 1);
-          i--;
-        } else {
-          break;
-        }
-      } catch {
-        break;
-      }
+        const r = await fetch('/submit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(q[i]) });
+        if (r.ok) { q.splice(i,1); i--; } else break;
+      } catch { break; }
     }
-    localStorage.setItem('offlineQueue', JSON.stringify(queue));
+    localStorage.setItem('offlineQueue', JSON.stringify(q));
   }
+  window.addEventListener('load', sendQueued);
+  window.addEventListener('online', () => { alert('Back online! Syncing saved reports...'); sendQueued(); });
 
-  window.addEventListener('load', sendQueuedSubmissions);
-  window.addEventListener('online', () => {
-    alert('You are back online! Trying to submit any saved reports now.');
-    sendQueuedSubmissions();
-  });
+  // ========== FORM SUBMIT ==========
+  let isSubmitting = false;
 
-  // ========== FORM SUBMISSION - FIXED ==========
-  let isSubmitting = false; // Prevent double submissions
-
-  form.addEventListener('submit', async (e) => {
+  form.addEventListener('submit', async e => {
     e.preventDefault();
-    
-    // Prevent double submission
-    if (isSubmitting) {
-      console.log('Already submitting, ignoring duplicate submission');
-      return;
-    }
-    
+    if (isSubmitting) return;
     clearErrors();
 
-    const getValue = id => document.getElementById(id)?.value.trim();
-    const getCheckbox = id => document.getElementById(id)?.checked;
+    const val  = id => document.getElementById(id)?.value.trim();
+    const bool = id => document.getElementById(id)?.checked;
 
-    const requiredFields = ['name', 'team', 'match'];
+    // required fields
     let formValid = true;
-
-    for (const id of requiredFields) {
+    ['name','team','match'].forEach(id => {
       const el = document.getElementById(id);
-      if (!el || !el.value.trim()) {
-        formValid = false;
-        showError(el, 'Required field');
-      }
+      if (!el || !el.value.trim()) { formValid = false; showFieldError(el, 'Required field'); }
+    });
+
+    const tabErrors = [];
+
+    // auto: at least something filled
+    const autoScored   = parseInt(val('auto_fuel_scored'))  || 0;
+    const autoMissed   = parseInt(val('auto_fuel_missed'))  || 0;
+    const autoNoMove   = bool('auto_no_move');
+    const autoMovedNS  = bool('auto_moved_no_score');
+    const autoClimbVal = val('auto_climb');
+    const autoCollect  = ['neutral','outpost','depot','preloaded'].some(s => bool(`auto_collect_${s}`));
+    if (!autoScored && !autoMissed && !autoNoMove && !autoMovedNS && !autoClimbVal && !autoCollect) {
+      tabErrors.push({ tab:'auto', message:'Please fill out something in the Autonomous tab' });
     }
 
-    let tabErrors = [];
-
-    const autoFuelScored = parseInt(getValue('auto_fuel_scored')) || 0;
-    const autoFuelMissed = parseInt(getValue('auto_fuel_missed')) || 0;
-    const autoNoMove = getCheckbox('auto_no_move');
-
-    if (autoFuelScored === 0 && autoFuelMissed === 0 && !autoNoMove && !getCheckbox('auto_left_zone')) {
-      tabErrors.push({ tab: 'auto', message: 'Please fill out something in Autonomous tab' });
+    // teleop
+    const teScored  = parseInt(val('teleop_fuel_scored')) || 0;
+    const teMissed  = parseInt(val('teleop_fuel_missed')) || 0;
+    const teNoMove  = bool('teleop_no_move');
+    const teRole    = val('robot_role');
+    if (!teScored && !teMissed && !teNoMove && !teRole) {
+      tabErrors.push({ tab:'teleop', message:'Please fill out something in the Teleop tab' });
     }
 
-    const teleopFuelScored = parseInt(getValue('teleop_fuel_scored')) || 0;
-    const teleopFuelMissed = parseInt(getValue('teleop_fuel_missed')) || 0;
-    const teleopNoMove = getCheckbox('teleop_no_move');
-    const robotRoleValue = getValue('robot_role');
-
-    if (teleopFuelScored === 0 && teleopFuelMissed === 0 && !teleopNoMove && !robotRoleValue) {
-      tabErrors.push({ tab: 'teleop', message: 'Please fill out something in Teleop tab' });
+    // endgame
+    if (!val('endgame_climb')) {
+      tabErrors.push({ tab:'endgame', message:'Please select Endgame action' });
+      showFieldError(document.getElementById('endgame_climb'), 'Required');
     }
 
-    if (!getValue('endgame_climb')) {
-      tabErrors.push({ tab: 'endgame', message: 'Please select Endgame action' });
-      showError(document.getElementById('endgame_climb'), 'Required');
-    }
-
-    if (!formValid || tabErrors.length > 0) {
+    if (!formValid || tabErrors.length) {
       formWarning.style.display = 'block';
       formWarning.style.color = '#b33';
-      formWarning.textContent = tabErrors.length > 0 ? tabErrors[0].message : 'Please fix required fields.';
-      if (tabErrors.length > 0) switchToTab(tabErrors[0].tab);
+      formWarning.textContent = tabErrors.length ? tabErrors[0].message : 'Please fix required fields.';
+      if (tabErrors.length) switchToTab(tabErrors[0].tab);
       return;
     }
 
-    // Set submitting flag
     isSubmitting = true;
-    
     spinner.style.display = 'block';
     formWarning.style.display = 'block';
     formWarning.style.color = '#2563eb';
     formWarning.textContent = 'Submitting... Please wait.';
     submitBtn.disabled = true;
 
-    const responseTimeField = document.getElementById('response_time');
-    if (firstInputTime) {
-      const responseTimeSec = ((Date.now() - firstInputTime) / 1000).toFixed(2);
-      responseTimeField.value = responseTimeSec;
-    } else {
-      responseTimeField.value = '-1';
-    }
+    const rtField = document.getElementById('response_time');
+    rtField.value = firstInputTime ? ((Date.now() - firstInputTime) / 1000).toFixed(2) : '-1';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const assignmentKey = urlParams.get('assignment');
+    const assignmentKey = new URLSearchParams(window.location.search).get('assignment');
 
-    const data = {
-      name: getValue('name'),
-      team: getValue('team'),
-      match: getValue('match'),
+    // build collection arrays
+    const autoCollectSources   = ['neutral','outpost','depot','preloaded'].filter(s => bool(`auto_collect_${s}`));
+    const teleopCollectSources = ['neutral','outpost','depot','preloaded'].filter(s => bool(`teleop_collect_${s}`));
+
+    const payload = {
+      name:  val('name'),
+      team:  val('team'),
+      match: val('match'),
       assignment_key: assignmentKey,
       auto: {
-        fuel_scored: parseInt(getValue('auto_fuel_scored')) || 0,
-        fuel_missed: parseInt(getValue('auto_fuel_missed')) || 0,
-        left_zone: getCheckbox('auto_left_zone'),
-        no_move: getCheckbox('auto_no_move'),
-        intake_source: getValue('auto_intake_source') || 'none'
+        fuel_scored:      parseInt(val('auto_fuel_scored'))  || 0,
+        fuel_missed:      parseInt(val('auto_fuel_missed'))  || 0,
+        no_move:          bool('auto_no_move'),
+        moved_no_score:   bool('auto_moved_no_score'),
+        collect_sources:  autoCollectSources,
+        auto_climb:       val('auto_climb') || 'no',
       },
       teleop: {
-        fuel_scored: parseInt(getValue('teleop_fuel_scored')) || 0,
-        fuel_missed: parseInt(getValue('teleop_fuel_missed')) || 0,
-        robot_role: getValue('robot_role') || '',
-        offense_rating: getValue('offense_rating') || '-',
-        defense_rating: getValue('defense_rating') || '-',
-        can_cross_bump: getCheckbox('can_cross_bump'),
-        can_cross_trench: getCheckbox('can_cross_trench'),
-        no_move: getCheckbox('teleop_no_move'),
-        primary_intake_source: getValue('teleop_intake_source') || 'none',
-        shooter_reliability: parseInt(getValue('shooter_reliability')) || 0
+        fuel_scored:      parseInt(val('teleop_fuel_scored')) || 0,
+        fuel_missed:      parseInt(val('teleop_fuel_missed')) || 0,
+        robot_role:       val('robot_role') || '',
+        offense_rating:   val('offense_rating') || '-',
+        defense_rating:   val('defense_rating') || '-',
+        can_cross_bump:   bool('can_cross_bump'),
+        can_cross_trench: bool('can_cross_trench'),
+        no_move:          bool('teleop_no_move'),
+        collect_sources:  teleopCollectSources,
       },
       endgame: {
-        climb: getValue('endgame_climb') || 'none',
-        climb_successful: getCheckbox('climb_successful') || false
+        climb:            val('endgame_climb') || 'none',
+        climb_successful: bool('climb_successful') || false,
       },
-      notes: getValue('notes') || '',
-      response_time: responseTimeField.value,
-      timestamp: new Date().toLocaleString(),
-      partial_match: getCheckbox('partial_match')
+      notes:         val('notes') || '',
+      response_time: rtField.value,
+      timestamp:     new Date().toLocaleString(),
+      partial_match: bool('partial_match'),
     };
 
     try {
       const res = await fetch('/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload),
       });
-
       if (res.ok) {
-        // Clear draft immediately
         localStorage.removeItem('scoutDraft');
-        
-        // Show success message briefly
         alert('Scout report submitted successfully!');
-        
-        // Redirect to dashboard
         window.location.href = '/dashboard?completed=true';
       } else {
-        // Reset flag on error
-        isSubmitting = false;
-        
-        formWarning.style.display = 'block';
-        formWarning.style.color = '#b33';
-        formWarning.textContent = 'Error submitting report. Please try again.';
-        spinner.style.display = 'none';
-        submitBtn.disabled = false;
+        throw new Error('Server error ' + res.status);
       }
     } catch (err) {
-      console.error('Submission error:', err);
-      
-      // Check if actually offline
+      console.error(err);
       if (!navigator.onLine) {
-        saveOffline(data);
+        saveOffline(payload);
         localStorage.removeItem('scoutDraft');
-        alert('You are currently offline. Your report has been saved locally and will sync automatically when you are back online.');
+        alert('Offline — report saved locally and will sync when back online.');
         window.location.href = '/dashboard?completed=true';
       } else {
-        // Network error but not offline - reset and show error
         isSubmitting = false;
-        formWarning.style.display = 'block';
         formWarning.style.color = '#b33';
-        formWarning.textContent = 'Network error. Please check your connection and try again.';
+        formWarning.textContent = 'Network error. Please try again.';
         spinner.style.display = 'none';
         submitBtn.disabled = false;
       }
     }
   });
-
-  // Trigger initial state for robot role if draft loaded
-  if (robotRole && robotRole.value) {
-    robotRole.dispatchEvent(new Event('change'));
-  }
-  
-  // Trigger initial state for endgame climb if draft loaded
-  if (endgameClimb && endgameClimb.value) {
-    endgameClimb.dispatchEvent(new Event('change'));
-  }
 });
+
+// ========== AUTO CLIMB (called from onclick in HTML) ==========
+function setAutoClimb(value) {
+  const hidden = document.getElementById('auto_climb');
+  const yesBtn = document.getElementById('auto_climb_yes');
+  const noBtn  = document.getElementById('auto_climb_no');
+  if (!hidden) return;
+  if (value) {
+    hidden.value = 'yes';
+    yesBtn.classList.add('selected-yes');
+    yesBtn.classList.remove('selected-no');
+    noBtn.classList.remove('selected-yes','selected-no');
+  } else {
+    hidden.value = 'no';
+    noBtn.classList.add('selected-no');
+    noBtn.classList.remove('selected-yes');
+    yesBtn.classList.remove('selected-yes','selected-no');
+  }
+  try { saveDraft(); } catch(e) {}
+}
