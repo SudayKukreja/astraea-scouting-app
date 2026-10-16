@@ -1,0 +1,12 @@
+<header class="dashboard-header">
+  <div class="header-content">
+    <div class="header-left">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Astraea logo" class="header-logo">
+      <h1>{{ heading }}</h1>
+    </div>
+    <div class="header-right">
+      <span class="user-info">{{ session.user_name or session.user_id }}</span>
+      <button onclick="logout()" class="btn btn-ghost">Logout</button>
+    </div>
+  </div>
+</header>

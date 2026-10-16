@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Astraea Scouting - Login{% endblock %}
+{% block content %}
+<div class="center-page">
+  <div class="card login-card">
+    <div class="login-header">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Astraea logo" class="logo-img">
+      <h1 class="app-title">Astraea Scouting</h1>
+      <p class="app-subtitle">Sign in to access your dashboard</p>
+    </div>
+
+    <form id="login-form" class="login-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="submit-btn" id="login-btn">Sign In</button>
+      <div id="login-error" class="error-message" hidden></div>
+    </form>
+
+    <p class="help-text">Need help? Contact your team admin.</p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const errorDiv = document.getElementById('login-error');
+    btn.disabled = true;
+    btn.textContent = 'Signing in...';
+    errorDiv.hidden = true;
+
+    try {
+      const form = new FormData(e.target);
+      const result = await postJSON('/api/login', {
+        username: form.get('username'),
+        password: form.get('password')
+      });
+      window.location.href = result.role === 'admin' ? '/admin' : '/dashboard';
+    } catch (err) {
+      errorDiv.textContent = err.message;
+      errorDiv.hidden = false;
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+</script>
+{% endblock %}
