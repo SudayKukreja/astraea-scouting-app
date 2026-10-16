@@ -1,5 +1,5 @@
-const STATIC_CACHE = 'astraea-static-v20261016-004054';
-const DYNAMIC_CACHE = 'astraea-dynamic-v20261016-004054';
+const STATIC_CACHE = 'astraea-static-v20261016-004838';
+const DYNAMIC_CACHE = 'astraea-dynamic-v20261016-004838';
 
 const STATIC_ASSETS = [
   '/login',

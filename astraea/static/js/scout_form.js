@@ -10,6 +10,7 @@ const checked = id => !!$(id)?.checked;
 const collected = phase => COLLECT_SOURCES.filter(s => checked(`${phase}_collect_${s}`));
 
 let form;
+let preview = false;
 
 function setCounter(id, value) {
   $(id).value = value;
@@ -24,13 +25,14 @@ function setAutoClimb(value) {
 }
 
 function saveDraft() {
-  if (!form) return;
+  if (!form || preview) return;
   const draft = Object.fromEntries(new FormData(form));
   form.querySelectorAll('input[type="checkbox"]').forEach(cb => { draft[cb.name] = cb.checked; });
   localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
 }
 
 function loadDraft() {
+  if (preview) return;
   let draft;
   try {
     draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
@@ -156,10 +158,11 @@ async function sendQueued() {
 
 document.addEventListener('DOMContentLoaded', () => {
   form = $('scout-form');
+  preview = form.dataset.preview === '1';
   const submitBtn = form.querySelector('button[type="submit"]');
 
   $('back-btn').addEventListener('click', () => {
-    if (confirm('Go back? Unsaved changes will be lost.')) window.location.href = '/dashboard';
+    if (confirm('Go back? Unsaved changes will be lost.')) window.location.href = preview ? '/admin' : '/dashboard';
   });
 
   document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => switchToTab(btn.dataset.tab)));
@@ -209,6 +212,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (error) {
       showWarning(error.message);
       if (error.tab) switchToTab(error.tab);
+      return;
+    }
+
+    if (preview) {
+      showWarning('Preview: this report is valid and would submit. Nothing was saved.', 'info');
       return;
     }
 

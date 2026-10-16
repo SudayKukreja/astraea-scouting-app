@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('pit-scout-form');
   const submitBtn = form.querySelector('button[type="submit"]');
   const warning = document.getElementById('form-warning');
+  const preview = form.dataset.preview === '1';
 
   function showWarning(message, type = 'error') {
     warning.className = `form-warning ${type}`;
@@ -17,17 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
     form.querySelectorAll('.error-input').forEach(el => el.classList.remove('error-input'));
   }
 
-  try {
-    const draft = JSON.parse(localStorage.getItem(PIT_DRAFT_KEY)) || {};
-    Object.entries(draft).forEach(([key, value]) => {
-      const el = form.elements[key];
-      if (el && !el.value) el.value = value;
-    });
-  } catch {}
+  if (!preview) {
+    try {
+      const draft = JSON.parse(localStorage.getItem(PIT_DRAFT_KEY)) || {};
+      Object.entries(draft).forEach(([key, value]) => {
+        const el = form.elements[key];
+        if (el && !el.value) el.value = value;
+      });
+    } catch {}
 
-  form.addEventListener('input', () => {
-    localStorage.setItem(PIT_DRAFT_KEY, JSON.stringify(Object.fromEntries(new FormData(form))));
-  });
+    form.addEventListener('input', () => {
+      localStorage.setItem(PIT_DRAFT_KEY, JSON.stringify(Object.fromEntries(new FormData(form))));
+    });
+  }
 
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -42,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (missing.length) {
       showWarning('Please fill out all required fields.');
+      return;
+    }
+
+    if (preview) {
+      showWarning('Preview: this report is valid and would submit. Nothing was saved.', 'info');
       return;
     }
 

@@ -100,11 +100,3 @@ def create_scouter(username, password, name):
 
 def get_all_scouters():
     return {k: v for k, v in load_users().items() if v.get('role') == 'scouter'}
-
-
-def delete_scouter(username):
-    with update_json(USERS_FILE, {}) as users:
-        if users.get(username, {}).get('role') != 'scouter':
-            return False
-        del users[username]
-    return True

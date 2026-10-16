@@ -56,10 +56,15 @@ def scouter_dashboard():
     return render_template('scouter_dashboard.html')
 
 
+def is_preview():
+    return request.args.get('preview') == '1' and current_role() == 'admin'
+
+
 @bp.route('/scout')
 @login_required
 def scout_form():
     return render_template('scout_form.html',
+                           preview=is_preview(),
                            prefill_team=request.args.get('team', ''),
                            prefill_match=request.args.get('match', ''))
 
@@ -70,6 +75,7 @@ def pit_scout_form():
     if current_role() not in ('pit_scouter', 'admin'):
         return redirect('/dashboard')
     return render_template('pit_scout.html',
+                           preview=is_preview(),
                            prefill_team=request.args.get('team', ''),
                            prefill_event=request.args.get('event', ''))
 

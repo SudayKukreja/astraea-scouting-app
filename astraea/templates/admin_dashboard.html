@@ -8,7 +8,8 @@
     <div class="tabs dashboard-tabs">
       <button class="tab-btn active" data-tab="assignments">Match Assignments</button>
       <button class="tab-btn" data-tab="data">Scouting Data</button>
-      <button class="tab-btn" data-tab="scouters">Manage Scouters</button>
+      <button class="tab-btn" data-tab="scouters">Add Scouter</button>
+      <button class="tab-btn" data-tab="preview">Form Preview</button>
       <a class="tab-btn" href="/pit-scout">Pit Scout</a>
     </div>
 
@@ -140,36 +141,38 @@
 
     <section id="scouters" class="tab-content">
       <div class="tab-header">
-        <h2>Manage Scouters</h2>
-        <button onclick="showCreateScouterModal()" class="btn btn-primary">Add New Scouter</button>
+        <h2>Add Scouter</h2>
       </div>
-      <div id="scouters-list" class="scouters-list"></div>
+      <form id="create-scouter-form" class="panel scouter-form">
+        <div class="form-group">
+          <label for="scouter-name">Full Name</label>
+          <input type="text" id="scouter-name" required>
+        </div>
+        <div class="form-group">
+          <label for="scouter-username">Username</label>
+          <input type="text" id="scouter-username" required autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="scouter-password">Password</label>
+          <input type="password" id="scouter-password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn btn-primary">Add Scouter</button>
+      </form>
+    </section>
+
+    <section id="preview" class="tab-content">
+      <div class="tab-header">
+        <h2>Form Preview</h2>
+      </div>
+      <div class="panel">
+        <p class="muted">Open the forms exactly as scouters see them. Validation runs normally, but submissions are not saved and no assignments are marked complete.</p>
+        <div class="button-row">
+          <a href="/scout?preview=1&team=6897&match=1" target="_blank" class="btn btn-primary">Preview Scout Form</a>
+          <a href="/pit-scout?preview=1&team=6897" target="_blank" class="btn btn-ghost">Preview Pit Form</a>
+        </div>
+      </div>
     </section>
   </main>
-</div>
-
-<div id="create-scouter-modal" class="modal" hidden>
-  <div class="modal-content">
-    <h3>Create New Scouter</h3>
-    <form id="create-scouter-form">
-      <div class="form-group">
-        <label for="scouter-name">Full Name</label>
-        <input type="text" id="scouter-name" required>
-      </div>
-      <div class="form-group">
-        <label for="scouter-username">Username</label>
-        <input type="text" id="scouter-username" required>
-      </div>
-      <div class="form-group">
-        <label for="scouter-password">Password</label>
-        <input type="password" id="scouter-password" required>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" onclick="hideCreateScouterModal()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Scouter</button>
-      </div>
-    </form>
-  </div>
 </div>
 {% endblock %}
 {% block scripts %}

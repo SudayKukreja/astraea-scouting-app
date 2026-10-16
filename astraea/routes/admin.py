@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from astraea.auth import admin_required, create_scouter, delete_scouter, get_all_scouters
+from astraea.auth import admin_required, create_scouter, get_all_scouters
 from astraea.routes.scouting import set_home_game_response
 from astraea.services.assignments import (bulk_assign_match, bulk_assign_team_to_scouter, clear_event_assignments,
                                           clear_match_assignments, get_all_assignments, get_match_summary,
@@ -134,18 +134,6 @@ def get_scouters():
     return jsonify(get_all_scouters())
 
 
-@bp.route('/scouter-stats')
-@admin_required
-def get_scouter_stats():
-    stats = {u: {'assigned': 0, 'completed': 0} for u in get_all_scouters()}
-    for a in get_all_assignments().values():
-        s = stats.get(a.get('scouter'))
-        if s:
-            s['assigned'] += 1
-            s['completed'] += bool(a.get('completed'))
-    return jsonify(stats)
-
-
 @bp.route('/create-scouter', methods=['POST'])
 @admin_required
 def create_new_scouter():
@@ -157,14 +145,6 @@ def create_new_scouter():
     if success:
         return jsonify({'success': True, 'message': message})
     return jsonify({'error': message}), 400
-
-
-@bp.route('/scouters/<username>', methods=['DELETE'])
-@admin_required
-def delete_scouter_account(username):
-    if delete_scouter(username):
-        return jsonify({'success': True})
-    return jsonify({'error': 'Scouter not found'}), 404
 
 
 @bp.route('/assign-match', methods=['POST'])

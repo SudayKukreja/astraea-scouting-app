@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Astraea Robotics Scouting{% endblock %}
 {% block content %}
+{% include "_preview_banner.html" %}
 <div class="app-container">
   <div class="card container">
     <div class="app-header">
@@ -14,7 +15,7 @@
     </div>
 
     <div class="app-content">
-      <form id="scout-form">
+      <form id="scout-form"{% if preview %} data-preview="1"{% endif %}>
         <div class="form-section">
           <h2 class="section-title">Scout Information</h2>
           <div class="form-row">

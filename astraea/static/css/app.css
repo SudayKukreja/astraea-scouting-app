@@ -563,13 +563,29 @@ textarea { resize: vertical; min-height: 100px; }
 .assignment-item { padding: 0.45rem 0.75rem; border-radius: 6px; background: var(--surface-input); font-size: 0.9rem; }
 
 .manual-events-list { margin-top: 1.25rem; display: grid; gap: 0.6rem; }
-.manual-event-item, .scouter-card { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-.manual-event-item { padding: 0.85rem 1rem; border-radius: var(--radius-sm); background: var(--surface-input); border: 1px solid var(--border); }
-.manual-event-item h5, .scouter-card h4 { margin: 0 0 0.2rem; color: var(--text); text-transform: none; letter-spacing: normal; }
-.manual-event-item p, .scouter-card p { margin: 0; }
+.manual-event-item { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.85rem 1rem; border-radius: var(--radius-sm); background: var(--surface-input); border: 1px solid var(--border); }
+.manual-event-item h5 { margin: 0 0 0.2rem; color: var(--text); text-transform: none; letter-spacing: normal; }
+.manual-event-item p { margin: 0; }
 
-.scouters-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-.scouter-card { margin-bottom: 0; }
+.scouter-form { max-width: 480px; }
+
+.preview-banner {
+  position: sticky;
+  top: 0;
+  z-index: 950;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 1rem;
+  background: rgba(251, 191, 36, 0.16);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.45);
+  color: var(--warning);
+  font-weight: 600;
+  font-size: 0.9rem;
+  backdrop-filter: blur(12px);
+}
 
 .match-builder { padding: 1rem; margin-bottom: 0.9rem; border-radius: var(--radius-sm); background: rgba(6, 14, 36, 0.4); border: 1px dashed var(--border-strong); }
 .match-title { font-family: var(--font-display); font-weight: 600; }

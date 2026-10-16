@@ -276,56 +276,24 @@ async function clearAllAssignments() {
 
 async function loadScouters() {
   try {
-    const [scouterData, stats] = await Promise.all([getJSON('/api/admin/scouters'), getJSON('/api/admin/scouter-stats')]);
-    scouters = scouterData;
+    scouters = await getJSON('/api/admin/scouters');
     $('bulk-scouter').innerHTML = scouterOptions();
-    const entries = Object.entries(scouters);
-    $('scouters-list').innerHTML = entries.length ? entries.map(([username, s]) => {
-      const st = stats[username] || { completed: 0, assigned: 0 };
-      return `
-        <div class="panel scouter-card">
-          <div>
-            <h4>${esc(s.name)}</h4>
-            <p class="muted">@${esc(username)} &middot; ${st.completed}/${st.assigned} matches completed</p>
-          </div>
-          <button onclick="deleteScouter('${esc(username)}')" class="btn btn-danger btn-sm">Delete</button>
-        </div>`;
-    }).join('') : '<p class="info-text">No scouters found. Create some scouters to get started.</p>';
-  } catch {
-    $('scouters-list').innerHTML = '<p class="error">Error loading scouters. Please refresh the page.</p>';
-  }
-}
-
-function showCreateScouterModal() {
-  $('create-scouter-modal').hidden = false;
-}
-
-function hideCreateScouterModal() {
-  $('create-scouter-modal').hidden = true;
-  $('create-scouter-form').reset();
-}
-
-async function createScouterSubmit(e) {
-  e.preventDefault();
-  try {
-    await postJSON('/api/admin/create-scouter', {
-      name: $('scouter-name').value.trim(),
-      username: $('scouter-username').value.trim(),
-      password: $('scouter-password').value
-    });
-    hideCreateScouterModal();
-    toast('Scouter created successfully!');
-    loadScouters();
   } catch (err) {
     toast(err.message, 'error');
   }
 }
 
-async function deleteScouter(username) {
-  if (!confirm(`Delete scouter "${username}"?`)) return;
+async function createScouterSubmit(e) {
+  e.preventDefault();
   try {
-    await deleteJSON(`/api/admin/scouters/${encodeURIComponent(username)}`);
-    toast('Scouter deleted');
+    const name = $('scouter-name').value.trim();
+    await postJSON('/api/admin/create-scouter', {
+      name,
+      username: $('scouter-username').value.trim(),
+      password: $('scouter-password').value
+    });
+    e.target.reset();
+    toast(`Scouter ${name} added!`);
     loadScouters();
   } catch (err) {
     toast(err.message, 'error');
@@ -623,7 +591,6 @@ function showPanel(selector, id) {
 document.addEventListener('DOMContentLoaded', () => {
   bindTabs('.dashboard-tabs .tab-btn[data-tab]', 'tab', tab => {
     showPanel('.tab-content', tab);
-    if (tab === 'scouters') loadScouters();
     if (tab === 'data') loadData();
   });
   bindTabs('.event-tab-btn', 'eventTab', tab => {
@@ -642,9 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('create-scouter-form').addEventListener('submit', createScouterSubmit);
 
   document.addEventListener('click', e => {
-    if (!e.target.classList.contains('modal')) return;
-    closeModal();
-    hideCreateScouterModal();
+    if (e.target.classList.contains('modal')) closeModal();
   });
 
   addManualMatch();
