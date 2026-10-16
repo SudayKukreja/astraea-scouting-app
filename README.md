@@ -34,20 +34,6 @@ scripts/deploy.ps1      bumps the service worker cache and pushes
 data/                   runtime data (git-ignored)
 ```
 
-## Deploying
-
-Auto-deploy is off on Render, so deploys go through the Render CLI:
-
-```
-winget install Render.CLI
-render login
-./scripts/deploy.ps1
-```
-
-The script bumps the service worker cache, commits, pushes, then runs
-`render deploys create --commit <sha> --wait` and reports whether the deploy went live.
-Tail production logs with `render logs --resources srv-d183m8gdl3ps738p59o0 --tail`.
-
 ## Scouting data
 
 Submissions are saved to `scouting_data.json` and `pit_data.json` in `DATA_DIR`.
