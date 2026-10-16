@@ -1,5 +1,8 @@
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
+$renderServiceId = if ($env:RENDER_SERVICE_ID) { $env:RENDER_SERVICE_ID } else { "srv-d183m8gdl3ps738p59o0" }
+$siteUrl = "https://astraea-scouting-app.onrender.com"
+
 $datetime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 $version = Get-Date -Format "yyyyMMdd-HHmmss"
 $swPath = "astraea/static/js/sw.js"
@@ -39,7 +42,20 @@ try {
     git push origin main
     if ($LASTEXITCODE -ne 0) { throw "Git push failed" }
 
-    Write-Host "`nDeploy completed successfully at $datetime" -ForegroundColor Green
+    if (-not (Get-Command render -ErrorAction SilentlyContinue)) {
+        Write-Host "`nPushed. Render CLI not found; trigger the deploy from the Render dashboard." -ForegroundColor Yellow
+        Write-Host "Install it with: winget install Render.CLI" -ForegroundColor Yellow
+        exit 0
+    }
+
+    $commit = git rev-parse HEAD
+    Write-Host "`nDeploying $($commit.Substring(0, 7)) to Render (waiting until live)..." -ForegroundColor Cyan
+    render deploys create $renderServiceId --commit $commit --wait --output text --confirm
+    if ($LASTEXITCODE -ne 0) {
+        throw "Render deploy failed. Check logs with: render logs --resources $renderServiceId"
+    }
+
+    Write-Host "`nDeploy is live at $siteUrl" -ForegroundColor Green
 } catch {
     Write-Host "`nDeployment failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
