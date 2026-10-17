@@ -22,6 +22,7 @@ Then open http://localhost:5001.
 | `TBA_API_KEY` | The Blue Alliance key, needed only to load event schedules        |
 | `PORT`        | Port to run on (default `5001`; macOS uses 5000 for AirPlay)      |
 | `DATA_DIR`    | Where data is stored (default `data/`)                            |
+| `APP_PASSWORD`| If set, the browser asks for this password (required on Render)   |
 
 ## Pages
 
