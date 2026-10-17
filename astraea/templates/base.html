@@ -1,3 +1,12 @@
+{% set nav = [
+  ('pages.entry', '/', 'Enter Data'),
+  ('pages.pit', '/pit', 'Pit Data'),
+  ('pages.data', '/data', 'Data'),
+  ('analytics.rankings', '/analytics/', 'Rankings'),
+  ('analytics.compare', '/analytics/compare', 'Compare'),
+  ('analytics.match', '/analytics/match', 'Match Lookup'),
+  ('events.index', '/events/', 'Events'),
+] %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,16 +14,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#040a1c">
   <title>{% block title %}Astraea Scouting{% endblock %}</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 </head>
 <body>
   <div class="starfield" aria-hidden="true"></div>
-  {% block content %}{% endblock %}
+  <header class="site-header">
+    <div class="header-content">
+      <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="" class="header-logo">
+        <span>Astraea Scouting</span>
+      </a>
+      <nav class="nav">
+        {% for endpoint, href, label in nav %}
+        <a href="{{ href }}" class="{{ 'active' if request.endpoint == endpoint or (endpoint == 'analytics.rankings' and request.endpoint == 'analytics.team') }}">{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </div>
+  </header>
+  <main class="page">
+    {% block content %}{% endblock %}
+  </main>
   <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <script>
+    {% for category, message in messages %}toast({{ message|tojson }}, {{ category|tojson }});{% endfor %}
+  </script>
+  {% endif %}
+  {% endwith %}
   {% block scripts %}{% endblock %}
 </body>
 </html>

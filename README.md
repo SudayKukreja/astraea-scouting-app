@@ -1,41 +1,43 @@
 # Astraea Scouting
 
-Match and pit scouting app for FRC Team 6897.
+Data entry and analytics for FRC Team 6897's paper scouting. Runs on one Mac, fully offline.
 
-## Running locally
+## Start
+
+Double-click **Start Astraea Scouting.command** (first run needs internet to install packages),
+or from Terminal:
 
 ```
-pip install -r requirements.txt
-python app.py
+python3 -m venv venv
+./venv/bin/pip install -r requirements.txt
+./venv/bin/python app.py
 ```
 
-## Environment variables
+Then open http://localhost:5001.
 
-| Variable      | Purpose                                                        |
-| ------------- | -------------------------------------------------------------- |
-| `SECRET_KEY`  | Flask session secret                                           |
-| `TBA_API_KEY` | The Blue Alliance API key for loading event schedules          |
-| `DATA_DIR`    | Folder for stored data (default `data/`). Point this at a persistent disk in production. |
+## Configuration (`.env`, optional)
+
+| Variable      | Purpose                                                           |
+| ------------- | ----------------------------------------------------------------- |
+| `TBA_API_KEY` | The Blue Alliance key, needed only to load event schedules        |
+| `PORT`        | Port to run on (default `5001`; macOS uses 5000 for AirPlay)      |
+| `DATA_DIR`    | Where data is stored (default `data/`)                            |
+
+## Pages
+
+- **Enter Data / Pit Data**: copy paper sheets in; Save & Next keeps scouter, event and match
+- **Data**: search, sort, edit, delete, and **Download Excel**
+- **Rankings, Compare, Match Lookup**: analytics from entered data
+- **Events**: load schedules from TBA or create them manually; saved for offline use
 
 ## Layout
 
 ```
 app.py                  entry point
 astraea/
-  __init__.py           app factory
-  auth.py               login + role decorators
-  storage.py            locked JSON file storage
-  routes/               pages, scouting, admin, data (spreadsheet + Excel export)
-  services/             assignments, events (TBA + manual), scouting_data
-  reference/            team names and scouter roster
-  templates/
-  static/css, js, img
-scripts/deploy.ps1      bumps the service worker cache and pushes
-data/                   runtime data (git-ignored)
+  routes/               pages, data API, events, analytics
+  services/             scouting_data, analytics, events, tba
+  reference/            team names
+  templates/  static/
+data/                   your scouting data (back this folder up)
 ```
-
-## Scouting data
-
-Submissions are saved to `scouting_data.json` and `pit_data.json` in `DATA_DIR`.
-Admins can browse, search, sort, and delete entries under **Scouting Data**, and
-download everything as an `.xlsx` workbook with **Download Excel**.

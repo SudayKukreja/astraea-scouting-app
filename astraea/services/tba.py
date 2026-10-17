@@ -1,51 +1,38 @@
 import os
-import time
 
 import requests
 
-CACHE_SECONDS = 120
+BASE_URL = 'https://www.thebluealliance.com/api/v3'
 
 
-class TBAClient:
-    def __init__(self, api_key=None):
-        self.api_key = api_key or os.environ.get('TBA_API_KEY', '')
-        self.base_url = 'https://www.thebluealliance.com/api/v3'
-        self.headers = {
-            'X-TBA-Auth-Key': self.api_key,
-            'User-Agent': 'AstraeaScoutingApp/1.0'
-        }
-        self._cache = {}
-        if not self.api_key:
-            print('WARNING: TBA_API_KEY not set')
+class TBAError(Exception):
+    pass
 
-    def get_event_matches(self, event_key):
-        cached = self._cache.get(event_key)
-        if cached and time.time() - cached[0] < CACHE_SECONDS:
-            return cached[1]
 
-        try:
-            response = requests.get(f'{self.base_url}/event/{event_key}/matches', headers=self.headers, timeout=10)
-        except requests.RequestException as e:
-            print(f'Error fetching matches for {event_key}: {e}')
-            return cached[1] if cached else []
+def _get(path):
+    api_key = os.environ.get('TBA_API_KEY', '')
+    if not api_key:
+        raise TBAError('TBA_API_KEY is not set. Add it to the .env file.')
+    try:
+        response = requests.get(f'{BASE_URL}{path}', timeout=10,
+                                headers={'X-TBA-Auth-Key': api_key, 'User-Agent': 'AstraeaScoutingApp/2.0'})
+    except requests.RequestException:
+        raise TBAError('Could not reach The Blue Alliance. Check the internet connection.')
+    if response.status_code == 404:
+        raise TBAError('Event not found on The Blue Alliance.')
+    if response.status_code != 200:
+        raise TBAError(f'The Blue Alliance returned an error ({response.status_code}).')
+    return response.json()
 
-        if response.status_code != 200:
-            print(f'TBA API Error: {response.status_code} - {response.text}')
-            return []
 
-        matches = []
-        for match in response.json():
-            if match['comp_level'] != 'qm':
-                continue
-            red = [t.replace('frc', '') for t in match['alliances']['red']['team_keys']]
-            blue = [t.replace('frc', '') for t in match['alliances']['blue']['team_keys']]
-            matches.append({
-                'key': match['key'],
-                'match_number': match['match_number'],
-                'red_teams': red,
-                'blue_teams': blue,
-                'all_teams': red + blue
-            })
-        matches.sort(key=lambda m: m['match_number'])
-        self._cache[event_key] = (time.time(), matches)
-        return matches
+def fetch_event(event_key):
+    event = _get(f'/event/{event_key}/simple')
+    matches = []
+    for match in _get(f'/event/{event_key}/matches/simple'):
+        if match['comp_level'] != 'qm':
+            continue
+        red = [t.replace('frc', '') for t in match['alliances']['red']['team_keys']]
+        blue = [t.replace('frc', '') for t in match['alliances']['blue']['team_keys']]
+        matches.append({'match_number': match['match_number'], 'red_teams': red, 'blue_teams': blue})
+    matches.sort(key=lambda m: m['match_number'])
+    return event.get('name', event_key), matches

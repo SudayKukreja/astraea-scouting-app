@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Data - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header row-between">
+  <h1>Scouting Data</h1>
+  <a href="/api/export.xlsx" class="btn btn-primary">Download Excel</a>
+</div>
+
+<div class="panel">
+  <div class="tabs sub-tabs">
+    <button class="tab-btn data-kind-btn" data-kind="match">Match Data</button>
+    <button class="tab-btn data-kind-btn" data-kind="pit">Pit Data</button>
+  </div>
+  <div class="inline-form">
+    <div class="form-group">
+      <label for="data-search">Search</label>
+      <input type="text" id="data-search" placeholder="Team, scouter, notes...">
+    </div>
+    <div class="form-group">
+      <label for="data-event">Event</label>
+      <select id="data-event"><option value="">All events</option></select>
+    </div>
+    <div class="form-group">
+      <label for="data-team">Team</label>
+      <select id="data-team"><option value="">All teams</option></select>
+    </div>
+  </div>
+  <p id="data-count" class="muted"></p>
+</div>
+
+<div class="sheet-wrapper">
+  <table id="data-table" class="sheet"></table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/data.js') }}"></script>
+{% endblock %}

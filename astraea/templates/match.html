@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat %}
+{% set lookup_cols = [('matches', 'Matches', ''), ('avg_points', 'Avg Pts', ''), ('avg_auto_fuel', 'Auto Fuel', ''),
+                      ('avg_teleop_fuel', 'Teleop Fuel', ''), ('climb_rate', 'Climb', '%'), ('best_climb', 'Best Climb', ''),
+                      ('avg_defense', 'Defense', ''), ('role', 'Role', '')] %}
+{% block title %}Match Lookup - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Match Lookup</h1>
+  <p class="muted">See every team in a scheduled match. Stats use all entered data across events.</p>
+</div>
+
+{% if not stored_events %}
+<div class="panel empty-state">
+  <p>No schedules saved yet. <a href="/events/">Load or create an event</a> first.</p>
+</div>
+{% else %}
+<form method="get" class="panel inline-form">
+  <div class="form-group">
+    <label for="schedule">Event</label>
+    <select id="schedule" name="schedule">
+      {% for e in stored_events %}
+      <option value="{{ e.key }}" {{ 'selected' if e.key == schedule_event }}>{{ e.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="match">Match # (1-{{ total }})</label>
+    <input type="number" id="match" name="match" min="1" max="{{ total }}" value="{{ match_number or '' }}" required>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" name="exclude_partial" value="1" {{ 'checked' if filters.exclude_partial }}>
+    Hide partial matches
+  </label>
+  <button class="btn btn-primary">Look Up</button>
+  {% if match_number %}
+  {% set base = '?schedule=' ~ (schedule_event|urlencode) ~ ('&exclude_partial=1' if filters.exclude_partial else '') %}
+  <div class="button-row">
+    {% if match_number > 1 %}<a href="{{ base }}&match={{ match_number - 1 }}" class="btn btn-ghost">&larr; Prev</a>{% endif %}
+    {% if match_number < total %}<a href="{{ base }}&match={{ match_number + 1 }}" class="btn btn-ghost">Next &rarr;</a>{% endif %}
+  </div>
+  {% endif %}
+</form>
+
+{% if match_number and not result %}
+<div class="panel empty-state"><p>Match {{ match_number }} is not in this schedule.</p></div>
+{% elif result %}
+<div class="alliances">
+  {% for color in ['red', 'blue'] %}
+  {% set side = result[color] %}
+  <div class="panel alliance-panel {{ color }}">
+    <div class="row-between">
+      <h2>{{ color|capitalize }} Alliance</h2>
+      <div class="expected">
+        <span class="stat-number">{{ side.expected }}</span>
+        <span class="stat-label">Expected pts{% if side.missing %} ({{ side.missing }} unscouted){% endif %}</span>
+      </div>
+    </div>
+    <div class="sheet-wrapper">
+      <table class="sheet">
+        <thead>
+          <tr><th>Team</th>{% for _, label, _ in lookup_cols %}<th>{{ label }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for t in side.teams %}
+          <tr>
+            <td><a href="/analytics/team/{{ t.team }}">{{ t.team }}</a><div class="th-sub">{{ t.team_name }}</div></td>
+            {% if t.stats %}
+            {% for key, _, suffix in lookup_cols %}<td>{{ stat(t.stats[key], suffix) }}</td>{% endfor %}
+            {% else %}
+            <td colspan="{{ lookup_cols|length }}" class="muted">No data yet</td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+<div class="button-row">
+  <a href="/analytics/compare?{% for side in [result.red, result.blue] %}{% for t in side.teams %}team={{ t.team }}&{% endfor %}{% endfor %}" class="btn btn-ghost">Compare all six</a>
+</div>
+<p class="muted">Expected points is the sum of each team's average. It ignores defense and alliance interactions.</p>
+{% endif %}
+{% endif %}
+{% endblock %}

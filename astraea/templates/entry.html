@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% from "_macros.html" import event_options %}
+{% set collect = [('neutral', 'Neutral Zone'), ('outpost', 'Outpost'), ('depot', 'Depot'), ('preloaded', 'Preloaded')] %}
+{% block title %}{{ 'Edit Entry' if editing else 'Enter Match Data' }} - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Edit Match Entry' if editing else 'Enter Match Data' }}</h1>
+  <p class="muted">Copy one paper sheet at a time. <kbd>Ctrl</kbd>/<kbd>&#8984;</kbd> + <kbd>Enter</kbd> saves.</p>
+</div>
+
+<form id="entry-form" class="entry-grid" autocomplete="off">
+  <section class="panel">
+    <h2 class="section-title">Match</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="scouter">Scouter</label>
+        <input type="text" id="scouter" name="scouter" placeholder="Name on the sheet">
+      </div>
+      <div class="form-group">
+        <label for="event">Event</label>
+        <select id="event" name="event">{{ event_options(events, current_event) }}</select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="match">Match #</label>
+        <input type="number" id="match" name="match" min="1" inputmode="numeric" required>
+      </div>
+      <div class="form-group">
+        <label for="team">Team #</label>
+        <input type="number" id="team" name="team" min="1" inputmode="numeric" required>
+      </div>
+    </div>
+    <div id="team-picker" class="team-picker" hidden></div>
+    <p id="team-name" class="muted team-name"></p>
+  </section>
+
+  <section class="panel">
+    <h2 class="section-title">Auto</h2>
+    <div class="segmented" role="radiogroup" aria-label="Auto status">
+      <label><input type="radio" name="auto_status" value="active" checked><span>Active</span></label>
+      <label><input type="radio" name="auto_status" value="moved_no_score"><span>Moved, no score</span></label>
+      <label><input type="radio" name="auto_status" value="no_move"><span>Didn't move</span></label>
+    </div>
+    <fieldset class="auto-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="auto_fuel_scored">Fuel scored</label>
+          <input type="number" id="auto_fuel_scored" name="auto_fuel_scored" min="0" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="auto_fuel_missed">Fuel missed</label>
+          <input type="number" id="auto_fuel_missed" name="auto_fuel_missed" min="0" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+      <p class="field-label">Collected from</p>
+      <div class="chip-group">
+        {% for value, label in collect %}
+        <label class="chip"><input type="checkbox" name="auto_collect" value="{{ value }}"><span>{{ label }}</span></label>
+        {% endfor %}
+      </div>
+      <label class="chip chip-wide"><input type="checkbox" name="auto_climb"><span>Climbed L1 in auto (+15)</span></label>
+    </fieldset>
+  </section>
+
+  <section class="panel">
+    <h2 class="section-title">Teleop</h2>
+    <label class="chip chip-wide"><input type="checkbox" name="teleop_no_move"><span>Did not move in teleop</span></label>
+    <fieldset class="teleop-fields">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="teleop_fuel_scored">Fuel scored</label>
+          <input type="number" id="teleop_fuel_scored" name="teleop_fuel_scored" min="0" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="teleop_fuel_missed">Fuel missed</label>
+          <input type="number" id="teleop_fuel_missed" name="teleop_fuel_missed" min="0" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+      <p class="field-label">Collected from</p>
+      <div class="chip-group">
+        {% for value, label in collect %}
+        <label class="chip"><input type="checkbox" name="teleop_collect" value="{{ value }}"><span>{{ label }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <div class="chip-group">
+      <label class="chip"><input type="checkbox" name="can_cross_bump"><span>Crosses BUMP</span></label>
+      <label class="chip"><input type="checkbox" name="can_cross_trench"><span>Crosses TRENCH</span></label>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="robot_role">Role</label>
+        <select id="robot_role" name="robot_role">
+          <option value="">-</option>
+          <option value="offense">Offense</option>
+          <option value="defense">Defense</option>
+          <option value="feeder">Feeder</option>
+          <option value="mix">Mix</option>
+        </select>
+      </div>
+      <div class="form-group" id="offense-field" hidden>
+        <label for="offense_rating">Offense (0-5)</label>
+        <input type="number" id="offense_rating" name="offense_rating" min="0" max="5" inputmode="numeric">
+      </div>
+      <div class="form-group" id="defense-field" hidden>
+        <label for="defense_rating">Defense (0-5)</label>
+        <input type="number" id="defense_rating" name="defense_rating" min="0" max="5" inputmode="numeric">
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="section-title">Endgame</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="climb">Tower climb</label>
+        <select id="climb" name="climb">
+          <option value="none">Didn't climb</option>
+          <option value="level1">L1 - low rung (10)</option>
+          <option value="level2">L2 - mid rung (20)</option>
+          <option value="level3">L3 - high rung (30)</option>
+        </select>
+      </div>
+    </div>
+    <div class="chip-group">
+      <label class="chip" id="climb-success-field" hidden><input type="checkbox" name="climb_success"><span>Climb successful</span></label>
+      <label class="chip"><input type="checkbox" name="partial_match"><span>Partial match / shutdown</span></label>
+    </div>
+    <div class="form-group">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="3"></textarea>
+    </div>
+  </section>
+
+  <div class="entry-actions">
+    <div id="form-warning" class="form-warning" hidden></div>
+    <div class="button-row">
+      {% if editing %}
+      <a href="/data" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary btn-lg">Save Changes</button>
+      {% else %}
+      <button type="button" id="clear-btn" class="btn btn-ghost">Clear</button>
+      <button type="submit" class="btn btn-primary btn-lg">Save &amp; Next</button>
+      {% endif %}
+    </div>
+  </div>
+</form>
+
+{% if not editing %}
+<section class="panel recent" id="recent-panel" hidden>
+  <h2 class="section-title">Saved this session</h2>
+  <ul id="recent-list" class="recent-list"></ul>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  const EDITING = {{ editing|tojson }};
+  const SCHEDULE = {{ schedule|tojson }};
+  const CURRENT_EVENT = {{ current_event|tojson }};
+  const TEAM_NAMES = {{ team_names|tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/entry.js') }}"></script>
+{% endblock %}

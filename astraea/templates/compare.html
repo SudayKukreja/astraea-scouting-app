@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import filter_bar, stat %}
+{% block title %}Compare Teams - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Compare Teams</h1>
+  <p class="muted">Pick 2 to 6 teams. The best value in each row is highlighted.</p>
+</div>
+
+<form method="get" class="panel">
+  {% if filters.event %}<input type="hidden" name="event" value="{{ filters.event }}">{% endif %}
+  {% if filters.exclude_partial %}<input type="hidden" name="exclude_partial" value="1">{% endif %}
+  <div class="inline-form">
+    <div class="form-group">
+      <label for="teams">Team numbers</label>
+      <input type="text" id="teams" name="teams" value="{{ teams|join(', ') }}" placeholder="e.g. 254, 1678, 6897">
+    </div>
+    <button class="btn btn-primary">Compare</button>
+  </div>
+  {% if all_teams %}
+  <p class="muted quick-add">Teams with data:
+    {% for t in all_teams %}<button type="button" class="link-btn" data-add="{{ t }}">{{ t }}</button>{% endfor %}
+  </p>
+  {% endif %}
+</form>
+
+{% set extra %}{% for t in teams %}<input type="hidden" name="team" value="{{ t }}">{% endfor %}{% endset %}
+{{ filter_bar(filters, data_events, extra) }}
+
+{% if rows %}
+<div class="sheet-wrapper">
+  <table class="sheet compare-table">
+    <thead>
+      <tr>
+        <th>Stat</th>
+        {% for r in rows %}
+        <th><a href="/analytics/team/{{ r.team }}">{{ r.team }}</a><div class="th-sub">{{ r.team_name }}</div></th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for key, label, suffix in columns %}
+      <tr>
+        <td>{{ label }}</td>
+        {% for r in rows %}
+        {% set value = r.stats[key] if r.stats else none %}
+        <td class="{{ 'best' if key in best and value == best[key] }}">{{ stat(value, suffix) if r.stats else 'No data' }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-add]').forEach(btn => btn.addEventListener('click', () => {
+    const input = document.getElementById('teams');
+    const teams = input.value.split(/[^0-9]+/).filter(Boolean);
+    if (!teams.includes(btn.dataset.add)) teams.push(btn.dataset.add);
+    input.value = teams.join(', ');
+  }));
+</script>
+{% endblock %}

@@ -1,66 +1,94 @@
+import re
 from datetime import datetime
 
-from astraea.services.tba import TBAClient
+from astraea.services import tba
 from astraea.storage import load_json, update_json
 
-MANUAL_EVENTS_FILE = 'manual_events.json'
-
-tba_client = TBAClient()
-
-
-def _clean(teams):
-    return [str(t).strip() for t in teams if str(t).strip()]
+EVENTS_FILE = 'events.json'
+SETTINGS_FILE = 'settings.json'
 
 
-def create_manual_event(event_name, matches_data):
-    event_key = f"manual_{event_name.lower().replace(' ', '_')}"
-    matches = []
-    for i, m in enumerate(matches_data, 1):
-        red, blue = _clean(m.get('red_teams', [])), _clean(m.get('blue_teams', []))
-        matches.append({'match_number': i, 'red_teams': red, 'blue_teams': blue, 'all_teams': red + blue})
-
-    with update_json(MANUAL_EVENTS_FILE, {}) as events:
-        events[event_key] = {
-            'name': event_name,
-            'key': event_key,
-            'created_at': datetime.now().isoformat(),
-            'matches': matches,
-            'is_manual': True
-        }
-    return event_key
+class ScheduleError(ValueError):
+    pass
 
 
-def get_manual_event_matches(event_key):
-    return load_json(MANUAL_EVENTS_FILE, {}).get(event_key, {}).get('matches', [])
+def list_events():
+    events = load_json(EVENTS_FILE, {})
+    return sorted(events.values(), key=lambda e: e.get('created_at', ''), reverse=True)
 
 
-def list_manual_events():
-    return [
-        {
+def get_event(event_key):
+    return load_json(EVENTS_FILE, {}).get(event_key)
+
+
+def get_matches(event_key):
+    event = get_event(event_key) if event_key else None
+    return event['matches'] if event else []
+
+
+def get_match(event_key, match_number):
+    return next((m for m in get_matches(event_key) if m['match_number'] == match_number), None)
+
+
+def _store(key, name, source, matches):
+    with update_json(EVENTS_FILE, {}) as events:
+        events[key] = {
             'key': key,
-            'name': event['name'],
-            'created_at': event.get('created_at', ''),
-            'match_count': len(event.get('matches', []))
+            'name': name,
+            'source': source,
+            'matches': matches,
+            'created_at': datetime.now().isoformat(timespec='seconds')
         }
-        for key, event in load_json(MANUAL_EVENTS_FILE, {}).items()
-    ]
+    set_current_event(key)
 
 
-def delete_manual_event(event_key):
-    with update_json(MANUAL_EVENTS_FILE, {}) as events:
-        return events.pop(event_key, None) is not None
+def load_tba_event(event_key):
+    event_key = event_key.strip().lower()
+    name, matches = tba.fetch_event(event_key)
+    _store(event_key, name, 'tba', matches)
+    return name, len(matches)
 
 
-def is_manual_event(event_key):
-    return event_key.startswith('manual_')
+def parse_schedule(text):
+    matches = []
+    for i, line in enumerate((l.strip() for l in text.splitlines() if l.strip()), 1):
+        found = re.match(r'red:\s*(.+?)\s*vs\.?\s*blue:\s*(.+)$', line, re.IGNORECASE)
+        if found:
+            red, blue = (re.findall(r'\d+', part) for part in found.groups())
+        else:
+            teams = re.findall(r'\d+', line)
+            if len(teams) != 6:
+                raise ScheduleError(f'Line {i}: expected 6 team numbers, found {len(teams)}')
+            red, blue = teams[:3], teams[3:]
+        if not red or not blue:
+            raise ScheduleError(f'Line {i}: both alliances need at least one team')
+        matches.append({'match_number': len(matches) + 1, 'red_teams': red, 'blue_teams': blue})
+    if not matches:
+        raise ScheduleError('Enter at least one match')
+    return matches
 
 
-def get_event_matches(event_key):
-    if is_manual_event(event_key):
-        return get_manual_event_matches(event_key)
-    return tba_client.get_event_matches(event_key)
+def create_manual_event(name, schedule_text):
+    name = name.strip()
+    if not name:
+        raise ScheduleError('Event name is required')
+    matches = parse_schedule(schedule_text)
+    key = 'manual_' + re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
+    _store(key, name, 'manual', matches)
+    return key, len(matches)
 
 
-def get_event_teams(event_key):
-    teams = {t for m in get_event_matches(event_key) for t in m['all_teams']}
-    return sorted(teams, key=lambda t: int(t) if t.isdigit() else 0)
+def delete_event(event_key):
+    with update_json(EVENTS_FILE, {}) as events:
+        events.pop(event_key, None)
+    if get_current_event() == event_key:
+        set_current_event('')
+
+
+def get_current_event():
+    return load_json(SETTINGS_FILE, {}).get('current_event', '')
+
+
+def set_current_event(event_key):
+    with update_json(SETTINGS_FILE, {}) as settings:
+        settings['current_event'] = event_key

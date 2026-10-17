@@ -1,0 +1,29 @@
+{% macro event_options(events, selected, blank='No event') %}
+<option value="">{{ blank }}</option>
+{% for e in events %}
+<option value="{{ e.key }}" {{ 'selected' if e.key == selected }}>{{ e.name }} ({{ e.key }})</option>
+{% endfor %}
+{% endmacro %}
+
+{% macro filter_bar(filters, data_events, extra='') %}
+<form method="get" class="panel inline-form filter-bar">
+  {{ extra }}
+  <div class="form-group">
+    <label for="filter-event">Event</label>
+    <select id="filter-event" name="event" onchange="this.form.submit()">
+      <option value="">All events</option>
+      {% for e in data_events %}
+      <option value="{{ e }}" {{ 'selected' if e == filters.event }}>{{ e }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <label class="toggle">
+    <input type="checkbox" name="exclude_partial" value="1" {{ 'checked' if filters.exclude_partial }} onchange="this.form.submit()">
+    Hide partial matches
+  </label>
+</form>
+{% endmacro %}
+
+{% macro stat(value, suffix='') %}{{ '-' if value is none else value ~ suffix }}{% endmacro %}
+
+{% macro filter_query(filters) %}{% if filters.event %}&event={{ filters.event|urlencode }}{% endif %}{% if filters.exclude_partial %}&exclude_partial=1{% endif %}{% endmacro %}

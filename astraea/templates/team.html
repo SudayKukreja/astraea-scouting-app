@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% from "_macros.html" import filter_bar, stat %}
+{% set tiles = [
+  ('avg_points', 'Avg Points', ''), ('max_points', 'Best Match', ''), ('avg_auto_fuel', 'Auto Fuel', ''),
+  ('avg_teleop_fuel', 'Teleop Fuel', ''), ('accuracy', 'Accuracy', '%'), ('climb_rate', 'Climb Rate', '%'),
+  ('auto_climb_rate', 'Auto Climb', '%'), ('consistency', 'Std Dev', ''),
+] %}
+{% block title %}Team {{ team }} - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header row-between">
+  <div>
+    <h1>Team {{ team }}</h1>
+    {% if detail and detail.team_name %}<p class="muted">{{ detail.team_name }}</p>{% endif %}
+  </div>
+  <a href="/analytics/compare?team={{ team }}" class="btn btn-ghost">Compare with...</a>
+</div>
+
+{{ filter_bar(filters, data_events) }}
+
+{% if not detail %}
+<div class="panel empty-state"><p>No match data for team {{ team }} with these filters.</p></div>
+{% else %}
+{% set s = detail.stats %}
+<div class="stat-grid">
+  {% for key, label, suffix in tiles %}
+  <div class="stat-item">
+    <span class="stat-number">{{ stat(s[key], suffix) }}</span>
+    <span class="stat-label">{{ label }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <div class="row-between">
+    <h2 class="section-title">Points per Match</h2>
+    <span class="muted">{{ s.matches }} matches &middot; main role {{ s.role }}{% if s.partial_matches %} &middot; {{ s.partial_matches }} partial{% endif %}</span>
+  </div>
+  <div id="points-chart" class="chart"></div>
+</div>
+
+<div class="three-col">
+  <div class="panel">
+    <h2 class="section-title">Tower Climbs</h2>
+    <ul class="bar-list">
+      {% for label, count in detail.climbs %}
+      <li><span>{{ label }}</span><span class="bar" style="--pct: {{ (count / s.matches * 100)|round }}%"></span><strong>{{ count }}</strong></li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="panel">
+    <h2 class="section-title">Collects From</h2>
+    {% if detail.collect %}
+    <ul class="bar-list">
+      {% for label, count in detail.collect %}
+      <li><span>{{ label }}</span><span class="bar" style="--pct: {{ (count / (s.matches * 2) * 100)|round }}%"></span><strong>{{ count }}</strong></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="muted">No collection data.</p>{% endif %}
+  </div>
+  <div class="panel">
+    <h2 class="section-title">Pit Scouting</h2>
+    {% for p in detail.pit %}
+    <dl class="facts">
+      <dt>Drivebase</dt><dd>{{ p.drivebase or '-' }}</dd>
+      <dt>Cycle time</dt><dd>{{ stat(p.avg_cycle_time, ' s') }}</dd>
+      {% if p.notes %}<dt>Notes</dt><dd>{{ p.notes }}</dd>{% endif %}
+    </dl>
+    {% else %}<p class="muted">No pit data. <a href="/pit">Add it</a></p>{% endfor %}
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="section-title">Matches</h2>
+  <div class="sheet-wrapper">
+    <table class="sheet sortable">
+      <thead>
+        <tr>
+          <th>Event</th><th>Match</th><th>Points</th><th>Auto</th><th>Auto Fuel</th><th>Teleop Fuel</th>
+          <th>Role</th><th>Climb</th><th>Scouter</th><th>Notes</th><th class="no-sort"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in detail.matches %}
+        <tr class="{{ 'partial' if m.partial_match }}">
+          <td>{{ m.event or '-' }}</td>
+          <td data-sort="{{ m.match }}">{{ m.match }}</td>
+          <td data-sort="{{ m.points }}">{{ m.points }}</td>
+          <td>{{ m.auto_status_label }}{{ ' + climb' if m.auto_climb }}</td>
+          <td data-sort="{{ m.auto_fuel_scored }}">{{ m.auto_fuel_scored }} / {{ m.auto_fuel_scored + m.auto_fuel_missed }}</td>
+          <td data-sort="{{ m.teleop_fuel_scored }}">{{ m.teleop_fuel_scored }} / {{ m.teleop_fuel_scored + m.teleop_fuel_missed }}</td>
+          <td>{{ m.role_label }}</td>
+          <td>{{ m.climb_label }}{% if m.climb != 'none' %} {{ '&check;'|safe if m.climb_success else '&cross;'|safe }}{% endif %}</td>
+          <td>{{ m.scouter or '-' }}</td>
+          <td class="wrap">{{ m.notes }}</td>
+          <td><a href="/?edit={{ m.id }}" class="btn btn-ghost btn-xs">Edit</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Fuel shown as scored / attempted. Highlighted rows are partial matches.</p>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if detail %}
+<script>
+  barChart(document.getElementById('points-chart'),
+    {{ detail.matches|map(attribute='match')|list|tojson }},
+    {{ detail.matches|map(attribute='points')|list|tojson }},
+    {{ detail.stats.avg_points|tojson }});
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import event_options %}
+{% block title %}Events - Astraea Scouting{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Events</h1>
+  <p class="muted">Schedules are saved on this computer, so they work offline once loaded. The current event is pre-selected when entering data and used for team buttons and match lookup.</p>
+</div>
+
+<div class="panel">
+  <h2 class="section-title">Current Event</h2>
+  <form method="post" action="/events/current" class="inline-form">
+    <div class="form-group">
+      <label for="current">Event</label>
+      <select id="current" name="event_key">{{ event_options(events, current_event, 'None') }}</select>
+    </div>
+    <button class="btn btn-primary">Set Current</button>
+  </form>
+</div>
+
+<div class="two-col">
+  <div class="panel">
+    <h2 class="section-title">Load from The Blue Alliance</h2>
+    <p class="muted">Needs internet and a TBA API key. Do this before the competition.</p>
+    <form method="post" action="/events/tba" class="inline-form">
+      <div class="form-group">
+        <label for="event_key">Event key</label>
+        <input type="text" id="event_key" name="event_key" placeholder="e.g. 2026njfla" required>
+      </div>
+      <button class="btn btn-primary">Load Schedule</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2 class="section-title">Create Manually</h2>
+    <p class="muted">One match per line: three red teams then three blue teams, e.g. <code>254,148,1323,2468,2471,5940</code> or <code>Red: 254, 148, 1323 vs Blue: 2468, 2471, 5940</code>.</p>
+    <form method="post" action="/events/manual">
+      <div class="form-group">
+        <label for="name">Event name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="form-group">
+        <label for="schedule">Schedule</label>
+        <textarea id="schedule" name="schedule" rows="6" class="mono" required></textarea>
+      </div>
+      <button class="btn btn-primary">Create Event</button>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <h2 class="section-title">Saved Events</h2>
+  {% if events %}
+  <div class="event-list">
+    {% for e in events %}
+    <div class="event-item">
+      <div>
+        <h3>{{ e.name }} {% if e.key == current_event %}<span class="badge">Current</span>{% endif %}</h3>
+        <p class="muted">{{ e.key }} &middot; {{ e.matches|length }} matches &middot; {{ 'The Blue Alliance' if e.source == 'tba' else 'Manual' }}</p>
+      </div>
+      <div class="button-row">
+        <a href="/analytics/match?schedule={{ e.key|urlencode }}&match=1" class="btn btn-ghost btn-sm">View Matches</a>
+        <form method="post" action="/events/{{ e.key }}/delete" onsubmit='return confirm({{ ("Delete " ~ e.name ~ "? Scouting data is kept.")|tojson }})'>
+          <button class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="info-text">No events yet. Load one from The Blue Alliance or create one manually.</p>
+  {% endif %}
+</div>
+{% endblock %}
